@@ -6,10 +6,10 @@ import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-export default function OnboardingScreen() {
+export default function OnboardingOneScreen() {
   const router = useRouter();
 
-  const goNext = () => router.replace('/(tabs)');
+  const goNext = () => router.replace('/onboarding-two');
 
   return (
     <ThemedView style={styles.container}>
@@ -30,7 +30,7 @@ export default function OnboardingScreen() {
             accessibilityRole="button"
             accessibilityLabel="Skip"
             hitSlop={12}
-            onPress={goNext}
+            onPress={() => router.replace('/(tabs)')}
             style={styles.headerSide}>
             <ThemedText style={styles.headerAction}>Skip</ThemedText>
           </Pressable>
@@ -81,13 +81,16 @@ export default function OnboardingScreen() {
 
           <ThemedText style={styles.title}>Real-Time Monitoring</ThemedText>
           <ThemedText style={styles.subtitle}>
-            Monitor your child’s location, movement, and{'\n'}vital signals in real time using intelligent sensor
-            technology.
+            Monitor your child’s location, movement, and vital signals in real time using intelligent sensor technology.
           </ThemedText>
         </View>
 
         <View style={styles.footer}>
-          
+          <View style={styles.dots}>
+            <View style={styles.dot} />
+            <View style={[styles.dot, styles.dotActive]} />
+            <View style={styles.dot} />
+          </View>
 
           <Pressable accessibilityRole="button" onPress={goNext} style={styles.button}>
             <ThemedText style={styles.buttonText}>Next</ThemedText>
@@ -119,25 +122,19 @@ const styles = StyleSheet.create({
     height: 36,
     justifyContent: 'center',
   },
-  headerIcon: {
-    fontSize: 28,
-    lineHeight: 28,
-    color: '#0B2D5B',
-  },
   headerCenter: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerLogo: {
-    width: 100,
-    height: 100,
+    width: 72,
+    height: 72,
   },
   headerAction: {
     textAlign: 'right',
     fontSize: 14,
     fontWeight: '600',
     color: '#0B2D5B',
-    marginRight: 20, 
   },
   content: {
     flex: 1,
@@ -157,7 +154,7 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 8,
-    position: 'relative',
+    marginTop: 12,
   },
   hero: {
     width: '100%',
@@ -170,7 +167,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   infoCardHeart: {
-    marginTop: -89,
+    marginTop: -40,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingVertical: 10,
@@ -225,7 +222,7 @@ const styles = StyleSheet.create({
   infoCardLocation: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    paddingVertical: 0,
+    paddingVertical: 10,
     paddingHorizontal: 14,
   },
   locRow: {
@@ -242,13 +239,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   locIconImg: {
-    width: 35,
-    height: 35,
-  },
-  locIconText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
+    width: 24,
+    height: 24,
   },
   locText: {
     flex: 1,
@@ -272,9 +264,9 @@ const styles = StyleSheet.create({
     color: '#16A34A',
   },
   title: {
-    marginTop: 79,
-    fontSize: 34,
-    lineHeight: 40,
+    marginTop: 32,
+    fontSize: 32,
+    lineHeight: 38,
     fontWeight: '800',
     textAlign: 'center',
     color: '#0B2D5B',
@@ -282,15 +274,15 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 12,
     fontSize: 12.5,
-    lineHeight: 17,
+    lineHeight: 18,
     textAlign: 'center',
     color: '#0B2D5B',
     opacity: 0.9,
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
   },
   footer: {
     paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingBottom: 12,
     alignItems: 'center',
   },
   dots: {

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 
@@ -11,7 +11,7 @@ export default function SplashScreen() {
 
   useEffect(() => {
     const t = setTimeout(() => {
-      router.replace('/onboarding');
+      router.replace('/onboarding-one');
     }, 1200);
 
     return () => clearTimeout(t);
@@ -38,6 +38,10 @@ export default function SplashScreen() {
         <View style={styles.dot} />
         <View style={styles.dot} />
       </View>
+
+      <Pressable onPress={() => router.replace('/onboarding-one')}>
+        <ThemedText style={styles.skipText}>Skip</ThemedText>
+      </Pressable>
     </ThemedView>
   );
 }
@@ -57,8 +61,8 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: 240,
-    height: 240,
-    marginTop: 24,
+    height: 150,
+    marginTop: 13,
   },
   tagline: {
     marginTop: 24,
@@ -84,6 +88,11 @@ const styles = StyleSheet.create({
     width: 26,
     backgroundColor: '#FFFFFF',
     opacity: 1,
+  },
+  skipText: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#0B2D5B',
   },
 });
 
