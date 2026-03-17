@@ -10,7 +10,8 @@ import { ThemedView } from '@/components/themed-view';
 export default function OnboardingTwoScreen() {
   const router = useRouter();
 
-  const goNext = () => router.replace('/(tabs)');
+  const goNext = () => router.push('/onboarding-three');
+  const goSkip = () => router.push('/onboarding-three');
   const goBack = () => router.back();
 
   return (
@@ -39,7 +40,7 @@ export default function OnboardingTwoScreen() {
             accessibilityRole="button"
             accessibilityLabel="Skip"
             hitSlop={12}
-            onPress={goNext}
+            onPress={goSkip}
             style={styles.headerSide}>
             <ThemedText style={styles.headerAction}>Skip</ThemedText>
           </Pressable>
