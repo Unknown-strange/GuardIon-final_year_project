@@ -10,7 +10,11 @@ import { ThemedView } from '@/components/themed-view';
 export default function OnboardingThreeScreen() {
   const router = useRouter();
 
-  const goNext = () => router.replace('/(tabs)');
+  // `expo-router` uses generated typed routes; the route map may lag behind newly added screens.
+  // Casting keeps runtime behavior correct while preventing a type-check failure.
+  const goToLogin = () => router.replace('/welcome-back' as any);
+  // "Next" on the last onboarding screen should take the user to login.
+  const goNext = () => router.replace('/welcome-back' as any);
   const goBack = () => router.back();
 
   return (
@@ -39,7 +43,7 @@ export default function OnboardingThreeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Skip"
             hitSlop={12}
-            onPress={goNext}
+            onPress={goToLogin}
             style={styles.headerSide}>
             <ThemedText style={styles.headerAction}>Skip</ThemedText>
           </Pressable>

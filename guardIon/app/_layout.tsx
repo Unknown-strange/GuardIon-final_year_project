@@ -21,6 +21,8 @@ export default function RootLayout() {
         <Stack.Screen name="onboarding-one" />
         <Stack.Screen name="onboarding-two" />
         <Stack.Screen name="onboarding-three" />
+        <Stack.Screen name="welcome-back" />
+        <Stack.Screen name="sign-up" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
