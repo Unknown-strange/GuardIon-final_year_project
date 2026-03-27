@@ -31,7 +31,9 @@ export default function SignUpScreen() {
 
   const onCreateAccount = () => {
     // Placeholder: wire to your real auth later
-    router.replace('/(tabs)');
+    const phoneParam = encodeURIComponent(phone || '');
+    const emailParam = encodeURIComponent(email || '');
+    router.replace(`/verify-otp?phone=${phoneParam}&email=${emailParam}` as any);
   };
 
   return (
