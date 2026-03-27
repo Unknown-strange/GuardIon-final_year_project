@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   checkbox: {
-    width: 18,
+    width: 18,\
     height: 18,
     borderRadius: 9,
     borderWidth: 1,

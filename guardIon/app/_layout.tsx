@@ -23,6 +23,7 @@ export default function RootLayout() {
         <Stack.Screen name="onboarding-three" />
         <Stack.Screen name="welcome-back" />
         <Stack.Screen name="sign-up" />
+        <Stack.Screen name="verify-otp" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
