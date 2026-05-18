@@ -1,20 +1,22 @@
 import React from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { GuardianColors } from '@/constants/theme';
 
 export default function OnboardingThreeScreen() {
   const router = useRouter();
 
   // `expo-router` uses generated typed routes; the route map may lag behind newly added screens.
   // Casting keeps runtime behavior correct while preventing a type-check failure.
-  const goToLogin = () => router.replace('/welcome-back' as any);
+  const goToLogin = () => router.replace('/authentication/signin' as any);
   // "Next" on the last onboarding screen should take the user to login.
-  const goNext = () => router.replace('/welcome-back' as any);
+  const goNext = () => router.replace('/authentication/signin' as any);
   const goBack = () => router.back();
 
   return (
@@ -82,7 +84,7 @@ export default function OnboardingThreeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EAF4FF',
+    backgroundColor: GuardianColors.atmosphereBlue,
   },
   safe: {
     flex: 1,

@@ -1,21 +1,34 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { GuardianColors } from '@/constants/theme';
 
 export default function SplashScreen() {
   const router = useRouter();
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      router.replace('/onboarding-one');
+    advanceTimerRef.current = setTimeout(() => {
+      advanceTimerRef.current = null;
+      router.replace('/splash-screen/onboarding-one');
     }, 1200);
 
-    return () => clearTimeout(t);
+    return () => {
+      if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+    };
   }, [router]);
+
+  const skipToSignIn = () => {
+    if (advanceTimerRef.current) {
+      clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+    router.replace('/authentication/signin');
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -39,7 +52,7 @@ export default function SplashScreen() {
         <View style={styles.dot} />
       </View>
 
-      <Pressable onPress={() => router.replace('/onboarding-one')}>
+      <Pressable onPress={skipToSignIn}>
         <ThemedText style={styles.skipText}>Skip</ThemedText>
       </Pressable>
     </ThemedView>
@@ -49,7 +62,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E6F4FE',
+    backgroundColor: GuardianColors.splashBackdrop,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,

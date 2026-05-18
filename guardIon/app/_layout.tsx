@@ -3,10 +3,11 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import { GuardianColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
-  anchor: 'splash',
+  anchor: 'splash-screen',
 };
 
 export default function RootLayout() {
@@ -14,17 +15,28 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack
-        initialRouteName="splash"
-        screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="splash" />
-        <Stack.Screen name="onboarding-one" />
-        <Stack.Screen name="onboarding-two" />
-        <Stack.Screen name="onboarding-three" />
-        <Stack.Screen name="welcome-back" />
-        <Stack.Screen name="sign-up" />
-        <Stack.Screen name="verify-otp" />
+      <Stack initialRouteName="splash-screen" screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="splash-screen" />
+        <Stack.Screen name="authentication" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="settings" />
+        <Stack.Screen name="child" />
+        <Stack.Screen
+          name="add-safe-zone"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: GuardianColors.background },
+          }}
+        />
+        <Stack.Screen
+          name="add-red-zone"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: GuardianColors.background },
+          }}
+        />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />

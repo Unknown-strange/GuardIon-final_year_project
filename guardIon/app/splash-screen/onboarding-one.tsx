@@ -1,15 +1,17 @@
 import React from 'react';
-import { Pressable, SafeAreaView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { GuardianColors } from '@/constants/theme';
 
 export default function OnboardingOneScreen() {
   const router = useRouter();
 
-  const goNext = () => router.replace('/onboarding-two');
+  const goNext = () => router.replace('/splash-screen/onboarding-two');
 
   return (
     <ThemedView style={styles.container}>
@@ -30,7 +32,7 @@ export default function OnboardingOneScreen() {
             accessibilityRole="button"
             accessibilityLabel="Skip"
             hitSlop={12}
-            onPress={() => router.replace('/(tabs)')}
+            onPress={() => router.replace('/authentication/signin')}
             style={styles.headerSide}>
             <ThemedText style={styles.headerAction}>Skip</ThemedText>
           </Pressable>
@@ -104,7 +106,7 @@ export default function OnboardingOneScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EAF4FF',
+    backgroundColor: GuardianColors.atmosphereBlue,
   },
   safe: {
     flex: 1,

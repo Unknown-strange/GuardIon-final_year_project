@@ -1,98 +1,298 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import {
+  Dimensions,
+  NativeSyntheticEvent,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+  type NativeScrollEvent,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
+import { ChildSummaryCard } from '@/components/guardian/child-summary-card';
+import { GuardianFab } from '@/components/guardian/fab';
+import { PrimaryButton } from '@/components/guardian/buttons';
+import { ScreenHeader } from '@/components/guardian/screen-header';
+import { SectionTitle } from '@/components/guardian/section-title';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { MOCK_CHILDREN } from '@/constants/guardian-mocks';
+import { GuardianColors, Layout, Typography } from '@/constants/theme';
+
+type IonName = keyof typeof Ionicons.glyphMap;
+
+type TipSlide = {
+  id: string;
+  icon: IonName;
+  iconColor: string;
+  title: string;
+  body: string;
+};
+
+const SAFETY_TIPS: TipSlide[] = [
+  {
+    id: '1',
+    icon: 'shield-checkmark',
+    iconColor: GuardianColors.safe,
+    title: "The 'Safe Adults' Rule",
+    body:
+      'Teach children to recognize trusted adults—school staff, uniformed officers, and the contacts you list in the app—and when it is okay to ask them for help.',
+  },
+  {
+    id: '2',
+    icon: 'call-outline',
+    iconColor: GuardianColors.primary,
+    title: 'Emergency Contacts',
+    body:
+      'Practice memorizing two phone numbers together so your child can reach you even if their device is unavailable.',
+  },
+  {
+    id: '3',
+    icon: 'location-outline',
+    iconColor: GuardianColors.warning,
+    title: 'Know Your Routes',
+    body:
+      'Walk school and playground routes together occasionally so your child knows landmarks and where to go if they feel unsure.',
+  },
+  {
+    id: '4',
+    icon: 'people-outline',
+    iconColor: GuardianColors.primaryDark,
+    title: 'Buddy System',
+    body:
+      'Encourage pairing up with a sibling or friend for walks home so someone always knows where they are.',
+  },
+];
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [query, setQuery] = useState('');
+  const [tipIndex, setTipIndex] = useState(0);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const screenW = Dimensions.get('window').width;
+  const carouselPageWidth = screenW;
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return MOCK_CHILDREN;
+    return MOCK_CHILDREN.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.deviceLabel.toLowerCase().includes(q) ||
+        c.location.toLowerCase().includes(q),
+    );
+  }, [query]);
+
+  const activeDevices = MOCK_CHILDREN.filter((c) => c.online).length;
+
+  const tabBarReserve = Math.max(insets.bottom, 14) + 54 + 24;
+  const fabBottom = Math.max(insets.bottom, 14) + 54 + 16;
+
+  const onTipScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const x = e.nativeEvent.contentOffset.x;
+    const next = Math.round(x / carouselPageWidth);
+    if (next !== tipIndex && next >= 0 && next < SAFETY_TIPS.length) {
+      setTipIndex(next);
+    }
+  };
+
+  return (
+    <ThemedView style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top + 8, paddingBottom: tabBarReserve + 72 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
+        <ScreenHeader />
+
+        <SectionTitle
+          title="My Children"
+          right={
+            <View style={styles.pill}>
+              <ThemedText style={styles.pillText}>Active Devices: {activeDevices}</ThemedText>
+            </View>
+          }
+        />
+
+        <View style={styles.searchShell}>
+          <Ionicons name="search" size={18} color={GuardianColors.textMuted} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search by Name:"
+            placeholderTextColor={GuardianColors.textMuted}
+            style={styles.searchInput}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+
+        {filtered.map((item) => (
+          <ChildSummaryCard
+            key={item.id}
+            item={item}
+            onPress={() => router.push(`/child/${item.id}` as any)}
+          />
+        ))}
+
+        <PrimaryButton label="View all" onPress={() => {}} />
+
+        <View style={styles.tipsHeader}>
+          <Ionicons name="bulb-outline" size={22} color={GuardianColors.primary} />
+          <ThemedText style={styles.tipsTitle}>Daily Child Safety Tips</ThemedText>
+        </View>
+
+        <View style={styles.carouselBleed}>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            decelerationRate="fast"
+            snapToInterval={carouselPageWidth}
+            snapToAlignment="center"
+            onMomentumScrollEnd={onTipScroll}
+            onScrollEndDrag={onTipScroll}
+            style={{ width: carouselPageWidth }}
+            contentContainerStyle={styles.carouselContent}>
+            {SAFETY_TIPS.map((tip) => (
+              <View key={tip.id} style={[styles.tipPage, { width: carouselPageWidth }]}>
+                <View style={styles.tipCard}>
+                  <View style={styles.tipRow}>
+                    <Ionicons name={tip.icon} size={20} color={tip.iconColor} />
+                    <ThemedText style={styles.tipCardTitle}>{tip.title}</ThemedText>
+                  </View>
+                  <ThemedText style={styles.tipBody}>{tip.body}</ThemedText>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+
+          <View style={styles.dots}>
+            {SAFETY_TIPS.map((tip, i) => (
+              <View key={tip.id} style={[styles.dot, i === tipIndex && styles.dotActive]} />
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+
+      <GuardianFab
+        accessibilityLabel="Open map to add devices or zones"
+        onPress={() => router.push('/map' as any)}
+        style={[styles.fab, { bottom: fabBottom }]}
+      />
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  screen: {
+    flex: 1,
+    backgroundColor: GuardianColors.background,
+  },
+  scroll: {
+    paddingHorizontal: Layout.screenPadding,
+  },
+  pill: {
+    backgroundColor: GuardianColors.navyMuted,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  pillText: {
+    ...Typography.caption,
+    color: GuardianColors.primary,
+    fontWeight: '700',
+  },
+  searchShell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: GuardianColors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: GuardianColors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: GuardianColors.text,
+    padding: 0,
+  },
+  tipsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 28,
+    marginBottom: 12,
+  },
+  tipsTitle: {
+    ...Typography.section,
+    color: GuardianColors.text,
+  },
+  carouselBleed: {
+    marginHorizontal: -Layout.screenPadding,
+    marginBottom: 8,
+  },
+  carouselContent: {
+    alignItems: 'stretch',
+  },
+  tipPage: {
+    paddingHorizontal: Layout.screenPadding,
+  },
+  tipCard: {
+    backgroundColor: GuardianColors.surface,
+    borderRadius: Layout.cardRadius,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: GuardianColors.border,
+    minHeight: 152,
+  },
+  tipRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  tipCardTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: GuardianColors.text,
+    flex: 1,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  tipBody: {
+    ...Typography.body,
+    color: GuardianColors.textSecondary,
+    marginTop: 10,
+  },
+  dots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 14,
+    paddingHorizontal: Layout.screenPadding,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: GuardianColors.borderStrong,
+  },
+  dotActive: {
+    backgroundColor: GuardianColors.primary,
+    width: 22,
+    borderRadius: 4,
+  },
+  fab: {
     position: 'absolute',
+    right: Layout.screenPadding,
   },
 });

@@ -3,18 +3,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { GuardianColors } from '@/constants/theme';
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function SignUpScreen() {
     // Placeholder: wire to your real auth later
     const phoneParam = encodeURIComponent(phone || '');
     const emailParam = encodeURIComponent(email || '');
-    router.replace(`/verify-otp?phone=${phoneParam}&email=${emailParam}` as any);
+    router.replace(`/authentication/verify-otp?phone=${phoneParam}&email=${emailParam}` as any);
   };
 
   return (
@@ -209,7 +210,7 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EAF4FF',
+    backgroundColor: GuardianColors.atmosphereBlue,
   },
   safe: {
     flex: 1,
