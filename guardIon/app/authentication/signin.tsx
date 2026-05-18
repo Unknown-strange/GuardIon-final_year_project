@@ -3,29 +3,30 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { GuardianColors } from '@/constants/theme';
 
-export default function WelcomeBackScreen() {
+export default function SignInScreen() {
   const router = useRouter();
 
-  const [email, setEmail] = useState('helloworld@gmail.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('password');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [rememberMe, setRememberMe] = useState(true);
 
   const onLogin = () => router.replace('/(tabs)');
-  const onSignUp = () => router.push('/sign-up' as any);
+  const onSignUp = () => router.push('/authentication/sign-up' as any);
 
   return (
     <ThemedView style={styles.container}>
@@ -148,7 +149,7 @@ export default function WelcomeBackScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EAF4FF',
+    backgroundColor: GuardianColors.atmosphereBlue,
   },
   safe: {
     flex: 1,
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   checkbox: {
-    width: 18,\
+    width: 18,
     height: 18,
     borderRadius: 9,
     borderWidth: 1,

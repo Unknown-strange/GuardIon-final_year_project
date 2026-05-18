@@ -1,20 +1,47 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Guardian design tokens + light/dark app colors.
  */
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
+/** Brand & semantic palette */
+export const GuardianColors = {
+  primary: '#072B59',
+  primaryDark: '#0B2D5B',
+  /** Main app shell (tabs, main stacks) — neutral */
+  background: '#F9FAFB',
+  surface: '#FFFFFF',
+  /** Soft brand wash: onboarding & auth only */
+  atmosphereBlue: '#EAF4FF',
+  splashBackdrop: '#E6F4FE',
+  text: '#111827',
+  textSecondary: '#6B7280',
+  textMuted: '#9CA3AF',
+  border: '#E5E7EB',
+  borderStrong: '#D1D5DB',
+  safe: '#16A34A',
+  safeMuted: '#DCFCE7',
+  warning: '#CA8A04',
+  warningMuted: '#FEF9C3',
+  danger: '#DC2626',
+  dangerMuted: '#FEE2E2',
+  offline: '#6B7280',
+  offlineMuted: '#F3F4F6',
+  tabInactive: '#687076',
+  overlaySheet: '#F8FAFC',
+  navyMuted: '#D3E3F4',
+} as const;
+
+const tintColorLight = GuardianColors.primary;
 const tintColorDark = '#fff';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: GuardianColors.text,
+    background: GuardianColors.background,
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: GuardianColors.tabInactive,
+    tabIconDefault: GuardianColors.tabInactive,
     tabIconSelected: tintColorLight,
   },
   dark: {
@@ -27,15 +54,29 @@ export const Colors = {
   },
 };
 
+/** Typography scale (use with default/system font) */
+export const Typography = {
+  hero: { fontSize: 28, lineHeight: 34, fontWeight: '800' as const },
+  title: { fontSize: 22, lineHeight: 28, fontWeight: '800' as const },
+  section: { fontSize: 18, lineHeight: 24, fontWeight: '700' as const },
+  body: { fontSize: 15, lineHeight: 22, fontWeight: '400' as const },
+  bodySemi: { fontSize: 15, lineHeight: 22, fontWeight: '600' as const },
+  caption: { fontSize: 12, lineHeight: 16, fontWeight: '500' as const },
+  label: { fontSize: 11, lineHeight: 14, fontWeight: '700' as const, letterSpacing: 0.6 },
+};
+
+export const Layout = {
+  screenPadding: 20,
+  cardRadius: 16,
+  buttonRadius: 24,
+  minTapSize: 44,
+};
+
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
