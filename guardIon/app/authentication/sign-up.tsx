@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,6 +15,9 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
+import { getErrorMessage } from '@/contexts/auth-context';
+import { GoogleSignInButton } from '@/components/authentication/google-sign-in-button';
+import { signupRequest } from '@/lib/api/auth';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { GuardianColors } from '@/constants/theme';
@@ -22,19 +27,50 @@ export default function SignUpScreen() {
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('helloworld@gmail.com');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('password');
-  const [confirmPassword, setConfirmPassword] = useState('password');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [securePassword, setSecurePassword] = useState(true);
   const [secureConfirm, setSecureConfirm] = useState(true);
-  const [agree, setAgree] = useState(true);
+  const [agree, setAgree] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const onCreateAccount = () => {
-    // Placeholder: wire to your real auth later
-    const phoneParam = encodeURIComponent(phone || '');
-    const emailParam = encodeURIComponent(email || '');
-    router.replace(`/authentication/verify-otp?phone=${phoneParam}&email=${emailParam}` as any);
+  const onCreateAccount = async () => {
+    const name = `${firstName.trim()} ${lastName.trim()}`.trim();
+    if (!name || !email.trim() || !password) {
+      Alert.alert('Missing details', 'Fill in your name, email, and password.');
+      return;
+    }
+    if (password.length < 8) {
+      Alert.alert('Weak password', 'Password must be at least 8 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert('Password mismatch', 'Passwords do not match.');
+      return;
+    }
+    if (!agree) {
+      Alert.alert('Terms required', 'Please accept the terms to continue.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await signupRequest({
+        name,
+        email,
+        password,
+        phone_number: phone.trim() || undefined,
+      });
+      router.replace(
+        `/authentication/verify-otp?email=${encodeURIComponent(email.trim())}&purpose=signup` as any,
+      );
+    } catch (error) {
+      Alert.alert('Sign up failed', getErrorMessage(error, 'Unable to start registration.'));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -179,8 +215,13 @@ export default function SignUpScreen() {
               <Pressable
                 accessibilityRole="button"
                 onPress={onCreateAccount}
-                style={styles.primaryBtn}>
-                <ThemedText style={styles.primaryBtnText}>Sign up</ThemedText>
+                disabled={submitting}
+                style={[styles.primaryBtn, submitting && { opacity: 0.7 }]}>
+                {submitting ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <ThemedText style={styles.primaryBtnText}>Sign up</ThemedText>
+                )}
               </Pressable>
 
               <View style={styles.separatorRow}>
@@ -189,9 +230,11 @@ export default function SignUpScreen() {
                 <View style={styles.separatorLine} />
               </View>
 
-              <Pressable accessibilityRole="button" onPress={() => {}} style={styles.googleBtn}>
-                <Ionicons name="logo-google" size={22} color="#111827" />
-              </Pressable>
+              <GoogleSignInButton
+                disabled={submitting}
+                onSuccess={() => router.replace('/(tabs)')}
+                style={styles.googleBtn}
+              />
 
               <View style={styles.bottomRow}>
                 <ThemedText style={styles.bottomText}>Already have an account?</ThemedText>

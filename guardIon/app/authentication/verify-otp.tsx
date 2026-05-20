@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -15,11 +16,15 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
+import { useAuth, getErrorMessage } from '@/contexts/auth-context';
+import { resendOtp, type OtpPurpose } from '@/lib/api/auth';
+import { ApiError } from '@/lib/api/errors';
+import { OTP_LENGTH } from '@/lib/api/config';
+import { GuardianToast } from '@/components/guardian/guardian-toast';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { GuardianColors } from '@/constants/theme';
 
-const OTP_LENGTH = 5;
 const RESEND_SECONDS = 20;
 const TOAST_MS = 1800;
 
@@ -35,21 +40,27 @@ function emptyCells(): string[] {
 
 export default function VerifyOtpScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ phone?: string; email?: string }>();
+  const { completeSignup } = useAuth();
+  const params = useLocalSearchParams<{ email?: string; purpose?: OtpPurpose }>();
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
-  const phoneLabel = useMemo(() => {
+  const email = useMemo(() => {
     try {
-      const raw = params.phone ? decodeURIComponent(String(params.phone)) : '';
-      return raw || '+33 2 94 27 84 11';
+      return params.email ? decodeURIComponent(String(params.email)).trim().toLowerCase() : '';
     } catch {
-      return String(params.phone || '+33 2 94 27 84 11');
+      return String(params.email || '').trim().toLowerCase();
     }
-  }, [params.phone]);
+  }, [params.email]);
+
+  const purpose: OtpPurpose = params.purpose === 'password_reset' ? 'password_reset' : 'signup';
 
   const [cells, setCells] = useState<string[]>(() => emptyCells());
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [toastVisible, setToastVisible] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [toastMessage, setToastMessage] = useState('Verification complete');
+  const [errorToastVisible, setErrorToastVisible] = useState(false);
+  const [errorToastMessage, setErrorToastMessage] = useState('');
 
   const otpComplete = cells.every((c) => c.length === 1);
 
@@ -64,10 +75,12 @@ export default function VerifyOtpScreen() {
     if (!toastVisible) return;
     const t = setTimeout(() => {
       setToastVisible(false);
-      router.replace('/authentication/signin' as any);
+      if (purpose === 'signup') {
+        router.replace('/(tabs)');
+      }
     }, TOAST_MS);
     return () => clearTimeout(t);
-  }, [toastVisible, router]);
+  }, [toastVisible, router, purpose, email, cells]);
 
   const handleCellChange = (text: string, index: number) => {
     const cleaned = text.replace(/\D/g, '');
@@ -114,22 +127,53 @@ export default function VerifyOtpScreen() {
     });
   };
 
-  const onResend = () => {
-    if (secondsLeft > 0) return;
-    setCells(emptyCells());
-    setSecondsLeft(RESEND_SECONDS);
-    inputRefs.current[0]?.focus();
+  const showErrorToast = (message: string) => {
+    setErrorToastMessage(message);
+    setErrorToastVisible(true);
   };
 
-  const onVerify = () => {
-    if (!otpComplete || toastVisible) return;
-    if (Platform.OS !== 'web') {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  const onResend = async () => {
+    if (secondsLeft > 0 || !email) return;
+    try {
+      await resendOtp(email, purpose);
+      setCells(emptyCells());
+      setSecondsLeft(RESEND_SECONDS);
+      inputRefs.current[0]?.focus();
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        showErrorToast('No account found for this email.');
+        return;
+      }
+      Alert.alert('Resend failed', getErrorMessage(error));
     }
-    setToastVisible(true);
   };
 
-  const canVerify = otpComplete && !toastVisible;
+  const onVerify = async () => {
+    if (!otpComplete || toastVisible || submitting || !email) return;
+    const code = cells.join('');
+    if (purpose === 'password_reset') {
+      router.replace(
+        `/authentication/reset-password?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}` as any,
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await completeSignup(email, code);
+      if (Platform.OS !== 'web') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      setToastMessage('Account verified');
+      setToastVisible(true);
+    } catch (error) {
+      Alert.alert('Verification failed', getErrorMessage(error));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const canVerify = otpComplete && !toastVisible && !submitting;
 
   return (
     <ThemedView style={styles.container}>
@@ -162,9 +206,11 @@ export default function VerifyOtpScreen() {
               <View style={styles.headerSideSpacer} />
             </View>
 
-            <ThemedText style={styles.title}>Verify Your Account</ThemedText>
+            <ThemedText style={styles.title}>
+              {purpose === 'signup' ? 'Verify Your Account' : 'Enter Reset Code'}
+            </ThemedText>
             <ThemedText style={styles.subtitle}>
-              We&apos;ve sent an Email/SMS with an activation code to your phone {phoneLabel}
+              We sent a {OTP_LENGTH}-digit verification code to {email || 'your email'}.
             </ThemedText>
 
             <View style={styles.otpRow}>
@@ -229,10 +275,16 @@ export default function VerifyOtpScreen() {
         {toastVisible ? (
           <View style={styles.toastOverlay} pointerEvents="none">
             <View style={styles.toast}>
-              <ThemedText style={styles.toastText}>Verification complete</ThemedText>
+              <ThemedText style={styles.toastText}>{toastMessage}</ThemedText>
             </View>
           </View>
         ) : null}
+
+        <GuardianToast
+          visible={errorToastVisible}
+          message={errorToastMessage}
+          onHide={() => setErrorToastVisible(false)}
+        />
       </SafeAreaView>
     </ThemedView>
   );

@@ -11,6 +11,7 @@ from app.models.safezone import SafeZone
 from app.models.event import Event
 from app.models.alert import Alert, AlertResponse
 from app.models.notification import Notification
+from app.models.email_verification import EmailVerification
 
 __all__ = [
     "User",
@@ -23,5 +24,6 @@ __all__ = [
     "Event",
     "Alert",
     "AlertResponse",
-    "Notification"
+    "Notification",
+    "EmailVerification",
 ]

@@ -1,100 +1,131 @@
-import React, { useState } from 'react';
-import { StyleSheet, Switch, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SettingsSubScreen } from '@/components/guardian/settings-sub-screen';
+import { SecuritySettingsCard } from '@/components/guardian/security-settings-card';
 import { ThemedText } from '@/components/themed-text';
-import { GuardianColors, Typography } from '@/constants/theme';
+import { ThemedView } from '@/components/themed-view';
+import { GuardianColors, Layout, Typography } from '@/constants/theme';
 
-export default function PrivacyDataScreen() {
-  const [shareSchool, setShareSchool] = useState(false);
-  const [analytics, setAnalytics] = useState(true);
+const SECURITY_ITEMS = [
+  {
+    icon: 'lock-closed-outline' as const,
+    title: 'Change Password',
+    subtitle: 'Update your login password',
+    href: '/settings/change-password' as const,
+  },
+  {
+    icon: 'phone-portrait-outline' as const,
+    title: 'Manage Logged-In Devices',
+    subtitle: 'View and manage active sessions',
+    href: '/settings/logged-in-devices' as const,
+  },
+];
+
+export default function SecuritySettingsScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  const openAlerts = () => {
+    router.push('/(tabs)/alerts' as any);
+  };
 
   return (
-    <SettingsSubScreen
-      title="Privacy & data"
-      subtitle="Control what is stored and whether optional analytics help improve GuardIon.">
-      <View style={styles.card}>
-        <ThemedText style={styles.sectionLabel}>SHARING</ThemedText>
-        <View style={styles.toggleRow}>
-          <View style={{ flex: 1, paddingRight: 12 }}>
-            <ThemedText style={styles.toggleLabel}>School-safe summaries</ThemedText>
-            <ThemedText style={styles.toggleHint}>
-              Share anonymized arrival patterns with verified partners (off by default).
-            </ThemedText>
-          </View>
-          <Switch
-            value={shareSchool}
-            onValueChange={setShareSchool}
-            trackColor={{ false: GuardianColors.border, true: GuardianColors.navyMuted }}
-            thumbColor={shareSchool ? GuardianColors.primary : GuardianColors.surface}
-          />
+    <ThemedView style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: Layout.screenPadding,
+          paddingTop: insets.top + 8,
+          paddingBottom: insets.bottom + 32,
+        }}
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={() => router.back()}
+            style={styles.headerBtn}>
+            <Ionicons name="chevron-back" size={22} color={GuardianColors.primary} />
+          </Pressable>
+          <ThemedText style={styles.headerTitle}>Security Settings</ThemedText>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
+            onPress={openAlerts}
+            style={styles.headerBtn}>
+            <Ionicons name="notifications-outline" size={22} color={GuardianColors.text} />
+          </Pressable>
         </View>
-      </View>
 
-      <View style={styles.card}>
-        <ThemedText style={styles.sectionLabel}>DATA</ThemedText>
-        <View style={styles.toggleRow}>
-          <View style={{ flex: 1, paddingRight: 12 }}>
-            <ThemedText style={styles.toggleLabel}>Product analytics</ThemedText>
-            <ThemedText style={styles.toggleHint}>Crash and usage diagnostics.</ThemedText>
-          </View>
-          <Switch
-            value={analytics}
-            onValueChange={setAnalytics}
-            trackColor={{ false: GuardianColors.border, true: GuardianColors.navyMuted }}
-            thumbColor={analytics ? GuardianColors.primary : GuardianColors.surface}
-          />
+        <View style={styles.headerRule} />
+
+        <ThemedText style={styles.lead}>
+          Keep your GuardIon account secure by updating your password and reviewing active sessions.
+        </ThemedText>
+
+        <View style={styles.list}>
+          {SECURITY_ITEMS.map((item, index) => (
+            <Animated.View key={item.title} entering={FadeInDown.delay(index * 70).duration(280)}>
+              <SecuritySettingsCard
+                icon={item.icon}
+                title={item.title}
+                subtitle={item.subtitle}
+                onPress={() => router.push(item.href as any)}
+              />
+            </Animated.View>
+          ))}
         </View>
-        <View style={styles.bulletBlock}>
-          <ThemedText style={styles.bullet}>• Location history retained up to 90 days.</ThemedText>
-          <ThemedText style={styles.bullet}>• Export or delete your data from Account (coming soon).</ThemedText>
-        </View>
-      </View>
-    </SettingsSubScreen>
+      </ScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: GuardianColors.surface,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: GuardianColors.border,
-    marginBottom: 14,
-    overflow: 'hidden',
+  screen: {
+    flex: 1,
+    backgroundColor: GuardianColors.atmosphereBlue,
   },
-  sectionLabel: {
-    ...Typography.label,
-    color: GuardianColors.textMuted,
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  toggleRow: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: GuardianColors.border,
+    justifyContent: 'space-between',
+    minHeight: 44,
+    marginBottom: 10,
   },
-  toggleLabel: {
-    fontWeight: '700',
-    fontSize: 15,
+  headerBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: GuardianColors.surface,
+    borderWidth: 1,
+    borderColor: GuardianColors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    ...Typography.title,
+    fontSize: 20,
     color: GuardianColors.text,
+    textAlign: 'center',
+    flex: 1,
   },
-  toggleHint: {
-    ...Typography.caption,
-    color: GuardianColors.textMuted,
-    marginTop: 4,
+  headerRule: {
+    height: 1,
+    backgroundColor: GuardianColors.border,
+    marginBottom: 18,
+    opacity: 0.8,
   },
-  bulletBlock: {
-    paddingHorizontal: 14,
-    paddingBottom: 14,
-    gap: 8,
-  },
-  bullet: {
-    ...Typography.body,
+  lead: {
+    fontSize: 15,
+    lineHeight: 23,
+    fontWeight: '600',
     color: GuardianColors.textSecondary,
+    marginBottom: 20,
+  },
+  list: {
+    gap: 14,
   },
 });
