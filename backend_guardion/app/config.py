@@ -59,6 +59,30 @@ class Settings(BaseSettings):
     # Alert Settings
     ALERT_RETRY_ATTEMPTS: int = 3
     ALERT_ESCALATION_MINUTES: int = 5
+
+    # Email / OTP (Resend)
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "GuardIon <onboarding@resend.dev>"
+    OTP_LENGTH: int = 5
+    OTP_EXPIRE_MINUTES: int = 10
+
+    # Google OAuth (ID token verification)
+    GOOGLE_WEB_CLIENT_ID: str = ""
+    GOOGLE_ANDROID_CLIENT_ID: str = ""
+    GOOGLE_IOS_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+
+    @property
+    def google_client_ids(self) -> List[str]:
+        return [
+            client_id.strip()
+            for client_id in (
+                self.GOOGLE_WEB_CLIENT_ID,
+                self.GOOGLE_ANDROID_CLIENT_ID,
+                self.GOOGLE_IOS_CLIENT_ID,
+            )
+            if client_id and client_id.strip()
+        ]
     
     @property
     def cors_origins(self) -> List[str]:
