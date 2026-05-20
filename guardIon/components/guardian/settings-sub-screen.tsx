@@ -27,7 +27,7 @@ export function SettingsSubScreen({ title, subtitle, children }: Props) {
           paddingBottom: insets.bottom + 32,
         }}
         showsVerticalScrollIndicator={false}>
-        <View style={styles.topRow}>
+        <View style={styles.header}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Go back"
@@ -35,9 +35,12 @@ export function SettingsSubScreen({ title, subtitle, children }: Props) {
             style={styles.back}>
             <Ionicons name="chevron-back" size={22} color={GuardianColors.primary} />
           </Pressable>
+          <ThemedText style={styles.headerTitle} numberOfLines={1}>
+            {title}
+          </ThemedText>
+          <View style={styles.headerSide} />
         </View>
 
-        <ThemedText style={styles.title}>{title}</ThemedText>
         {subtitle ? <ThemedText style={styles.subtitle}>{subtitle}</ThemedText> : null}
 
         {children}
@@ -49,16 +52,17 @@ export function SettingsSubScreen({ title, subtitle, children }: Props) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: GuardianColors.background,
+    backgroundColor: GuardianColors.atmosphereBlue,
   },
-  topRow: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+    minHeight: 44,
   },
   back: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     backgroundColor: GuardianColors.surface,
     borderWidth: 1,
@@ -66,14 +70,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    ...Typography.hero,
+  headerSide: {
+    width: 44,
+  },
+  headerTitle: {
+    flex: 1,
+    ...Typography.title,
     color: GuardianColors.text,
-    marginBottom: 8,
+    textAlign: 'center',
+    fontSize: 20,
   },
   subtitle: {
     ...Typography.body,
     color: GuardianColors.textSecondary,
     marginBottom: 20,
+    lineHeight: 22,
   },
 });

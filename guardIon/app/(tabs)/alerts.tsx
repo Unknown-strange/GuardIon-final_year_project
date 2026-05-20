@@ -1,67 +1,211 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  LayoutAnimation,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  UIManager,
+  View,
+} from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ActiveAlertsSummary } from '@/components/guardian/active-alerts-summary';
+import { AlertsChildSelector } from '@/components/guardian/alerts-child-selector';
 import { PrimaryButton } from '@/components/guardian/buttons';
+import { ChildContactsSheet } from '@/components/guardian/child-contacts-sheet';
+import { ContactRow } from '@/components/guardian/contact-row';
 import { ScreenHeader } from '@/components/guardian/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import {
+  getActiveAlertCount,
+  getActiveAlertCountsByChild,
+  getAlertsForChild,
+  useAlerts,
+} from '@/hooks/use-alerts';
+import type { AlertItem } from '@/constants/alerts-mocks';
+import { getContactsForChild } from '@/constants/child-contacts-mocks';
+import { useGuardianData } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
+import type { ChildContact } from '@/types/child-contact';
+import { callPhone } from '@/utils/phone';
 
 type Filter = 'all' | 'active' | 'resolved';
 
-type AlertItem = {
-  id: string;
-  title: string;
-  body: string;
-  time: string;
-  accent: 'red' | 'yellow' | 'gray';
-  location?: string;
-  state: 'active' | 'resolved';
-};
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
-const DATA: AlertItem[] = [
-  {
-    id: '1',
-    title: 'SOS Signal Activated',
-    body: "Manual trigger from Leo's Smartwatch",
-    time: '2m ago',
-    accent: 'red',
-    location: 'Central Park East, NY',
-    state: 'active',
-  },
-  {
-    id: '2',
-    title: 'Geofence Exit',
-    body: "Leo left the 'School Zone' boundary",
-    time: '45m ago',
-    accent: 'yellow',
-    state: 'active',
-  },
-  {
-    id: '3',
-    title: 'Device is now charging',
-    body: 'System',
-    time: '45m ago',
-    accent: 'gray',
-    state: 'resolved',
-  },
-];
+function animateLayout() {
+  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+}
+
+function alertIcon(type?: AlertItem['type']) {
+  switch (type) {
+    case 'sos':
+      return 'warning' as const;
+    case 'geofence':
+      return 'navigate-circle' as const;
+    case 'battery':
+      return 'battery-dead' as const;
+    default:
+      return 'information-circle' as const;
+  }
+}
+
+function aggregateStatus(
+  selectedChildId: string | null,
+  children: ReturnType<typeof useGuardianData>['children'],
+  getChildById: ReturnType<typeof useGuardianData>['getChildById'],
+) {
+  if (selectedChildId) {
+    const child = getChildById(selectedChildId);
+    if (!child) {
+      return { label: 'Unknown', variant: 'offline' as const, updated: 'Updated just now' };
+    }
+    return {
+      label:
+        child.status === 'safe'
+          ? 'Safe'
+          : child.status === 'warning'
+            ? 'Attention'
+            : child.status === 'offline'
+              ? 'Offline'
+              : 'Alert',
+      variant: child.status === 'safe' ? ('safe' as const) : child.status === 'warning' ? ('warning' as const) : child.status === 'offline' ? ('offline' as const) : ('danger' as const),
+      updated: `Updated ${child.lastUpdate}`,
+    };
+  }
+
+  const hasWarning = children.some((c) => c.status === 'warning');
+  const hasOffline = children.some((c) => c.status === 'offline');
+  return {
+    label: hasWarning ? 'Mixed' : hasOffline ? 'Check devices' : 'Mostly safe',
+    variant: hasWarning ? ('warning' as const) : hasOffline ? ('offline' as const) : ('safe' as const),
+    updated: 'Updated just now',
+  };
+}
+
+function getContactsChildId(selectedChildId: string | null, children: { id: string }[]) {
+  if (selectedChildId) return selectedChildId;
+  return children[0]?.id ?? '';
+}
+
+function getSosTargetChildId(selectedChildId: string | null, children: { id: string }[]) {
+  if (selectedChildId) return selectedChildId;
+  return children[0]?.id ?? '';
+}
+
+function EmptyAlerts({ message }: { message: string }) {
+  return (
+    <Animated.View entering={FadeIn.duration(280)} style={styles.empty}>
+      <View style={styles.emptyIcon}>
+        <Ionicons name="notifications-off-outline" size={28} color={GuardianColors.textMuted} />
+      </View>
+      <ThemedText style={styles.emptyTitle}>{message}</ThemedText>
+      <ThemedText style={styles.emptySub}>Alerts for this filter will appear here.</ThemedText>
+    </Animated.View>
+  );
+}
 
 export default function AlertsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<{ childId?: string }>();
+  const { children, getChildById } = useGuardianData();
+  const { allAlerts } = useAlerts('all');
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
+  const [contactsOpen, setContactsOpen] = useState(false);
+  const [contactChildId, setContactChildId] = useState('');
 
-  const list = useMemo(() => {
-    if (filter === 'active') return DATA.filter((d) => d.state === 'active');
-    if (filter === 'resolved') return DATA.filter((d) => d.state === 'resolved');
-    return DATA;
-  }, [filter]);
+  useEffect(() => {
+    if (params.childId && typeof params.childId === 'string') {
+      const exists = children.some((c) => c.id === params.childId);
+      if (exists) {
+        animateLayout();
+        setSelectedChildId(params.childId);
+      }
+    }
+  }, [children, params.childId]);
 
-  const activeAlerts = DATA.filter((d) => d.state === 'active').length;
+  const activeCounts = useMemo(() => getActiveAlertCountsByChild(allAlerts), [allAlerts]);
+  const childAlerts = useMemo(
+    () => (selectedChildId === null ? allAlerts : getAlertsForChild(allAlerts, selectedChildId)),
+    [allAlerts, selectedChildId],
+  );
+
+  const filtered = useMemo(() => {
+    if (filter === 'active') return childAlerts.filter((d) => d.state === 'active');
+    if (filter === 'resolved') return childAlerts.filter((d) => d.state === 'resolved');
+    return childAlerts;
+  }, [childAlerts, filter]);
+
+  const activeAlerts = useMemo(
+    () =>
+      selectedChildId === null
+        ? getActiveAlertCount(allAlerts)
+        : getAlertsForChild(allAlerts, selectedChildId).filter((a) => a.state === 'active').length,
+    [allAlerts, selectedChildId],
+  );
+  const activeList = filtered.filter((i) => i.state === 'active');
+  const resolvedList = filtered.filter((i) => i.state === 'resolved');
+
+  const selectionLabel =
+    selectedChildId === null ? 'All children' : (getChildById(selectedChildId)?.name ?? 'Child');
+  const status = aggregateStatus(selectedChildId, children, getChildById);
+  const contactsChildIdResolved = getContactsChildId(selectedChildId, children);
+  const emergencyContacts = getContactsForChild(contactsChildIdResolved).slice(0, 2);
+  const sosChildId = getSosTargetChildId(selectedChildId, children);
+  const contactChild = getChildById(contactChildId || contactsChildIdResolved);
+
+  const selectChild = useCallback((childId: string | null) => {
+    animateLayout();
+    setSelectedChildId(childId);
+  }, []);
+
+  const selectFilter = useCallback((key: Filter) => {
+    animateLayout();
+    setFilter(key);
+  }, []);
+
+  const openContacts = (childId: string) => {
+    setContactChildId(childId);
+    setContactsOpen(true);
+  };
+
+  const dialContact = (contact: ChildContact) => {
+    const dial = () => void callPhone(contact.phone, contact.name);
+
+    if (contact.type === 'emergency') {
+      Alert.alert(
+        'Call emergency services?',
+        `Place a call to ${contact.name}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Call', style: 'destructive', onPress: dial },
+        ],
+      );
+      return;
+    }
+
+    dial();
+  };
+
+  const emptyActiveMessage =
+    selectedChildId === null
+      ? 'No active alerts across your children'
+      : `No active alerts for ${getChildById(selectedChildId)?.name ?? 'this child'}`;
+
+  const emptyResolvedMessage =
+    selectedChildId === null
+      ? 'No resolved alerts yet'
+      : `No resolved alerts for ${getChildById(selectedChildId)?.name ?? 'this child'}`;
 
   return (
     <ThemedView style={styles.screen}>
@@ -74,125 +218,185 @@ export default function AlertsScreen() {
         showsVerticalScrollIndicator={false}>
         <ScreenHeader />
 
-        <ThemedText style={styles.pageTitle}>Alerts</ThemedText>
-        <ThemedText style={styles.pageSub}>
-          Stay updated on your child&apos;s safety status.
-        </ThemedText>
+        <Animated.View entering={FadeInDown.duration(300)}>
+          <ThemedText style={styles.pageTitle}>Alerts</ThemedText>
+          <ThemedText style={styles.pageSub}>
+            Choose a child to review their safety alerts.
+          </ThemedText>
+        </Animated.View>
 
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryCard}>
-            <ThemedText style={styles.summaryLabel}>ACTIVE ALERTS</ThemedText>
-            <ThemedText style={styles.summaryRed}>{activeAlerts}</ThemedText>
-            <View style={styles.summaryFoot}>
-              <Ionicons name="warning" size={16} color={GuardianColors.danger} />
-              <ThemedText style={styles.summaryFootRed}>ALERT TRIGGERED</ThemedText>
-            </View>
-          </View>
-          <View style={styles.summaryCard}>
-            <ThemedText style={styles.summaryLabel}>CHILD STATUS</ThemedText>
-            <ThemedText style={styles.summaryGreen}>Safe</ThemedText>
-            <ThemedText style={styles.summaryMuted}>Updated 1m ago</ThemedText>
-          </View>
-        </View>
+        <Animated.View entering={FadeInDown.delay(100).duration(320)}>
+          <AlertsChildSelector
+            items={children}
+            selectedChildId={selectedChildId}
+            activeCounts={activeCounts}
+            onSelect={selectChild}
+          />
+        </Animated.View>
 
-        <View style={styles.segment}>
+        <ActiveAlertsSummary
+          key={selectedChildId ?? 'all'}
+          activeCount={activeAlerts}
+          selectionLabel={selectionLabel}
+          statusLabel={status.label}
+          statusVariant={status.variant}
+          updatedLabel={status.updated}
+        />
+
+        <Animated.View entering={FadeInDown.delay(220).duration(300)} style={styles.segment}>
           {(['all', 'active', 'resolved'] as const).map((key) => (
             <Pressable
               key={key}
-              onPress={() => setFilter(key)}
+              onPress={() => selectFilter(key)}
               style={[styles.segmentItem, filter === key && styles.segmentItemOn]}>
-              <ThemedText
-                style={[styles.segmentText, filter === key && styles.segmentTextOn]}>
+              <ThemedText style={[styles.segmentText, filter === key && styles.segmentTextOn]}>
                 {key === 'all' ? 'All' : key === 'active' ? 'Active' : 'Resolved'}
               </ThemedText>
             </Pressable>
           ))}
-        </View>
+        </Animated.View>
 
         <View style={styles.sectionHead}>
-          <ThemedText style={styles.sectionTitle}>Recent Alerts</ThemedText>
-          <Pressable>
-            <ThemedText style={styles.link}>View All</ThemedText>
-          </Pressable>
+          <ThemedText style={styles.sectionTitle}>
+            {filter === 'resolved' ? 'Resolved Alerts' : 'Recent Alerts'}
+          </ThemedText>
         </View>
 
-        {list
-          .filter((i) => i.state === 'active')
-          .map((item) => (
-            <View key={item.id} style={styles.alertCard}>
-              <View
-                style={[
-                  styles.alertRail,
-                  item.accent === 'red' && { backgroundColor: GuardianColors.danger },
-                  item.accent === 'yellow' && { backgroundColor: GuardianColors.warning },
-                ]}
-              />
-              <View style={styles.alertBody}>
-                <View style={styles.alertTop}>
-                  <View style={styles.alertIcon}>
-                    <Ionicons name="navigate-circle" size={22} color={GuardianColors.danger} />
+        {filter !== 'resolved' ? (
+          activeList.length === 0 ? (
+            <EmptyAlerts message={emptyActiveMessage} />
+          ) : (
+            activeList.map((item, index) => (
+              <Animated.View
+                key={item.id}
+                entering={FadeIn.delay(index * 60).springify()}>
+                <View style={styles.alertCard}>
+                  <View
+                    style={[
+                      styles.alertRail,
+                      item.accent === 'red' && { backgroundColor: GuardianColors.danger },
+                      item.accent === 'yellow' && { backgroundColor: GuardianColors.warning },
+                    ]}
+                  />
+                  <View style={styles.alertBody}>
+                    <View style={styles.alertTop}>
+                      <View style={styles.alertIcon}>
+                        <Ionicons
+                          name={alertIcon(item.type)}
+                          size={22}
+                          color={
+                            item.accent === 'red'
+                              ? GuardianColors.danger
+                              : item.accent === 'yellow'
+                                ? GuardianColors.warning
+                                : GuardianColors.textSecondary
+                          }
+                        />
+                      </View>
+                      <ThemedText style={styles.alertTime}>{item.time}</ThemedText>
+                    </View>
+                    <ThemedText style={styles.alertTitle}>{item.title}</ThemedText>
+                    <ThemedText style={styles.alertDesc}>{item.body}</ThemedText>
+                    {selectedChildId === null ? (
+                      <ThemedText style={styles.childTag}>
+                        {getChildById(item.childId)?.name ?? 'Child'}
+                      </ThemedText>
+                    ) : null}
+                    {item.location ? (
+                      <View style={styles.locPill}>
+                        <Ionicons
+                          name="location-outline"
+                          size={14}
+                          color={GuardianColors.textSecondary}
+                        />
+                        <ThemedText style={styles.locText}>{item.location}</ThemedText>
+                      </View>
+                    ) : null}
+                    {item.type === 'sos' ? (
+                      <View style={styles.sosActions}>
+                        <Pressable
+                          style={styles.sosCallBtn}
+                          onPress={() => openContacts(item.childId)}>
+                          <Ionicons name="call" size={16} color="#FFFFFF" />
+                          <ThemedText lightColor="#FFF" darkColor="#FFF" style={styles.sosCallText}>
+                            Call contacts
+                          </ThemedText>
+                        </Pressable>
+                        <Pressable
+                          style={styles.sosViewBtn}
+                          onPress={() => router.push(`/child/${item.childId}` as any)}>
+                          <ThemedText style={styles.sosViewText}>View child</ThemedText>
+                        </Pressable>
+                      </View>
+                    ) : null}
                   </View>
-                  <ThemedText style={styles.alertTime}>{item.time}</ThemedText>
                 </View>
-                <ThemedText style={styles.alertTitle}>{item.title}</ThemedText>
-                <ThemedText style={styles.alertDesc}>{item.body}</ThemedText>
-                {item.location ? (
-                  <View style={styles.locPill}>
-                    <Ionicons name="location-outline" size={14} color={GuardianColors.textSecondary} />
-                    <ThemedText style={styles.locText}>{item.location}</ThemedText>
+              </Animated.View>
+            ))
+          )
+        ) : null}
+
+        {filter === 'all' && activeList.length > 0 && resolvedList.length > 0 ? (
+          <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Resolved</ThemedText>
+        ) : null}
+
+        {filter !== 'active' ? (
+          resolvedList.length === 0 && filter === 'resolved' ? (
+            <EmptyAlerts message={emptyResolvedMessage} />
+          ) : (
+            resolvedList.map((item, index) => (
+              <Animated.View
+                key={item.id}
+                entering={FadeIn.delay(index * 60).springify()}>
+                <View style={styles.resolvedCard}>
+                  <Ionicons
+                    name={item.type === 'battery' ? 'battery-charging' : 'checkmark-circle-outline'}
+                    size={22}
+                    color={GuardianColors.textSecondary}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <ThemedText style={styles.alertTitle}>{item.title}</ThemedText>
+                    <ThemedText style={styles.alertDesc}>{item.body}</ThemedText>
+                    {selectedChildId === null ? (
+                      <ThemedText style={styles.childTag}>
+                        {getChildById(item.childId)?.name ?? 'Child'}
+                      </ThemedText>
+                    ) : null}
                   </View>
-                ) : null}
-              </View>
+                  <View style={styles.resolvedRight}>
+                    <ThemedText style={styles.alertTime}>{item.time}</ThemedText>
+                    <ThemedText style={styles.resolvedBadge}>RESOLVED</ThemedText>
+                  </View>
+                </View>
+              </Animated.View>
+            ))
+          )
+        ) : null}
+
+        <Animated.View entering={FadeInDown.delay(280).duration(300)}>
+          <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Emergency Contacts</ThemedText>
+          {emergencyContacts.map((contact) => (
+            <View key={contact.id} style={styles.contactWrap}>
+              <ContactRow contact={contact} onPress={() => dialContact(contact)} />
             </View>
           ))}
 
-        <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Resolved</ThemedText>
-        {list
-          .filter((i) => i.state === 'resolved')
-          .map((item) => (
-            <View key={item.id} style={styles.resolvedCard}>
-              <Ionicons name="battery-charging" size={22} color={GuardianColors.textSecondary} />
-              <View style={{ flex: 1 }}>
-                <ThemedText style={styles.alertTitle}>{item.title}</ThemedText>
-                <ThemedText style={styles.alertDesc}>{item.body}</ThemedText>
-              </View>
-              <View style={styles.resolvedRight}>
-                <ThemedText style={styles.alertTime}>{item.time}</ThemedText>
-                <ThemedText style={styles.resolvedBadge}>RESOLVED</ThemedText>
-              </View>
-            </View>
-          ))}
-
-        <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Emergency Contacts</ThemedText>
-        <View style={styles.contact}>
-          <View style={styles.avatarSm}>
-            <Ionicons name="person" size={20} color={GuardianColors.primary} />
+          <View style={{ marginTop: 8 }}>
+            <PrimaryButton
+              variant="danger"
+              label="EMERGENCY SOS"
+              onPress={() => router.push(`/child/${sosChildId}` as any)}
+            />
           </View>
-          <View style={{ flex: 1 }}>
-            <ThemedText style={styles.contactName}>Sarah (Mom)</ThemedText>
-            <ThemedText style={styles.contactRole}>Primary contact</ThemedText>
-          </View>
-          <Pressable style={styles.phoneBlue}>
-            <Ionicons name="call" size={18} color={GuardianColors.primary} />
-          </Pressable>
-        </View>
-        <View style={styles.contact}>
-          <View style={[styles.avatarSm, styles.avatarEmergency]}>
-            <Ionicons name="medical" size={20} color={GuardianColors.danger} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <ThemedText style={styles.contactName}>Local Emergency service</ThemedText>
-            <ThemedText style={styles.contactRole}>Police</ThemedText>
-          </View>
-          <Pressable style={styles.phoneRed}>
-            <Ionicons name="call" size={18} color="#FFFFFF" />
-          </Pressable>
-        </View>
-
-        <View style={{ marginTop: 8 }}>
-          <PrimaryButton variant="danger" label="EMERGENCY SOS" onPress={() => router.push('/child/1' as any)} />
-        </View>
+        </Animated.View>
       </ScrollView>
+
+      <ChildContactsSheet
+        visible={contactsOpen}
+        childId={contactChildId}
+        childName={contactChild?.name ?? 'Child'}
+        onClose={() => setContactsOpen(false)}
+      />
     </ThemedView>
   );
 }
@@ -211,52 +415,7 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: GuardianColors.textSecondary,
     marginTop: 6,
-    marginBottom: 16,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: GuardianColors.surface,
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: GuardianColors.border,
-  },
-  summaryLabel: {
-    ...Typography.label,
-    color: GuardianColors.textMuted,
-  },
-  summaryRed: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: GuardianColors.danger,
-    marginTop: 6,
-  },
-  summaryFoot: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 10,
-  },
-  summaryFootRed: {
-    fontWeight: '800',
-    color: GuardianColors.danger,
-    fontSize: 12,
-  },
-  summaryGreen: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: GuardianColors.safe,
-    marginTop: 8,
-  },
-  summaryMuted: {
-    ...Typography.caption,
-    color: GuardianColors.textMuted,
-    marginTop: 8,
+    marginBottom: 4,
   },
   segment: {
     flexDirection: 'row',
@@ -293,11 +452,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...Typography.section,
     color: GuardianColors.text,
-  },
-  link: {
-    fontWeight: '700',
-    color: GuardianColors.primary,
-    fontSize: 14,
   },
   alertCard: {
     flexDirection: 'row',
@@ -344,6 +498,11 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: GuardianColors.textSecondary,
   },
+  childTag: {
+    ...Typography.caption,
+    color: GuardianColors.primary,
+    fontWeight: '800',
+  },
   locPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -380,52 +539,72 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: GuardianColors.safe,
   },
-  contact: {
+  contactWrap: {
+    marginBottom: 10,
+  },
+  sosActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+  sosCallBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: GuardianColors.danger,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  sosCallText: {
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  sosViewBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: GuardianColors.navyMuted,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: GuardianColors.border,
+  },
+  sosViewText: {
+    fontWeight: '800',
+    color: GuardianColors.primary,
+    fontSize: 14,
+  },
+  empty: {
+    alignItems: 'center',
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    marginBottom: 12,
     backgroundColor: GuardianColors.surface,
-    padding: 14,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: GuardianColors.border,
+  },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: GuardianColors.overlaySheet,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 10,
   },
-  avatarSm: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: GuardianColors.navyMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarEmergency: {
-    backgroundColor: GuardianColors.dangerMuted,
-  },
-  contactName: {
+  emptyTitle: {
     fontWeight: '800',
-    color: GuardianColors.text,
     fontSize: 16,
+    color: GuardianColors.text,
+    textAlign: 'center',
   },
-  contactRole: {
+  emptySub: {
     ...Typography.caption,
-    color: GuardianColors.textSecondary,
-    marginTop: 2,
-  },
-  phoneBlue: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: GuardianColors.navyMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  phoneRed: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: GuardianColors.danger,
-    alignItems: 'center',
-    justifyContent: 'center',
+    color: GuardianColors.textMuted,
+    marginTop: 6,
+    textAlign: 'center',
   },
 });

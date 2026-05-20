@@ -2,46 +2,54 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { ChildAvatar } from '@/components/guardian/child-avatar';
 import { StatusBadge, type StatusVariant } from '@/components/guardian/status-badge';
 import { ThemedText } from '@/components/themed-text';
+import { getChildColorTheme } from '@/constants/child-colors';
 import { GuardianColors, Typography } from '@/constants/theme';
 
 export type ChildSummary = {
   id: string;
   name: string;
+  age: number;
   deviceLabel: string;
   location: string;
+  latitude: number;
+  longitude: number;
   status: StatusVariant;
   movement?: string;
   lastUpdate: string;
   online: boolean;
   alertMessage?: string;
+  gender?: 'male' | 'female' | 'other';
+  dateOfBirth?: string;
+  deviceId?: string;
+  profilePhoto?: string;
 };
 
 type Props = {
   item: ChildSummary;
   onPress: () => void;
+  onLongPress?: () => void;
 };
 
-export function ChildSummaryCard({ item, onPress }: Props) {
-  const accent =
-    item.status === 'warning'
-      ? GuardianColors.danger
-      : item.status === 'offline'
-        ? GuardianColors.offline
-        : GuardianColors.safe;
+export function ChildSummaryCard({ item, onPress, onLongPress }: Props) {
+  const colors = getChildColorTheme(item.id);
 
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={[styles.card, item.status === 'warning' && styles.cardWarning]}>
-      <View style={[styles.accent, { backgroundColor: accent }]} />
+      onLongPress={onLongPress}
+      style={[
+        styles.card,
+        { borderColor: colors.muted },
+        item.status === 'warning' && styles.cardWarning,
+      ]}>
+      <View style={[styles.accent, { backgroundColor: colors.main }]} />
       <View style={styles.cardBody}>
         <View style={styles.topRow}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={28} color={GuardianColors.textSecondary} />
-          </View>
+          <ChildAvatar childId={item.id} size={56} borderRadius={12} />
           <View style={styles.meta}>
             <View style={styles.nameRow}>
               <ThemedText style={styles.name}>{item.name}</ThemedText>
@@ -107,14 +115,6 @@ const styles = StyleSheet.create({
   topRow: {
     flexDirection: 'row',
     gap: 12,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: GuardianColors.navyMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   meta: {
     flex: 1,

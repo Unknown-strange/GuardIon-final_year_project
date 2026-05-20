@@ -3,6 +3,9 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import { AuthProvider } from '@/contexts/auth-context';
+import { GuardianDataProvider } from '@/contexts/guardian-data-context';
+import { GuardianProfilePhotoProvider } from '@/contexts/guardian-profile-photo-context';
 import { GuardianColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -15,6 +18,9 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <AuthProvider>
+      <GuardianProfilePhotoProvider>
+      <GuardianDataProvider>
       <Stack initialRouteName="splash-screen" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="splash-screen" />
         <Stack.Screen name="authentication" />
@@ -22,15 +28,14 @@ export default function RootLayout() {
         <Stack.Screen name="settings" />
         <Stack.Screen name="child" />
         <Stack.Screen
-          name="add-safe-zone"
+          name="map/manage-zones"
           options={{
-            presentation: 'modal',
-            animation: 'slide_from_bottom',
+            animation: 'slide_from_right',
             contentStyle: { backgroundColor: GuardianColors.background },
           }}
         />
         <Stack.Screen
-          name="add-red-zone"
+          name="add-safe-zone"
           options={{
             presentation: 'modal',
             animation: 'slide_from_bottom',
@@ -40,6 +45,9 @@ export default function RootLayout() {
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />
+      </GuardianDataProvider>
+      </GuardianProfilePhotoProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

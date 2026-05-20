@@ -1,22 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/guardian/screen-header';
 import { SectionTitle } from '@/components/guardian/section-title';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useActivityHistory } from '@/hooks/use-activity-history';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
-
-const PLACEHOLDER = [
-  { id: '1', title: 'Location update', sub: 'Mia · School zone', time: 'Today · 9:12 AM' },
-  { id: '2', title: 'Heart rate logged', sub: '72 bpm · normal', time: 'Today · 8:40 AM' },
-  { id: '3', title: 'Geofence entry', sub: 'Home safe zone', time: 'Yesterday · 6:02 PM' },
-];
 
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
+  const { items, loading } = useActivityHistory();
 
   return (
     <ThemedView style={styles.screen}>
@@ -30,21 +26,27 @@ export default function HistoryScreen() {
         <ScreenHeader />
         <SectionTitle title="History" />
         <ThemedText style={styles.intro}>
-          A chronological log of movements, vitals, and zone events will appear here.
+          Alerts and location updates from your children&apos;s devices.
         </ThemedText>
 
-        {PLACEHOLDER.map((row) => (
-          <View key={row.id} style={styles.row}>
-            <View style={styles.icon}>
-              <Ionicons name="time-outline" size={20} color={GuardianColors.primary} />
+        {loading ? (
+          <ActivityIndicator color={GuardianColors.primary} style={{ marginTop: 24 }} />
+        ) : items.length === 0 ? (
+          <ThemedText style={styles.empty}>No activity yet.</ThemedText>
+        ) : (
+          items.map((row) => (
+            <View key={row.id} style={styles.row}>
+              <View style={styles.icon}>
+                <Ionicons name="time-outline" size={20} color={GuardianColors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={styles.title}>{row.title}</ThemedText>
+                <ThemedText style={styles.sub}>{row.sub}</ThemedText>
+              </View>
+              <ThemedText style={styles.time}>{row.time}</ThemedText>
             </View>
-            <View style={{ flex: 1 }}>
-              <ThemedText style={styles.title}>{row.title}</ThemedText>
-              <ThemedText style={styles.sub}>{row.sub}</ThemedText>
-            </View>
-            <ThemedText style={styles.time}>{row.time}</ThemedText>
-          </View>
-        ))}
+          ))
+        )}
       </ScrollView>
     </ThemedView>
   );
@@ -59,6 +61,11 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: GuardianColors.textSecondary,
     marginBottom: 16,
+  },
+  empty: {
+    ...Typography.body,
+    color: GuardianColors.textMuted,
+    marginTop: 12,
   },
   row: {
     flexDirection: 'row',

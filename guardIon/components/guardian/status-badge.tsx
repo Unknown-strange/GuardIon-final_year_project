@@ -17,24 +17,29 @@ type Props = {
 };
 
 export function StatusBadge({ variant }: Props) {
-  const palette = {
-    safe: { bg: GuardianColors.safeMuted, fg: GuardianColors.safe, border: GuardianColors.safe },
-    warning: {
-      bg: GuardianColors.warningMuted,
-      fg: GuardianColors.warning,
-      border: GuardianColors.warning,
-    },
-    offline: {
+  const palette =
+    {
+      safe: { bg: GuardianColors.safeMuted, fg: GuardianColors.safe, border: GuardianColors.safe },
+      warning: {
+        bg: GuardianColors.warningMuted,
+        fg: GuardianColors.warning,
+        border: GuardianColors.warning,
+      },
+      offline: {
+        bg: GuardianColors.offlineMuted,
+        fg: GuardianColors.offline,
+        border: GuardianColors.offline,
+      },
+    }[variant] ?? {
       bg: GuardianColors.offlineMuted,
       fg: GuardianColors.offline,
       border: GuardianColors.offline,
-    },
-  }[variant];
+    };
 
   return (
     <View style={[styles.wrap, { backgroundColor: palette.bg, borderColor: palette.border }]}>
-      <ThemedText style={[styles.label, { color: palette.fg }]} accessibilityRole="text">
-        {LABELS[variant]}
+      <ThemedText style={[styles.label, { color: palette.fg }]}>
+        {LABELS[variant] ?? 'UNKNOWN'}
       </ThemedText>
     </View>
   );

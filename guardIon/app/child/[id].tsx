@@ -1,130 +1,251 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GuardianFab } from '@/components/guardian/fab';
 import { PrimaryButton } from '@/components/guardian/buttons';
+import { ChildAvatar } from '@/components/guardian/child-avatar';
+import { CheckInSheet } from '@/components/guardian/check-in-sheet';
+import { ChildContactsSheet } from '@/components/guardian/child-contacts-sheet';
+import { ChildLiveLocationMap } from '@/components/guardian/child-live-location-map';
+import { EmergencySosModal } from '@/components/guardian/emergency-sos-modal';
 import { ScreenHeader } from '@/components/guardian/screen-header';
 import { SectionTitle } from '@/components/guardian/section-title';
+import { StatusBadge } from '@/components/guardian/status-badge';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { getChildDashboard } from '@/constants/guardian-mocks';
+import { getChildColorTheme } from '@/constants/child-colors';
+import { useGuardianData } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
+import { useCheckIn } from '@/hooks/use-check-in';
+import { useSafeZones } from '@/hooks/use-safe-zones';
 
 export default function ChildDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const childId = String(id ?? '1');
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const dash = getChildDashboard(String(id ?? '1'));
+  const { getChildById } = useGuardianData();
+  const child = getChildById(childId);
+  const colors = getChildColorTheme(childId);
+  const { childZones, refresh } = useSafeZones(childId);
+  const { status: checkInStatus, lastLabel, start: startCheckIn, cancel: cancelCheckIn, canCheckIn } =
+    useCheckIn(childId, child?.online ?? false);
+
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [contactsOpen, setContactsOpen] = useState(false);
+  const [sosOpen, setSosOpen] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
+
+  const openOnMap = () => {
+    router.push({
+      pathname: '/(tabs)/map',
+      params: { childId },
+    } as any);
+  };
+
+  const openAlerts = () => {
+    router.push({
+      pathname: '/(tabs)/alerts',
+      params: { childId },
+    } as any);
+  };
+
+  const openCheckIn = () => {
+    cancelCheckIn();
+    setCheckInOpen(true);
+  };
+
+  const closeCheckIn = () => {
+    cancelCheckIn();
+    setCheckInOpen(false);
+  };
+
+  const confirmCheckIn = () => {
+    startCheckIn();
+  };
+
+  const openSos = () => {
+    if (!child) return;
+    Alert.alert(
+      'Trigger emergency SOS?',
+      `This will open the emergency panel for ${child.name}. Use only in a real emergency.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Continue', style: 'destructive', onPress: () => setSosOpen(true) },
+      ],
+    );
+  };
+
+  if (!child) {
+    return (
+      <ThemedView style={styles.screen}>
+        <ThemedText style={{ padding: 24 }}>Child not found.</ThemedText>
+      </ThemedView>
+    );
+  }
 
   return (
     <ThemedView style={styles.screen}>
-        <ScrollView
-          contentContainerStyle={{
-            paddingHorizontal: Layout.screenPadding,
-            paddingTop: insets.top + 8,
-            paddingBottom: insets.bottom + 120,
-          }}
-          showsVerticalScrollIndicator={false}>
-          <View style={styles.topRow}>
-            <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}>
-              <Ionicons name="chevron-back" size={22} color={GuardianColors.primary} />
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: Layout.screenPadding,
+          paddingTop: insets.top + 8,
+          paddingBottom: insets.bottom + 120,
+        }}
+        nestedScrollEnabled
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.topRow}>
+          <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}>
+            <Ionicons name="chevron-back" size={22} color={GuardianColors.primary} />
+          </Pressable>
+        </View>
+
+        <ScreenHeader subtitle={`${child.name}'s Dashboard`} onBellPress={openAlerts} />
+
+        <View style={styles.profileBlock}>
+          <View style={[styles.profileRing, { borderColor: colors.main }]}>
+            <ChildAvatar
+              childId={childId}
+              size={84}
+              borderRadius={42}
+            />
+            <View style={[styles.checkBadge, { backgroundColor: colors.main }]}>
+              <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+            </View>
+          </View>
+          <ThemedText style={styles.profileName}>{child.name}</ThemedText>
+          <ThemedText style={styles.profileMeta}>
+            Age {child.age} ·{' '}
+            <ThemedText style={[styles.metaGreen, { color: colors.main }]}>
+              {child.online ? 'Online' : 'Offline'}
+            </ThemedText>
+          </ThemedText>
+          <StatusBadge variant={child.status} />
+          <View style={styles.quickRow}>
+            <Pressable style={styles.btnDark} onPress={openCheckIn}>
+              <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
+              <ThemedText lightColor="#FFF" darkColor="#FFF" style={styles.btnDarkText}>
+                Check-in
+              </ThemedText>
+            </Pressable>
+            <Pressable style={styles.btnLight} onPress={() => setContactsOpen(true)}>
+              <Ionicons name="call-outline" size={20} color={GuardianColors.primary} />
+              <ThemedText style={styles.btnLightText}>Call</ThemedText>
             </Pressable>
           </View>
+        </View>
 
-          <ScreenHeader subtitle={`${dash.childName}'s Dashboard`} />
-
-          <View style={styles.profileBlock}>
-            <View style={styles.profileRing}>
-              <View style={styles.profileInner}>
-                <Ionicons name="person" size={42} color={GuardianColors.primary} />
-              </View>
-              <View style={styles.checkBadge}>
-                <Ionicons name="checkmark" size={14} color="#FFFFFF" />
-              </View>
+        <View style={styles.card}>
+          <View style={styles.cardHead}>
+            <ThemedText style={styles.cardTitle}>Live Location</ThemedText>
+            <View style={[styles.livePill, { backgroundColor: colors.muted }]}>
+              <View style={[styles.liveDot, { backgroundColor: colors.main }]} />
+              <ThemedText style={[styles.liveText, { color: colors.border }]}>
+                {child.online ? 'Live Now' : 'Last known'}
+              </ThemedText>
             </View>
-            <ThemedText style={styles.profileName}>{dash.childName}</ThemedText>
-            <ThemedText style={styles.profileMeta}>
-              Age {dash.age} ·{' '}
-              <ThemedText style={styles.metaGreen}>{dash.tagline}</ThemedText>
+          </View>
+
+          <ChildLiveLocationMap
+            child={child}
+            zones={childZones}
+            onPress={openOnMap}
+            height={200}
+          />
+
+          <View style={styles.locRow}>
+            <Ionicons name="location-outline" size={18} color={colors.main} />
+            <View style={{ flex: 1 }}>
+              <ThemedText style={styles.addr}>{child.location}</ThemedText>
+              <ThemedText style={styles.timeSmall}>Last updated {child.lastUpdate}</ThemedText>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.riskCard}>
+          <View>
+            <ThemedText style={styles.riskLabel}>SAFETY RISK LEVEL</ThemedText>
+            <ThemedText style={styles.riskValue}>
+              {child.status === 'safe' ? 'Low' : child.status === 'warning' ? 'Medium' : 'Unknown'}
             </ThemedText>
-            <View style={styles.quickRow}>
-              <Pressable style={styles.btnDark}>
-                <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
-                <ThemedText lightColor="#FFF" darkColor="#FFF" style={styles.btnDarkText}>
-                  Check-in
-                </ThemedText>
-              </Pressable>
-              <Pressable style={styles.btnLight}>
-                <Ionicons name="call-outline" size={20} color={GuardianColors.primary} />
-                <ThemedText style={styles.btnLightText}>Call</ThemedText>
-              </Pressable>
-            </View>
           </View>
-
-          <View style={styles.card}>
-            <View style={styles.cardHead}>
-              <ThemedText style={styles.cardTitle}>Live Location</ThemedText>
-              <View style={styles.livePill}>
-                <View style={styles.liveDot} />
-                <ThemedText style={styles.liveText}>Live Now</ThemedText>
-              </View>
-            </View>
-            <Image
-              source={require('@/assets/mockups/child-details-dashboard.png')}
-              style={styles.mapShot}
-              contentFit="cover"
-            />
-            <View style={styles.locRow}>
-              <Ionicons name="location-outline" size={18} color={GuardianColors.primary} />
-              <View>
-                <ThemedText style={styles.addr}>{dash.liveAddress}</ThemedText>
-                <ThemedText style={styles.timeSmall}>Last updated {dash.liveUpdated}</ThemedText>
-              </View>
-            </View>
+          <View style={[styles.ringScore, { borderColor: colors.muted }]}>
+            <ThemedText style={[styles.ringScoreText, { color: colors.main }]}>
+              {child.status === 'safe' ? '12' : child.status === 'warning' ? '45' : '—'}%
+            </ThemedText>
           </View>
+        </View>
 
-          <View style={styles.riskCard}>
-            <View>
-              <ThemedText style={styles.riskLabel}>SAFETY RISK LEVEL</ThemedText>
-              <ThemedText style={styles.riskValue}>{dash.riskLabel}</ThemedText>
-            </View>
-            <View style={styles.ringScore}>
-              <ThemedText style={styles.ringScoreText}>{dash.riskPercent}%</ThemedText>
-            </View>
+        <SectionTitle title="Recent Activity" />
+        <View style={styles.activity}>
+          <Ionicons name="home-outline" size={22} color={GuardianColors.safe} />
+          <View style={{ flex: 1 }}>
+            <ThemedText style={styles.actTitle}>Geofence Exit</ThemedText>
+            <ThemedText style={styles.actSub}>Resolved · 2h ago</ThemedText>
           </View>
-
-          <SectionTitle title="Recent Activity" />
-          <View style={styles.activity}>
-            <Ionicons name="home-outline" size={22} color={GuardianColors.safe} />
-            <View style={{ flex: 1 }}>
-              <ThemedText style={styles.actTitle}>Geofence Exit</ThemedText>
-              <ThemedText style={styles.actSub}>Resolved · 2h ago</ThemedText>
-            </View>
-            <ThemedText style={styles.secure}>SECURE</ThemedText>
+          <ThemedText style={styles.secure}>SECURE</ThemedText>
+        </View>
+        <View style={styles.activity}>
+          <Ionicons name="battery-dead-outline" size={22} color={GuardianColors.danger} />
+          <View style={{ flex: 1 }}>
+            <ThemedText style={styles.actTitle}>Low Battery</ThemedText>
+            <ThemedText style={styles.actSub}>Active · {child.deviceLabel}</ThemedText>
           </View>
-          <View style={styles.activity}>
-            <Ionicons name="battery-dead-outline" size={22} color={GuardianColors.danger} />
-            <View style={{ flex: 1 }}>
-              <ThemedText style={styles.actTitle}>Low Battery</ThemedText>
-              <ThemedText style={styles.actSub}>Active · Mia&apos;s Tracker (15%)</ThemedText>
-            </View>
-            <ThemedText style={styles.attention}>ATTENTION</ThemedText>
-          </View>
+          <ThemedText style={styles.attention}>ATTENTION</ThemedText>
+        </View>
 
-          <PrimaryButton variant="danger" label="EMERGENCY SOS" onPress={() => {}} />
-        </ScrollView>
+        <PrimaryButton variant="danger" label="EMERGENCY SOS" onPress={openSos} />
+      </ScrollView>
 
-        <GuardianFab
-          accessibilityLabel="Quick actions"
-          onPress={() => router.push('/map' as any)}
-          style={{ position: 'absolute', right: Layout.screenPadding, bottom: insets.bottom + 88 }}
-        />
-      </ThemedView>
-    );
+      <CheckInSheet
+        visible={checkInOpen}
+        childName={child.name}
+        status={checkInStatus}
+        lastLabel={lastLabel}
+        canCheckIn={canCheckIn}
+        onClose={closeCheckIn}
+        onConfirm={confirmCheckIn}
+        onCall={() => {
+          closeCheckIn();
+          setContactsOpen(true);
+        }}
+        onViewMap={() => {
+          closeCheckIn();
+          openOnMap();
+        }}
+      />
+
+      <ChildContactsSheet
+        visible={contactsOpen}
+        childId={childId}
+        childName={child.name}
+        onClose={() => setContactsOpen(false)}
+      />
+
+      <EmergencySosModal
+        visible={sosOpen}
+        child={child}
+        zones={childZones}
+        liveAddress={child.location}
+        onClose={() => setSosOpen(false)}
+        onAcknowledge={() => {}}
+      />
+
+      <GuardianFab
+        accessibilityLabel="View on map"
+        onPress={openOnMap}
+        style={{ position: 'absolute', right: Layout.screenPadding, bottom: insets.bottom + 88 }}
+      />
+    </ThemedView>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -149,21 +270,13 @@ const styles = StyleSheet.create({
   profileBlock: {
     alignItems: 'center',
     marginBottom: 20,
+    gap: 6,
   },
   profileRing: {
     width: 100,
     height: 100,
     borderRadius: 50,
     borderWidth: 4,
-    borderColor: GuardianColors.safe,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileInner: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: GuardianColors.navyMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -174,7 +287,6 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: GuardianColors.safe,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -184,21 +296,19 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '900',
     color: GuardianColors.text,
-    marginTop: 12,
+    marginTop: 6,
   },
   profileMeta: {
     ...Typography.body,
     color: GuardianColors.textSecondary,
-    marginTop: 4,
   },
   metaGreen: {
-    color: GuardianColors.safe,
     fontWeight: '800',
   },
   quickRow: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 16,
+    marginTop: 10,
     width: '100%',
   },
   btnDark: {
@@ -239,12 +349,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: GuardianColors.border,
     marginBottom: 14,
+    gap: 10,
   },
   cardHead: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
   },
   cardTitle: {
     fontSize: 17,
@@ -255,7 +365,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: GuardianColors.safeMuted,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
@@ -264,18 +373,10 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: GuardianColors.safe,
   },
   liveText: {
     fontWeight: '800',
-    color: GuardianColors.safe,
     fontSize: 12,
-  },
-  mapShot: {
-    width: '100%',
-    height: 160,
-    borderRadius: 14,
-    marginBottom: 10,
   },
   locRow: {
     flexDirection: 'row',
@@ -318,13 +419,11 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     borderWidth: 6,
-    borderColor: GuardianColors.safeMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ringScoreText: {
     fontWeight: '900',
-    color: GuardianColors.safe,
     fontSize: 14,
   },
   activity: {

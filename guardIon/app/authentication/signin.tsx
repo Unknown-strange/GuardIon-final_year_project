@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,20 +15,40 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
+import { useAuth, getErrorMessage } from '@/contexts/auth-context';
+import { GoogleSignInButton } from '@/components/authentication/google-sign-in-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { GuardianColors } from '@/constants/theme';
 
 export default function SignInScreen() {
   const router = useRouter();
+  const { signIn } = useAuth();
 
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('password');
+  const [password, setPassword] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [rememberMe, setRememberMe] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  const onLogin = () => router.replace('/(tabs)');
+  const onLogin = async () => {
+    if (!email.trim() || !password) {
+      Alert.alert('Missing details', 'Enter your email and password.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await signIn(email, password);
+      router.replace('/(tabs)');
+    } catch (error) {
+      Alert.alert('Sign in failed', getErrorMessage(error, 'Unable to sign in.'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const onSignUp = () => router.push('/authentication/sign-up' as any);
+  const onForgotPassword = () => router.push('/authentication/forgot-password' as any);
 
   return (
     <ThemedView style={styles.container}>
@@ -110,13 +132,21 @@ export default function SignInScreen() {
                   <ThemedText style={styles.rememberText}>Remember me</ThemedText>
                 </Pressable>
 
-                <Pressable accessibilityRole="link" onPress={() => {}}>
+                <Pressable accessibilityRole="link" onPress={onForgotPassword}>
                   <ThemedText style={styles.forgotText}>Forgot password?</ThemedText>
                 </Pressable>
               </View>
 
-              <Pressable accessibilityRole="button" onPress={onLogin} style={styles.loginBtn}>
-                <ThemedText style={styles.loginBtnText}>Log in</ThemedText>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onLogin}
+                disabled={submitting}
+                style={[styles.loginBtn, submitting && styles.loginBtnDisabled]}>
+                {submitting ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <ThemedText style={styles.loginBtnText}>Log in</ThemedText>
+                )}
               </Pressable>
 
               <View style={styles.separatorRow}>
@@ -125,12 +155,11 @@ export default function SignInScreen() {
                 <View style={styles.separatorLine} />
               </View>
 
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {}}
-                style={styles.googleBtn}>
-                <Ionicons name="logo-google" size={22} color="#111827" />
-              </Pressable>
+              <GoogleSignInButton
+                disabled={submitting}
+                onSuccess={() => router.replace('/(tabs)')}
+                style={styles.googleBtn}
+              />
 
               <View style={styles.signupRow}>
                 <ThemedText style={styles.signupText}>Don&apos;t have an account?</ThemedText>
@@ -265,6 +294,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#072B59',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loginBtnDisabled: {
+    opacity: 0.7,
   },
   loginBtnText: {
     color: '#FFFFFF',

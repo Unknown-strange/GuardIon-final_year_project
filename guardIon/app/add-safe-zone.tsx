@@ -1,35 +1,89 @@
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton, SecondaryButton } from '@/components/guardian/buttons';
+import { ChildAvatar } from '@/components/guardian/child-avatar';
+import { SafeZoneMapPicker } from '@/components/guardian/safe-zone-map-picker';
+import { SafeZoneRadiusSlider } from '@/components/guardian/safe-zone-radius-slider';
 import { ScreenHeader } from '@/components/guardian/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { getChildColorTheme } from '@/constants/child-colors';
+import { useChildSummary } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
+import { useSafeZones } from '@/hooks/use-safe-zones';
+import { SAFE_ZONE_RADIUS_DEFAULT } from '@/types/safe-zone';
 
-const MIN_R = 50;
-const MAX_R = 1000;
-const STEP = 50;
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function parseTime(value: string): Date {
+  const [hours, minutes] = value.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hours || 0, minutes || 0, 0, 0);
+  return date;
+}
 
 export default function AddSafeZoneScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [zoneName, setZoneName] = useState('');
-  const [radius, setRadius] = useState(350);
+  const { childId } = useLocalSearchParams<{ childId?: string }>();
+  const resolvedChildId = String(childId ?? '');
+  const { child } = useChildSummary(resolvedChildId);
+  const { addZone } = useSafeZones(resolvedChildId || null);
 
-  const bump = (delta: number) => {
-    setRadius((r) => Math.min(MAX_R, Math.max(MIN_R, r + delta)));
+  const [zoneName, setZoneName] = useState('');
+  const [radius, setRadius] = useState(SAFE_ZONE_RADIUS_DEFAULT);
+  const [scheduled, setScheduled] = useState(false);
+  const [startTime, setStartTime] = useState('08:00');
+  const [endTime, setEndTime] = useState('15:00');
+  const [pickerMode, setPickerMode] = useState<'start' | 'end' | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const showNativeMap = Platform.OS !== 'web';
+  const canSave = zoneName.trim().length > 0 && !saving && !!child;
+
+  const onSave = async () => {
+    if (!canSave || !child) return;
+    setSaving(true);
+    try {
+      await addZone({
+        childId: child.id,
+        name: zoneName.trim(),
+        latitude: child.latitude,
+        longitude: child.longitude,
+        radiusM: Math.round(radius),
+        schedule: scheduled ? { start: startTime, end: endTime } : null,
+      });
+      router.back();
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (!child) {
+    return (
+      <ThemedView style={[styles.screen, { paddingTop: insets.top }]}>
+        <ThemedText style={{ padding: 24 }}>Child not found.</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  const colors = getChildColorTheme(child.id);
 
   return (
     <ThemedView style={[styles.screen, { paddingTop: insets.top }]}>
@@ -41,18 +95,38 @@ export default function AddSafeZoneScreen() {
         </Pressable>
       </View>
 
+      <View style={styles.mapSection}>
+        {showNativeMap ? (
+          <SafeZoneMapPicker
+            childId={child.id}
+            childName={child.name}
+            childLocation={child.location}
+            childPosition={{ latitude: child.latitude, longitude: child.longitude }}
+            radius={radius}
+          />
+        ) : (
+          <Image
+            source={require('@/assets/mockups/safe-zone-maps.png')}
+            style={styles.webMap}
+            contentFit="cover"
+          />
+        )}
+      </View>
+
       <ScrollView
+        style={styles.formScroll}
         contentContainerStyle={{
           paddingHorizontal: Layout.screenPadding,
           paddingBottom: insets.bottom + 24,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-        <Image
-          source={require('@/assets/mockups/safe-zone-maps.png')}
-          style={styles.map}
-          contentFit="cover"
-        />
+        <View style={[styles.childTag, { backgroundColor: colors.muted }]}>
+          <ChildAvatar childId={child.id} size={28} borderWidth={2} borderColor={colors.main} />
+          <ThemedText style={[styles.subtitle, { color: colors.border }]}>
+            For {child.name}
+          </ThemedText>
+        </View>
 
         <ThemedText style={styles.label}>Zone Name</ThemedText>
         <TextInput
@@ -69,26 +143,58 @@ export default function AddSafeZoneScreen() {
           <Ionicons name="chevron-down" size={20} color={GuardianColors.textSecondary} />
         </View>
 
-        <View style={styles.radiusHead}>
-          <ThemedText style={styles.label}>Detection Radius</ThemedText>
-          <View style={styles.pill}>
-            <ThemedText style={styles.pillText}>{radius} meters</ThemedText>
-          </View>
-        </View>
-        <View style={styles.sliderRow}>
-          <ThemedText style={styles.edge}>50M</ThemedText>
-          <Pressable style={styles.stepBtn} onPress={() => bump(-STEP)}>
-            <Ionicons name="remove" size={22} color={GuardianColors.primary} />
-          </Pressable>
-          <View style={styles.track} />
-          <Pressable style={styles.stepBtn} onPress={() => bump(STEP)}>
-            <Ionicons name="add" size={22} color={GuardianColors.primary} />
-          </Pressable>
-          <ThemedText style={styles.edge}>1KM</ThemedText>
+        <View style={{ marginTop: 16 }}>
+          <SafeZoneRadiusSlider value={radius} onChange={setRadius} />
         </View>
 
+        <View style={styles.scheduleRow}>
+          <View style={styles.scheduleText}>
+            <ThemedText style={styles.scheduleTitle}>Scheduled Zone</ThemedText>
+            <ThemedText style={styles.scheduleSub}>Auto-activate during set hours</ThemedText>
+          </View>
+          <Switch value={scheduled} onValueChange={setScheduled} />
+        </View>
+
+        {scheduled ? (
+          <View style={styles.timeRow}>
+            <Pressable style={styles.timeBtn} onPress={() => setPickerMode('start')}>
+              <ThemedText style={styles.timeLabel}>Start</ThemedText>
+              <ThemedText style={styles.timeValue}>{startTime}</ThemedText>
+            </Pressable>
+            <Pressable style={styles.timeBtn} onPress={() => setPickerMode('end')}>
+              <ThemedText style={styles.timeLabel}>End</ThemedText>
+              <ThemedText style={styles.timeValue}>{endTime}</ThemedText>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {pickerMode && Platform.OS !== 'web' ? (
+          <DateTimePicker
+            value={parseTime(pickerMode === 'start' ? startTime : endTime)}
+            mode="time"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(_, date) => {
+              if (Platform.OS === 'android') setPickerMode(null);
+              if (!date) return;
+              const formatted = formatTime(date);
+              if (pickerMode === 'start') setStartTime(formatted);
+              else setEndTime(formatted);
+            }}
+          />
+        ) : null}
+
+        {pickerMode && Platform.OS === 'ios' ? (
+          <Pressable style={styles.donePicker} onPress={() => setPickerMode(null)}>
+            <ThemedText style={styles.donePickerText}>Done</ThemedText>
+          </Pressable>
+        ) : null}
+
         <View style={{ marginTop: 20, gap: 12 }}>
-          <PrimaryButton label="Save Geofence" onPress={() => router.back()} />
+          <PrimaryButton
+            label={saving ? 'Saving...' : 'Save Geofence'}
+            onPress={onSave}
+            disabled={!canSave}
+          />
           <SecondaryButton label="Cancel" onPress={() => router.back()} />
         </View>
       </ScrollView>
@@ -113,11 +219,31 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: GuardianColors.text,
   },
-  map: {
+  mapSection: {
+    paddingHorizontal: Layout.screenPadding,
+    marginBottom: 12,
+  },
+  webMap: {
     width: '100%',
     height: 200,
     borderRadius: 16,
-    marginBottom: 16,
+  },
+  formScroll: {
+    flex: 1,
+  },
+  childTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 12,
+  },
+  subtitle: {
+    ...Typography.caption,
+    fontWeight: '700',
   },
   label: {
     ...Typography.caption,
@@ -153,48 +279,56 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: GuardianColors.text,
   },
-  radiusHead: {
+  scheduleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 16,
-    marginBottom: 8,
+    gap: 12,
+    marginTop: 18,
+    paddingVertical: 8,
   },
-  pill: {
-    backgroundColor: GuardianColors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+  scheduleText: {
+    flex: 1,
   },
-  pillText: {
-    color: '#FFFFFF',
+  scheduleTitle: {
     fontWeight: '800',
-    fontSize: 13,
+    color: GuardianColors.text,
+    fontSize: 15,
   },
-  sliderRow: {
+  scheduleSub: {
+    ...Typography.caption,
+    color: GuardianColors.textMuted,
+    marginTop: 2,
+  },
+  timeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
-  edge: {
+  timeBtn: {
+    flex: 1,
+    backgroundColor: GuardianColors.overlaySheet,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: GuardianColors.border,
+    padding: 12,
+  },
+  timeLabel: {
     ...Typography.caption,
     color: GuardianColors.textMuted,
     fontWeight: '700',
   },
-  stepBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: GuardianColors.surface,
-    borderWidth: 1,
-    borderColor: GuardianColors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+  timeValue: {
+    marginTop: 4,
+    fontWeight: '800',
+    color: GuardianColors.text,
+    fontSize: 16,
   },
-  track: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: GuardianColors.navyMuted,
+  donePicker: {
+    alignSelf: 'flex-end',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  donePickerText: {
+    color: GuardianColors.primary,
+    fontWeight: '800',
   },
 });

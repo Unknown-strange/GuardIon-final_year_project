@@ -19,7 +19,7 @@ import { ScreenHeader } from '@/components/guardian/screen-header';
 import { SectionTitle } from '@/components/guardian/section-title';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MOCK_CHILDREN } from '@/constants/guardian-mocks';
+import { useGuardianData } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
 
 type IonName = keyof typeof Ionicons.glyphMap;
@@ -70,6 +70,7 @@ const SAFETY_TIPS: TipSlide[] = [
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { children, isLoading } = useGuardianData();
   const [query, setQuery] = useState('');
   const [tipIndex, setTipIndex] = useState(0);
 
@@ -78,19 +79,19 @@ export default function HomeScreen() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return MOCK_CHILDREN;
-    return MOCK_CHILDREN.filter(
+    if (!q) return children;
+    return children.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.deviceLabel.toLowerCase().includes(q) ||
         c.location.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [children, query]);
 
-  const activeDevices = MOCK_CHILDREN.filter((c) => c.online).length;
+  const activeDevices = children.filter((c) => c.online).length;
 
-  const tabBarReserve = Math.max(insets.bottom, 14) + 54 + 24;
-  const fabBottom = Math.max(insets.bottom, 14) + 54 + 16;
+  const fabBottom = Math.max(insets.bottom, 12) + 16;
+  const scrollBottomPadding = fabBottom + 56 + 12;
 
   const onTipScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x;
@@ -105,7 +106,7 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingTop: insets.top + 8, paddingBottom: tabBarReserve + 72 },
+          { paddingTop: insets.top + 8, paddingBottom: scrollBottomPadding },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
@@ -138,6 +139,12 @@ export default function HomeScreen() {
             key={item.id}
             item={item}
             onPress={() => router.push(`/child/${item.id}` as any)}
+            onLongPress={() =>
+              router.push({
+                pathname: '/(tabs)/map',
+                params: { childId: item.id },
+              } as any)
+            }
           />
         ))}
 
@@ -240,7 +247,7 @@ const styles = StyleSheet.create({
   },
   carouselBleed: {
     marginHorizontal: -Layout.screenPadding,
-    marginBottom: 8,
+    marginBottom: 0,
   },
   carouselContent: {
     alignItems: 'stretch',
@@ -254,7 +261,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: GuardianColors.border,
-    minHeight: 152,
   },
   tipRow: {
     flexDirection: 'row',
@@ -277,7 +283,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    marginTop: 14,
+    marginTop: 10,
+    marginBottom: 4,
     paddingHorizontal: Layout.screenPadding,
   },
   dot: {
