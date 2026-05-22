@@ -3,6 +3,8 @@ Notifications API
 Endpoints for managing user notifications
 """
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -12,13 +14,47 @@ from uuid import UUID
 from app.api.deps import get_db, get_current_active_user
 from app.models.user import User
 from app.models.notification import Notification
+from app.models.push_token import PushToken
 from app.schemas.notification import (
     NotificationResponse,
     NotificationMarkRead,
     NotificationListResponse
 )
+from app.schemas.session import PushTokenRegister, PushTokenResponse
 
 router = APIRouter()
+
+
+@router.post("/register-token", response_model=PushTokenResponse, status_code=status.HTTP_201_CREATED)
+def register_push_token(
+    payload: PushTokenRegister,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Register Expo / FCM push token for the current user."""
+    now = datetime.utcnow()
+    existing = db.query(PushToken).filter(PushToken.token == payload.token).first()
+
+    if existing:
+        existing.user_id = current_user.id
+        existing.platform = payload.platform
+        existing.device_name = payload.device_name
+        existing.last_active = now
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    token = PushToken(
+        user_id=current_user.id,
+        token=payload.token.strip(),
+        platform=payload.platform,
+        device_name=payload.device_name,
+        last_active=now,
+    )
+    db.add(token)
+    db.commit()
+    db.refresh(token)
+    return token
 
 
 @router.get("/", response_model=NotificationListResponse)

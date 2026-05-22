@@ -2,6 +2,8 @@
 Database Connection and Session Management
 """
 
+from contextlib import contextmanager
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -13,7 +15,9 @@ engine = create_engine(
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
-    echo=settings.DEBUG
+    pool_recycle=1800,
+    pool_timeout=30,
+    echo=settings.DEBUG,
 )
 
 # Create session factory
@@ -21,6 +25,20 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Base class for all models
 Base = declarative_base()
+
+
+@contextmanager
+def session_scope():
+    """Provide a transactional scope that always closes the session."""
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
 
 def get_db():

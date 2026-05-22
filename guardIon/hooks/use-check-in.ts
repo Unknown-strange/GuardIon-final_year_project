@@ -1,19 +1,37 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import * as checkInsApi from '@/api/check-ins';
+import { ApiError } from '@/api/errors';
+import { useAlertsRealtime } from '@/contexts/alerts-realtime-context';
+
 export type CheckInStatus = 'idle' | 'pending' | 'confirmed' | 'timeout';
+
+const POLL_MS = 2500;
+const TIMEOUT_MS = 90000;
 
 function storageKey(childId: string) {
   return `@guardian/check-in/${childId}`;
 }
 
-export function useCheckIn(childId: string, childOnline: boolean) {
+function resolveChildId(childId: string | null | undefined) {
+  if (!childId || childId === 'none') return null;
+  return childId;
+}
+
+export function useCheckIn(childId: string | null | undefined, childOnline: boolean) {
+  const resolvedChildId = resolveChildId(childId);
+  const { bumpRefresh, deviceSafeCheck } = useAlertsRealtime();
   const [status, setStatus] = useState<CheckInStatus>('idle');
   const [lastLabel, setLastLabel] = useState<string | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const checkInIdRef = useRef<string | null>(null);
+  const startedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem(storageKey(childId)).then((raw) => {
+    if (!resolvedChildId) return;
+    AsyncStorage.getItem(storageKey(resolvedChildId)).then((raw) => {
       if (!raw) return;
       try {
         const parsed = JSON.parse(raw) as { lastLabel?: string };
@@ -22,37 +40,157 @@ export function useCheckIn(childId: string, childOnline: boolean) {
         /* ignore */
       }
     });
-  }, [childId]);
+  }, [resolvedChildId]);
 
-  const clearTimer = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+  const clearTimers = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
     }
-  };
-
-  const cancel = useCallback(() => {
-    clearTimer();
-    setStatus('idle');
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
   }, []);
 
-  const start = useCallback(() => {
-    if (!childOnline) return;
-    clearTimer();
-    setStatus('pending');
+  const cancel = useCallback(() => {
+    clearTimers();
+    setStatus('idle');
+    checkInIdRef.current = null;
+    startedAtRef.current = null;
+  }, [clearTimers]);
 
-    timerRef.current = setTimeout(async () => {
-      const label = 'Just now';
+  const finishConfirmed = useCallback(
+    async (label: string) => {
+      if (!resolvedChildId) return;
+      clearTimers();
       setStatus('confirmed');
       setLastLabel(label);
+      bumpRefresh();
       await AsyncStorage.setItem(
-        storageKey(childId),
-        JSON.stringify({ status: 'confirmed', lastConfirmedAt: new Date().toISOString(), lastLabel: label }),
+        storageKey(resolvedChildId),
+        JSON.stringify({
+          status: 'confirmed',
+          lastConfirmedAt: new Date().toISOString(),
+          lastLabel: label,
+        }),
       );
-    }, 2500);
-  }, [childId, childOnline]);
+    },
+    [resolvedChildId, clearTimers, bumpRefresh],
+  );
 
-  useEffect(() => () => clearTimer(), []);
+  const finishTimeout = useCallback(async () => {
+    clearTimers();
+    const checkInId = checkInIdRef.current;
+    if (checkInId) {
+      try {
+        await checkInsApi.timeoutCheckIn(checkInId);
+      } catch {
+        /* still show timeout UX */
+      }
+    }
+    setStatus('timeout');
+    checkInIdRef.current = null;
+    startedAtRef.current = null;
+  }, [clearTimers]);
 
-  return { status, lastLabel, start, cancel, canCheckIn: childOnline };
+  const applyPollResult = useCallback(
+    async (current: checkInsApi.CheckInResponse) => {
+      if (current.status === 'confirmed') {
+        await finishConfirmed('Just now');
+        return;
+      }
+      if (current.status === 'timeout') {
+        clearTimers();
+        setStatus('timeout');
+        checkInIdRef.current = null;
+        startedAtRef.current = null;
+      }
+    },
+    [clearTimers, finishConfirmed],
+  );
+
+  const pollCheckIn = useCallback(async () => {
+    const expectedId = checkInIdRef.current;
+    if (!resolvedChildId || !expectedId) return;
+
+    try {
+      const current = await checkInsApi.getCheckIn(expectedId);
+      await applyPollResult(current);
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.status !== 404) {
+        return;
+      }
+
+      try {
+        const latest = await checkInsApi.getLatestCheckIn(resolvedChildId);
+        const startedAt = startedAtRef.current;
+        const requestedAt = new Date(latest.requested_at).getTime();
+        const matchesSession =
+          latest.id === expectedId ||
+          (startedAt != null && requestedAt >= startedAt - 3000);
+
+        if (!matchesSession) return;
+
+        if (latest.id !== expectedId) {
+          checkInIdRef.current = latest.id;
+        }
+
+        await applyPollResult(latest);
+      } catch {
+        /* keep polling until global timeout */
+      }
+    }
+  }, [resolvedChildId, applyPollResult]);
+
+  const start = useCallback(() => {
+    if (!resolvedChildId || !childOnline) return;
+    clearTimers();
+    setStatus('pending');
+    startedAtRef.current = Date.now();
+
+    void (async () => {
+      try {
+        const created = await checkInsApi.requestCheckIn(resolvedChildId);
+        checkInIdRef.current = created.id;
+        await AsyncStorage.setItem(
+          storageKey(resolvedChildId),
+          JSON.stringify({
+            pendingId: created.id,
+            startedAt: startedAtRef.current,
+          }),
+        );
+      } catch {
+        setStatus('idle');
+        startedAtRef.current = null;
+        checkInIdRef.current = null;
+        return;
+      }
+
+      void pollCheckIn();
+      pollRef.current = setInterval(() => {
+        void pollCheckIn();
+      }, POLL_MS);
+
+      timeoutRef.current = setTimeout(() => {
+        void finishTimeout();
+      }, TIMEOUT_MS);
+    })();
+  }, [resolvedChildId, childOnline, clearTimers, finishTimeout, pollCheckIn]);
+
+  useEffect(() => {
+    if (!resolvedChildId || !deviceSafeCheck) return;
+    if (deviceSafeCheck.childId !== resolvedChildId) return;
+    void finishConfirmed('Just now');
+  }, [deviceSafeCheck, resolvedChildId, finishConfirmed]);
+
+  useEffect(() => {
+    if (!resolvedChildId) {
+      cancel();
+    }
+  }, [resolvedChildId, cancel]);
+
+  useEffect(() => () => clearTimers(), [clearTimers]);
+
+  return { status, lastLabel, start, cancel, canCheckIn: !!resolvedChildId && childOnline };
 }

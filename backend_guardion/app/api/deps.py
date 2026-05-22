@@ -4,12 +4,14 @@ Dependency injection for database sessions and authentication
 """
 
 from typing import Generator, Optional
+from uuid import UUID
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.models.user import User
+from app.models.child import Child
 from app.utils.security import decode_token
 
 
@@ -79,6 +81,22 @@ def get_current_active_user(
     Dependency to ensure user is active (future: can add is_active field)
     Usage: current_user: User = Depends(get_current_active_user)
     """
-    # For now, just return the user
-    # In future, can check: if not current_user.is_active: raise HTTPException(...)
     return current_user
+
+
+def get_user_child(
+    child_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+) -> Child:
+    """Ensure the child belongs to the current user."""
+    child = db.query(Child).filter(
+        Child.id == child_id,
+        Child.user_id == current_user.id,
+    ).first()
+    if not child:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Child not found",
+        )
+    return child

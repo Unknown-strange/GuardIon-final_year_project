@@ -20,11 +20,17 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     password = Column(String(255), nullable=False)  # Hashed password
     phone_number = Column(String(20))
+    profile_photo = Column(String(500))
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     # Relationships
     children = relationship("Child", back_populates="user", cascade="all, delete-orphan")
     guardians = relationship("Guardian", back_populates="user", cascade="all, delete-orphan")
+    emergency_contacts = relationship("EmergencyContact", back_populates="user", cascade="all, delete-orphan")
+    notification_preferences = relationship("NotificationPreference", back_populates="user", cascade="all, delete-orphan", uselist=False)
+    push_tokens = relationship("PushToken", back_populates="user", cascade="all, delete-orphan")
+    user_sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+    check_ins = relationship("CheckIn", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email})>"

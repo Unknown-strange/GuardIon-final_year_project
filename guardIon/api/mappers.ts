@@ -117,9 +117,11 @@ export function safeZoneToUpdate(patch: {
 function alertTitle(type: AlertResponse['alert_type']): string {
   switch (type) {
     case 'SOS':
-      return 'SOS Alert';
+      return 'Panic button SOS';
     case 'geofence_breach':
-      return 'Geofence breach';
+      return 'Geofence Exit';
+    case 'check_in_safe':
+      return 'Safe check-in';
     case 'low_battery':
       return 'Low battery';
     case 'device_offline':
@@ -131,11 +133,36 @@ function alertTitle(type: AlertResponse['alert_type']): string {
   }
 }
 
+function alertBody(alert: AlertResponse, childName?: string): string {
+  const name = childName ?? 'Child';
+  switch (alert.alert_type) {
+    case 'SOS':
+      return `${name} pressed the panic button`;
+    case 'check_in_safe':
+      return `${name} confirmed they are safe (device check-in)`;
+    case 'geofence_breach': {
+      const zone = alert.zone_name?.trim() || 'safe zone';
+      return `${name} left the ${zone} boundary`;
+    }
+    case 'low_battery':
+      return `${name}'s device battery is low`;
+    case 'device_offline':
+      return `${name}'s device is offline`;
+    case 'device_tamper':
+      return `${name}'s device may have been tampered with`;
+    default:
+      return alert.alert_type.replace(/_/g, ' ');
+  }
+}
+
 function alertAccent(type: AlertResponse['alert_type']): AlertItem['accent'] {
   switch (type) {
     case 'SOS':
-    case 'geofence_breach':
       return 'red';
+    case 'geofence_breach':
+      return 'yellow';
+    case 'check_in_safe':
+      return 'gray';
     case 'low_battery':
       return 'yellow';
     default:
@@ -149,6 +176,8 @@ function alertUiType(type: AlertResponse['alert_type']): AlertItem['type'] {
       return 'sos';
     case 'geofence_breach':
       return 'geofence';
+    case 'check_in_safe':
+      return 'check_in';
     case 'low_battery':
       return 'battery';
     default:
@@ -166,12 +195,13 @@ export function alertFromApi(alert: AlertResponse, childName?: string): AlertIte
     id: alert.id,
     childId: alert.child_id,
     title: alertTitle(alert.alert_type),
-    body: childName ? `${childName} · ${alert.alert_type.replace(/_/g, ' ')}` : alert.alert_type.replace(/_/g, ' '),
+    body: alertBody(alert, childName),
     time: formatRelativeTime(alert.created_at),
     accent: alertAccent(alert.alert_type),
     location,
     state: alert.status === 'resolved' ? 'resolved' : 'active',
     type: alertUiType(alert.alert_type),
+    zoneName: alert.zone_name ?? undefined,
   };
 }
 

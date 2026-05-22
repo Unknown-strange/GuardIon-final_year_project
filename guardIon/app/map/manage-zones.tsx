@@ -23,6 +23,11 @@ import { useChildSummary } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
 import { useSafeZones } from '@/hooks/use-safe-zones';
 import type { SafeZone } from '@/types/safe-zone';
+import {
+  SAFE_ZONE_RADIUS_DEFAULT,
+  SAFE_ZONE_RADIUS_MAX,
+  SAFE_ZONE_RADIUS_MIN,
+} from '@/types/safe-zone';
 
 type ZoneTab = 'safe' | 'red' | 'time';
 
@@ -37,7 +42,7 @@ export default function ManageZonesScreen() {
   const [activeTab, setActiveTab] = useState<ZoneTab>('safe');
   const [editingZone, setEditingZone] = useState<SafeZone | null>(null);
   const [editName, setEditName] = useState('');
-  const [editRadius, setEditRadius] = useState(350);
+  const [editRadius, setEditRadius] = useState(SAFE_ZONE_RADIUS_DEFAULT);
   const [saving, setSaving] = useState(false);
 
   useFocusEffect(
@@ -67,7 +72,9 @@ export default function ManageZonesScreen() {
     try {
       await updateZone(editingZone.id, {
         name: editName.trim(),
-        radiusM: Math.round(editRadius),
+        radiusM: Math.round(
+          Math.min(SAFE_ZONE_RADIUS_MAX, Math.max(SAFE_ZONE_RADIUS_MIN, editRadius)),
+        ),
       });
       closeEdit();
     } finally {

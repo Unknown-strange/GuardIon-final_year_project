@@ -1,26 +1,52 @@
 import React, { useEffect, useRef } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useAuth } from '@/contexts/auth-context';
 import { GuardianColors } from '@/constants/theme';
+import { isOnboardingComplete } from '@/lib/storage/onboarding';
 
 export default function SplashScreen() {
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
+  const hasRoutedRef = useRef(false);
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    advanceTimerRef.current = setTimeout(() => {
-      advanceTimerRef.current = null;
-      router.replace('/splash-screen/onboarding-one');
-    }, 1200);
+    if (isLoading || hasRoutedRef.current) return;
+
+    const route = async () => {
+      hasRoutedRef.current = true;
+
+      if (isAuthenticated) {
+        router.replace('/(tabs)');
+        return;
+      }
+
+      const onboardingDone = await isOnboardingComplete();
+      if (onboardingDone) {
+        router.replace('/authentication/signin');
+        return;
+      }
+
+      advanceTimerRef.current = setTimeout(() => {
+        advanceTimerRef.current = null;
+        router.replace('/splash-screen/onboarding-one');
+      }, 1200);
+    };
+
+    void route();
 
     return () => {
-      if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+      if (advanceTimerRef.current) {
+        clearTimeout(advanceTimerRef.current);
+        advanceTimerRef.current = null;
+      }
     };
-  }, [router]);
+  }, [isAuthenticated, isLoading, router]);
 
   const skipToSignIn = () => {
     if (advanceTimerRef.current) {
@@ -29,6 +55,14 @@ export default function SplashScreen() {
     }
     router.replace('/authentication/signin');
   };
+
+  if (isLoading) {
+    return (
+      <ThemedView style={[styles.container, styles.loading]}>
+        <ActivityIndicator size="large" color={GuardianColors.primary} />
+      </ThemedView>
+    );
+  }
 
   return (
     <ThemedView style={styles.container}>
@@ -66,6 +100,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
+  },
+  loading: {
+    justifyContent: 'center',
   },
   center: {
     alignItems: 'center',
@@ -108,4 +145,3 @@ const styles = StyleSheet.create({
     color: '#0B2D5B',
   },
 });
-

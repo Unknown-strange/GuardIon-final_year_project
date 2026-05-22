@@ -14,6 +14,7 @@ from app.api.deps import get_db, get_current_active_user
 from app.models.user import User
 from app.models.child import Child
 from app.models.alert import Alert, AlertResponse as AlertResponseModel, AlertStatus, AlertType
+from app.services.geofencing import confirm_child_safe
 from app.schemas.alert import (
     AlertResponse,
     AlertAcknowledge,
@@ -212,6 +213,15 @@ def resolve_alert(
     )
     
     db.add(alert_response)
+
+    if alert.alert_type == AlertType.GEOFENCE_BREACH:
+        confirm_child_safe(
+            alert.child_id,
+            db,
+            resolution_note=response_data.response_text
+            or "Guardian confirmed child is safe",
+        )
+
     db.commit()
     db.refresh(alert)
     

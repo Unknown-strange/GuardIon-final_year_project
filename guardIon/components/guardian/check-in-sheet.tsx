@@ -38,9 +38,9 @@ export function CheckInSheet({
       return (
         <View style={styles.centerBlock}>
           <ActivityIndicator size="large" color={GuardianColors.primary} />
-          <ThemedText style={styles.pendingTitle}>Waiting for response…</ThemedText>
+          <ThemedText style={styles.pendingTitle}>Waiting for device…</ThemedText>
           <ThemedText style={styles.pendingSub}>
-            Asking {childName} to confirm they&apos;re safe.
+            {childName}&apos;s tracker must confirm they&apos;re safe. This can take up to a minute.
           </ThemedText>
         </View>
       );
@@ -52,8 +52,10 @@ export function CheckInSheet({
           <View style={styles.successIcon}>
             <Ionicons name="checkmark-circle" size={48} color={GuardianColors.safe} />
           </View>
-          <ThemedText style={styles.successTitle}>{childName} is safe</ThemedText>
-          <ThemedText style={styles.pendingSub}>Check-in confirmed {lastLabel ?? 'just now'}.</ThemedText>
+          <ThemedText style={styles.successTitle}>{childName} responded on device</ThemedText>
+          <ThemedText style={styles.pendingSub}>
+            Check-in confirmed {lastLabel ?? 'just now'} — their tracker reported they&apos;re safe.
+          </ThemedText>
           <View style={styles.actions}>
             <PrimaryButton label="Done" onPress={onClose} />
           </View>

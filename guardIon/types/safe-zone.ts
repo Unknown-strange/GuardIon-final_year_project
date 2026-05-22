@@ -15,9 +15,16 @@ export type SafeZone = {
   isActive?: boolean;
 };
 
-export const SAFE_ZONE_RADIUS_MIN = 50;
+export const SAFE_ZONE_RADIUS_MIN = 2;
 export const SAFE_ZONE_RADIUS_MAX = 1000;
-export const SAFE_ZONE_RADIUS_DEFAULT = 350;
+export const SAFE_ZONE_RADIUS_DEFAULT = 15;
+
+/** Map zoom level that frames a zone circle with padding. */
+export function mapDeltaForZoneRadius(radiusM: number): number {
+  const paddedDiameterM = Math.max(radiusM * 2.8, 12);
+  const delta = paddedDiameterM / 111_000;
+  return Math.min(0.05, Math.max(0.00025, delta));
+}
 
 export function isPointInZone(
   lat: number,

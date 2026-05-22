@@ -12,6 +12,7 @@ import {
 type Props = {
   value: number;
   onChange: (value: number) => void;
+  onChangeComplete?: (value: number) => void;
   min?: number;
   max?: number;
 };
@@ -19,9 +20,13 @@ type Props = {
 export function SafeZoneRadiusSlider({
   value,
   onChange,
+  onChangeComplete,
   min = SAFE_ZONE_RADIUS_MIN,
   max = SAFE_ZONE_RADIUS_MAX,
 }: Props) {
+  const minLabel = min < 1000 ? `${min}M` : '1KM';
+  const maxLabel = max >= 1000 ? '1KM' : `${max}M`;
+
   return (
     <View style={styles.wrap}>
       <View style={styles.head}>
@@ -31,20 +36,27 @@ export function SafeZoneRadiusSlider({
         </View>
       </View>
       <View style={styles.sliderRow}>
-        <ThemedText style={styles.edge}>50M</ThemedText>
+        <ThemedText style={styles.edge}>{minLabel}</ThemedText>
         <Slider
           style={styles.slider}
           minimumValue={min}
           maximumValue={max}
-          step={10}
+          step={1}
           value={value}
           onValueChange={onChange}
+          onSlidingComplete={(v) => {
+            onChange(v);
+            onChangeComplete?.(v);
+          }}
           minimumTrackTintColor={GuardianColors.safe}
           maximumTrackTintColor={GuardianColors.navyMuted}
           thumbTintColor={GuardianColors.primary}
         />
-        <ThemedText style={styles.edge}>1KM</ThemedText>
+        <ThemedText style={styles.edge}>{maxLabel}</ThemedText>
       </View>
+      <ThemedText style={styles.hint}>
+        Drag to resize the circle on the map. GPS drift is ~10m, so very tight zones may alert more often.
+      </ThemedText>
     </View>
   );
 }
@@ -89,5 +101,10 @@ const styles = StyleSheet.create({
     color: GuardianColors.textMuted,
     fontWeight: '700',
     minWidth: 32,
+  },
+  hint: {
+    ...Typography.caption,
+    color: GuardianColors.textMuted,
+    lineHeight: 16,
   },
 });

@@ -70,6 +70,7 @@ def get_current_location(
         latitude=location.latitude,
         longitude=location.longitude,
         accuracy=location.accuracy,
+        speed=location.speed,
         timestamp=location.timestamp,
         battery_level=location.battery_level
     )
@@ -176,6 +177,7 @@ def get_child_current_location(
         latitude=location.latitude,
         longitude=location.longitude,
         accuracy=location.accuracy,
+        speed=location.speed,
         timestamp=location.timestamp,
         battery_level=location.battery_level
     )

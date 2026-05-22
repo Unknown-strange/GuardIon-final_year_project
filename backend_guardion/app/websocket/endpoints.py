@@ -4,7 +4,11 @@ Real-time location and alert updates
 """
 
 import logging
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException, status
+from uuid import UUID
+
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, status
+from jose import ExpiredSignatureError, JWTError, jwt
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -13,188 +17,183 @@ from app.database import SessionLocal
 from app.models.user import User
 from app.models.device import Device
 from app.models.child import Child
-from app.utils.security import decode_token
+from app.models.location import LocationHistory
+from app.config import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
 def authenticate_websocket(token: str, db: Session) -> Optional[User]:
-    """
-    Authenticate WebSocket connection via JWT token
-    
-    Args:
-        token: JWT access token
-        db: Database session
-        
-    Returns:
-        User object if authenticated, None otherwise
-    """
+    """Authenticate WebSocket connection via JWT token."""
     try:
-        payload = decode_token(token)
-        if not payload or payload.get("type") != "access":
+        try:
+            payload = jwt.decode(
+                token,
+                settings.JWT_SECRET_KEY,
+                algorithms=[settings.JWT_ALGORITHM],
+            )
+        except ExpiredSignatureError:
+            logger.warning("WebSocket authentication failed: access token expired")
             return None
-        
+        except JWTError:
+            logger.warning("WebSocket authentication failed: invalid access token")
+            return None
+
+        if payload.get("type") != "access":
+            logger.warning("WebSocket authentication failed: token is not an access token")
+            return None
+
         user_id = payload.get("sub")
         if not user_id:
+            logger.warning("WebSocket authentication failed: token missing subject")
             return None
-        
-        user = db.query(User).filter(User.id == user_id).first()
+
+        user = db.query(User).filter(User.id == UUID(str(user_id))).first()
+        if not user:
+            logger.warning(f"WebSocket authentication failed: user {user_id} not found")
+            return None
+
         return user
-        
+
     except Exception as e:
         logger.error(f"WebSocket authentication failed: {e}")
         return None
+
+
+def _authorize_device_access(db: Session, user: User, device_id: str) -> bool:
+    device = db.query(Device).filter(Device.device_id == device_id).first()
+    if not device:
+        logger.warning(f"Device {device_id} not found")
+        return False
+
+    child = db.query(Child).filter(
+        Child.id == device.child_id,
+        Child.user_id == user.id,
+    ).first()
+
+    if not child:
+        logger.warning(f"User {user.id} does not have access to device {device_id}")
+        return False
+
+    return True
+
+
+def _latest_location_payload(db: Session, device_id: str) -> Optional[dict]:
+    device = db.query(Device).filter(Device.device_id == device_id).first()
+    if not device:
+        return None
+
+    location = (
+        db.query(LocationHistory)
+        .filter(LocationHistory.device_id == device.id)
+        .order_by(desc(LocationHistory.timestamp))
+        .first()
+    )
+    if not location:
+        return None
+
+    return {
+        "latitude": location.latitude,
+        "longitude": location.longitude,
+        "accuracy": location.accuracy,
+        "altitude": location.altitude,
+        "speed": location.speed,
+        "battery_level": location.battery_level,
+        "timestamp": location.timestamp.isoformat(),
+    }
 
 
 @router.websocket("/ws/location/{device_id}")
 async def websocket_location_endpoint(
     websocket: WebSocket,
     device_id: str,
-    token: str = Query(..., description="JWT access token")
+    token: str = Query(..., description="JWT access token"),
 ):
-    """
-    WebSocket endpoint for real-time location updates
-    
-    Usage from mobile app:
-    ```javascript
-    const ws = new WebSocket(`ws://api.com/ws/location/ESP32-PROD001?token=${accessToken}`);
-    
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        // data.type === "location_update"
-        // data.data.latitude, data.data.longitude, etc.
-        // Update map marker position
-    };
-    ```
-    """
+    """WebSocket endpoint for real-time location updates."""
     db = SessionLocal()
-    
+    latest_location: Optional[dict] = None
+
     try:
-        # Authenticate user
         user = authenticate_websocket(token, db)
-        
         if not user:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             logger.warning(f"Unauthorized WebSocket connection attempt for device {device_id}")
             return
-        
-        # Verify user has access to this device
-        device = db.query(Device).filter(Device.device_id == device_id).first()
-        
-        if not device:
+
+        if not _authorize_device_access(db, user, device_id):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-            logger.warning(f"Device {device_id} not found")
             return
-        
-        # Check if device belongs to one of user's children
-        child = db.query(Child).filter(
-            Child.id == device.child_id,
-            Child.user_id == user.id
-        ).first()
-        
-        if not child:
-            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-            logger.warning(f"User {user.id} does not have access to device {device_id}")
-            return
-        
-        # Connect WebSocket
+
+        latest_location = _latest_location_payload(db, device_id)
+    finally:
+        db.close()
+
+    try:
         await manager.connect_location(device_id, websocket)
-        
-        # Send initial connection success message
+
         await manager.send_personal_message(websocket, {
             "type": "connected",
-            "message": f"Connected to location updates for device {device_id}"
+            "message": f"Connected to location updates for device {device_id}",
         })
-        
-        # Keep connection alive
-        try:
-            while True:
-                # Wait for messages from client (e.g., ping/pong)
-                data = await websocket.receive_text()
-                
-                # Echo back (heartbeat)
-                if data == "ping":
-                    await manager.send_personal_message(websocket, {
-                        "type": "pong"
-                    })
-                    
-        except WebSocketDisconnect:
-            manager.disconnect_location(device_id, websocket)
-            
+
+        if latest_location:
+            await manager.send_personal_message(websocket, {
+                "type": "location_update",
+                "device_id": device_id,
+                "data": latest_location,
+            })
+
+        while True:
+            data = await websocket.receive_text()
+            if data == "ping":
+                await manager.send_personal_message(websocket, {"type": "pong"})
+
+    except WebSocketDisconnect:
+        manager.disconnect_location(device_id, websocket)
     except Exception as e:
         logger.exception(f"WebSocket error: {e}")
         manager.disconnect_location(device_id, websocket)
-        
-    finally:
-        db.close()
 
 
 @router.websocket("/ws/alerts/{user_id}")
 async def websocket_alerts_endpoint(
     websocket: WebSocket,
     user_id: str,
-    token: str = Query(..., description="JWT access token")
+    token: str = Query(..., description="JWT access token"),
 ):
-    """
-    WebSocket endpoint for real-time alert notifications
-    
-    Usage from mobile app:
-    ```javascript
-    const ws = new WebSocket(`ws://api.com/ws/alerts/${userId}?token=${accessToken}`);
-    
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        // data.type === "alert"
-        // data.data.alert_type, data.data.location_lat, etc.
-        // Show push notification or alert banner
-    };
-    ```
-    """
+    """WebSocket endpoint for real-time alert notifications."""
     db = SessionLocal()
-    
+
     try:
-        # Authenticate user
         user = authenticate_websocket(token, db)
-        
         if not user:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             logger.warning(f"Unauthorized WebSocket connection attempt for user {user_id}")
             return
-        
-        # Verify user is requesting their own alerts
+
         if str(user.id) != user_id:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             logger.warning(f"User {user.id} attempted to connect to alerts for user {user_id}")
             return
-        
-        # Connect WebSocket
+    finally:
+        db.close()
+
+    try:
         await manager.connect_alerts(user_id, websocket)
-        
-        # Send initial connection success message
+
         await manager.send_personal_message(websocket, {
             "type": "connected",
-            "message": f"Connected to alert notifications for user {user_id}"
+            "message": f"Connected to alert notifications for user {user_id}",
         })
-        
-        # Keep connection alive
-        try:
-            while True:
-                # Wait for messages from client (e.g., ping/pong)
-                data = await websocket.receive_text()
-                
-                # Echo back (heartbeat)
-                if data == "ping":
-                    await manager.send_personal_message(websocket, {
-                        "type": "pong"
-                    })
-                    
-        except WebSocketDisconnect:
-            manager.disconnect_alerts(user_id, websocket)
-            
+
+        while True:
+            data = await websocket.receive_text()
+            if data == "ping":
+                await manager.send_personal_message(websocket, {"type": "pong"})
+
+    except WebSocketDisconnect:
+        manager.disconnect_alerts(user_id, websocket)
     except Exception as e:
         logger.exception(f"WebSocket error: {e}")
         manager.disconnect_alerts(user_id, websocket)
-        
-    finally:
-        db.close()

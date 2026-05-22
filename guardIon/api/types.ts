@@ -5,12 +5,14 @@ export type UserResponse = {
   name: string;
   email: string;
   phone_number?: string | null;
+  profile_photo?: string | null;
   created_at: string;
 };
 
 export type UserUpdate = {
   name?: string;
   phone_number?: string | null;
+  profile_photo?: string | null;
 };
 
 export type TokenResponse = {
@@ -73,6 +75,7 @@ export type CurrentLocationResponse = {
   latitude: number;
   longitude: number;
   accuracy?: number | null;
+  speed?: number | null;
   timestamp: string;
   battery_level?: number | null;
 };
@@ -122,6 +125,7 @@ export type SafeZoneUpdate = {
 export type AlertType =
   | 'SOS'
   | 'geofence_breach'
+  | 'check_in_safe'
   | 'low_battery'
   | 'device_offline'
   | 'device_tamper';
@@ -133,6 +137,7 @@ export type AlertResponse = {
   child_id: string;
   device_id: string;
   alert_type: AlertType;
+  zone_name?: string | null;
   location_lat?: number | null;
   location_lng?: number | null;
   status: AlertStatus;

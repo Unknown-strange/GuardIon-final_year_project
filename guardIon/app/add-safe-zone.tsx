@@ -25,7 +25,11 @@ import { getChildColorTheme } from '@/constants/child-colors';
 import { useChildSummary } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
 import { useSafeZones } from '@/hooks/use-safe-zones';
-import { SAFE_ZONE_RADIUS_DEFAULT } from '@/types/safe-zone';
+import {
+  SAFE_ZONE_RADIUS_DEFAULT,
+  SAFE_ZONE_RADIUS_MAX,
+  SAFE_ZONE_RADIUS_MIN,
+} from '@/types/safe-zone';
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -48,6 +52,7 @@ export default function AddSafeZoneScreen() {
 
   const [zoneName, setZoneName] = useState('');
   const [radius, setRadius] = useState(SAFE_ZONE_RADIUS_DEFAULT);
+  const [mapFitToken, setMapFitToken] = useState(0);
   const [scheduled, setScheduled] = useState(false);
   const [startTime, setStartTime] = useState('08:00');
   const [endTime, setEndTime] = useState('15:00');
@@ -66,7 +71,9 @@ export default function AddSafeZoneScreen() {
         name: zoneName.trim(),
         latitude: child.latitude,
         longitude: child.longitude,
-        radiusM: Math.round(radius),
+        radiusM: Math.round(
+          Math.min(SAFE_ZONE_RADIUS_MAX, Math.max(SAFE_ZONE_RADIUS_MIN, radius)),
+        ),
         schedule: scheduled ? { start: startTime, end: endTime } : null,
       });
       router.back();
@@ -103,6 +110,7 @@ export default function AddSafeZoneScreen() {
             childLocation={child.location}
             childPosition={{ latitude: child.latitude, longitude: child.longitude }}
             radius={radius}
+            fitToken={mapFitToken}
           />
         ) : (
           <Image
@@ -144,7 +152,11 @@ export default function AddSafeZoneScreen() {
         </View>
 
         <View style={{ marginTop: 16 }}>
-          <SafeZoneRadiusSlider value={radius} onChange={setRadius} />
+          <SafeZoneRadiusSlider
+            value={radius}
+            onChange={setRadius}
+            onChangeComplete={() => setMapFitToken((token) => token + 1)}
+          />
         </View>
 
         <View style={styles.scheduleRow}>

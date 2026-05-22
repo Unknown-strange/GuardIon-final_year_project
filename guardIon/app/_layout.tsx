@@ -4,8 +4,10 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { AuthProvider } from '@/contexts/auth-context';
+import { AlertsRealtimeProvider } from '@/contexts/alerts-realtime-context';
 import { GuardianDataProvider } from '@/contexts/guardian-data-context';
 import { GuardianProfilePhotoProvider } from '@/contexts/guardian-profile-photo-context';
+import { PushNotificationsBridge } from '@/components/push-notifications-bridge';
 import { GuardianColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -21,6 +23,8 @@ export default function RootLayout() {
       <AuthProvider>
       <GuardianProfilePhotoProvider>
       <GuardianDataProvider>
+      <AlertsRealtimeProvider>
+      <PushNotificationsBridge />
       <Stack initialRouteName="splash-screen" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="splash-screen" />
         <Stack.Screen name="authentication" />
@@ -45,6 +49,7 @@ export default function RootLayout() {
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />
+      </AlertsRealtimeProvider>
       </GuardianDataProvider>
       </GuardianProfilePhotoProvider>
       </AuthProvider>

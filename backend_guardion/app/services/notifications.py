@@ -12,6 +12,8 @@ from app.models.child import Child
 from app.models.device import Device
 from app.models.alert import Alert, AlertType
 from app.models.notification import Notification
+from app.models.notification_preference import NotificationPreference
+from app.services.push import send_push_to_user
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +62,15 @@ def create_notification_for_alert(
         db.refresh(notification)
         
         logger.info(f"[OK] Notification created for user {child.user_id}: {title}")
-        
-        # TODO: Send push notification via FCM/APNS
-        # TODO: Send SMS if critical alert
+
+        send_push_to_user(
+            child.user_id,
+            title=title,
+            body=message,
+            data={"alert_id": str(alert.id), "alert_type": alert.alert_type.value},
+            db=db,
+            alert_type=alert.alert_type,
+        )
         
         return notification
         
@@ -90,7 +98,13 @@ def _get_notification_content(
             f"SOS Alert from {child_name}",
             f"{child_name} has triggered an SOS alert. Please check their location immediately."
         )
-    
+
+    elif alert.alert_type == AlertType.CHECK_IN_SAFE:
+        return (
+            f"Safe check-in: {child_name}",
+            f"{child_name}'s device sent a voluntary safe check-in. No emergency is indicated.",
+        )
+
     elif alert.alert_type == AlertType.GEOFENCE_BREACH:
         return (
             f"Geofence Breach: {child_name}",

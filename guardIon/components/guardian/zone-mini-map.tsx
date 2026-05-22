@@ -4,7 +4,7 @@ import MapView, { Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 
 import { getChildColorTheme } from '@/constants/child-colors';
 import { GuardianColors } from '@/constants/theme';
-import type { SafeZone } from '@/types/safe-zone';
+import { mapDeltaForZoneRadius, type SafeZone } from '@/types/safe-zone';
 
 type Props = {
   zone: Pick<SafeZone, 'childId' | 'latitude' | 'longitude' | 'radiusM'>;
@@ -18,6 +18,8 @@ export function ZoneMiniMap({ zone, height = 140 }: Props) {
     return <View style={[styles.fallback, { height, backgroundColor: colors.muted }]} />;
   }
 
+  const delta = mapDeltaForZoneRadius(zone.radiusM);
+
   return (
     <View style={[styles.wrap, { height }]}>
       <MapView
@@ -26,8 +28,8 @@ export function ZoneMiniMap({ zone, height = 140 }: Props) {
         initialRegion={{
           latitude: zone.latitude,
           longitude: zone.longitude,
-          latitudeDelta: 0.008,
-          longitudeDelta: 0.008,
+          latitudeDelta: delta,
+          longitudeDelta: delta,
         }}
         scrollEnabled={false}
         zoomEnabled={false}

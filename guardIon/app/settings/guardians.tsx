@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -13,7 +13,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   AddGuardianModal,
-  payloadToGuardianMember,
   type AddGuardianPayload,
 } from '@/components/guardian/add-guardian-modal';
 import { GuardianMemberCard } from '@/components/guardian/guardian-member-card';
@@ -21,16 +20,50 @@ import { GuardianToast } from '@/components/guardian/guardian-toast';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MOCK_GUARDIANS, type GuardianMember } from '@/constants/guardian-profile-mocks';
+import { useGuardianData } from '@/contexts/guardian-data-context';
+import * as guardiansApi from '@/api/guardians';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
+
+const AVATAR_COLORS = ['#072B59', '#0D9488', '#2563EB', '#7C3AED'];
+
+function mapApiGuardian(g: guardiansApi.GuardianMemberResponse, index: number): GuardianMember {
+  return {
+    id: g.id,
+    name: g.name,
+    email: g.email,
+    role: g.role,
+    isPrimary: g.is_primary,
+    status: g.status ?? 'active',
+    avatarColor: AVATAR_COLORS[index % AVATAR_COLORS.length],
+  };
+}
 
 export default function GuardiansScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { children } = useGuardianData();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
-  const [guardians, setGuardians] = useState<GuardianMember[]>(MOCK_GUARDIANS);
+  const [guardians, setGuardians] = useState<GuardianMember[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadGuardians = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await guardiansApi.listGuardians();
+      setGuardians(res.guardians.map(mapApiGuardian));
+    } catch {
+      setGuardians(MOCK_GUARDIANS);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadGuardians();
+  }, [loadGuardians]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -51,9 +84,16 @@ export default function GuardiansScreen() {
     });
   }, [guardians, query]);
 
-  const handleInvite = (payload: AddGuardianPayload) => {
-    const member = payloadToGuardianMember(payload, String(Date.now()));
-    setGuardians((prev) => [...prev, member]);
+  const handleInvite = async (payload: AddGuardianPayload) => {
+    const childId = children[0]?.id;
+    if (!childId) return;
+
+    const created = await guardiansApi.inviteGuardian({
+      child_id: childId,
+      email: payload.email,
+      priority: payload.role === 'primary' ? 1 : 2,
+    });
+    setGuardians((prev) => [...prev, mapApiGuardian(created, prev.length)]);
   };
 
   return (
@@ -112,7 +152,9 @@ export default function GuardiansScreen() {
         ) : null}
 
         <View style={styles.list}>
-          {filtered.length === 0 ? (
+          {loading ? (
+            <ThemedText style={styles.emptyText}>Loading guardians…</ThemedText>
+          ) : filtered.length === 0 ? (
             <View style={styles.empty}>
               <Ionicons name="people-outline" size={28} color={GuardianColors.textMuted} />
               <ThemedText style={styles.emptyText}>No guardians match your search.</ThemedText>
