@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useRef } from 'react';
+import React, { memo, useCallback, useEffect, useRef } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import MapView, { Circle, Marker, PROVIDER_GOOGLE, type Region } from 'react-native-maps';
 
@@ -7,6 +7,7 @@ import { ChildAvatar } from '@/components/guardian/child-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { getChildColorTheme } from '@/constants/child-colors';
 import { GuardianColors, Typography } from '@/constants/theme';
+import { mapDeltaForZoneRadius } from '@/types/safe-zone';
 
 type LatLng = { latitude: number; longitude: number };
 
@@ -16,6 +17,8 @@ type Props = {
   childLocation: string;
   childPosition: LatLng;
   radius: number;
+  /** Bump to smoothly re-frame the map after the user finishes adjusting radius. */
+  fitToken?: number;
 };
 
 function ChildZoneMarker({ childId, color }: { childId: string; color: string }) {
@@ -27,32 +30,50 @@ function ChildZoneMarker({ childId, color }: { childId: string; color: string })
   );
 }
 
-export function SafeZoneMapPicker({
+function SafeZoneMapPickerInner({
   childId,
   childName,
   childLocation,
   childPosition,
   radius,
+  fitToken = 0,
 }: Props) {
   const colors = getChildColorTheme(childId);
   const mapRef = useRef<MapView>(null);
+  const hasMountedRef = useRef(false);
 
-  const initialRegion: Region = {
-    ...childPosition,
-    latitudeDelta: 0.012,
-    longitudeDelta: 0.012,
-  };
+  const regionForRadius = useCallback(
+    (nextRadius: number): Region => {
+      const delta = mapDeltaForZoneRadius(nextRadius);
+      return {
+        ...childPosition,
+        latitudeDelta: delta,
+        longitudeDelta: delta,
+      };
+    },
+    [childPosition],
+  );
+
+  const initialRegion = regionForRadius(radius);
+
+  const fitMapToRadius = useCallback(
+    (nextRadius: number, durationMs = 400) => {
+      mapRef.current?.animateToRegion(regionForRadius(nextRadius), durationMs);
+    },
+    [regionForRadius],
+  );
 
   const recenterOnChild = useCallback(() => {
-    mapRef.current?.animateToRegion(
-      {
-        ...childPosition,
-        latitudeDelta: 0.012,
-        longitudeDelta: 0.012,
-      },
-      400,
-    );
-  }, [childPosition]);
+    fitMapToRadius(radius, 400);
+  }, [fitMapToRadius, radius]);
+
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+    fitMapToRadius(radius, 350);
+  }, [fitToken, fitMapToRadius]);
 
   if (Platform.OS === 'web') {
     return (
@@ -74,7 +95,8 @@ export function SafeZoneMapPicker({
         showsUserLocation={false}
         showsMyLocationButton={false}
         rotateEnabled={false}
-        pitchEnabled={false}>
+        pitchEnabled={false}
+        moveOnMarkerPress={false}>
         <Circle
           center={childPosition}
           radius={radius}
@@ -108,6 +130,8 @@ export function SafeZoneMapPicker({
     </View>
   );
 }
+
+export const SafeZoneMapPicker = memo(SafeZoneMapPickerInner);
 
 const styles = StyleSheet.create({
   root: {

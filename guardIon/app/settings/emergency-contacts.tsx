@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +17,8 @@ import {
   MOCK_EMERGENCY_CONTACTS,
   type EmergencyContact,
 } from '@/constants/emergency-contacts-mocks';
+import { useGuardianData } from '@/contexts/guardian-data-context';
+import * as emergencyContactsApi from '@/api/emergency-contacts';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
 import { callPhone } from '@/utils/phone';
 
@@ -25,11 +27,37 @@ const AVATAR_COLORS = ['#072B59', '#0D9488', '#2563EB', '#7C3AED', '#DB2777', '#
 export default function EmergencyContactsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [contacts, setContacts] = useState<EmergencyContact[]>(MOCK_EMERGENCY_CONTACTS);
+  const { children } = useGuardianData();
+  const [contacts, setContacts] = useState<EmergencyContact[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalMode, setModalMode] = useState<'add' | 'edit' | null>(null);
   const [editingContact, setEditingContact] = useState<EmergencyContact | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+
+  const loadContacts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await emergencyContactsApi.listEmergencyContacts();
+      setContacts(
+        res.contacts.map((c, index) => ({
+          id: c.id,
+          name: c.name,
+          phone: c.phone,
+          relationship: c.relationship ?? '',
+          avatarColor: AVATAR_COLORS[index % AVATAR_COLORS.length],
+        })),
+      );
+    } catch {
+      setContacts(MOCK_EMERGENCY_CONTACTS);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadContacts();
+  }, [loadContacts]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -44,6 +72,11 @@ export default function EmergencyContactsScreen() {
     void callPhone(contact.phone, contact.name);
   };
 
+  const closeModal = () => {
+    setModalMode(null);
+    setEditingContact(null);
+  };
+
   const handleDelete = (contact: EmergencyContact) => {
     Alert.alert(
       'Remove emergency contact?',
@@ -54,8 +87,11 @@ export default function EmergencyContactsScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            setContacts((prev) => prev.filter((c) => c.id !== contact.id));
-            showToast('Emergency contact removed');
+            void (async () => {
+              await emergencyContactsApi.deleteEmergencyContact(contact.id);
+              setContacts((prev) => prev.filter((c) => c.id !== contact.id));
+              showToast('Emergency contact removed');
+            })();
           },
         },
       ],
@@ -63,37 +99,52 @@ export default function EmergencyContactsScreen() {
   };
 
   const handleSave = (payload: EmergencyContactPayload) => {
-    if (modalMode === 'edit' && editingContact) {
-      setContacts((prev) =>
-        prev.map((c) =>
-          c.id === editingContact.id
-            ? {
-                ...c,
-                name: payload.name,
-                relationship: payload.relationship,
-                phone: payload.phone,
-              }
-            : c,
-        ),
-      );
-      showToast('Emergency contact updated');
-      return;
-    }
+    void (async () => {
+      if (modalMode === 'edit' && editingContact) {
+        const updated = await emergencyContactsApi.updateEmergencyContact(editingContact.id, {
+          name: payload.name,
+          phone: payload.phone,
+          relationship: payload.relationship,
+        });
+        setContacts((prev) =>
+          prev.map((c) =>
+            c.id === editingContact.id
+              ? {
+                  ...c,
+                  name: updated.name,
+                  relationship: updated.relationship ?? '',
+                  phone: updated.phone,
+                }
+              : c,
+          ),
+        );
+        showToast('Emergency contact updated');
+        closeModal();
+        return;
+      }
 
-    const next: EmergencyContact = {
-      id: String(Date.now()),
-      name: payload.name,
-      relationship: payload.relationship,
-      phone: payload.phone,
-      avatarColor: AVATAR_COLORS[contacts.length % AVATAR_COLORS.length],
-    };
-    setContacts((prev) => [...prev, next]);
-    showToast('Emergency contact added');
-  };
+      const childId = children[0]?.id;
+      if (!childId) return;
 
-  const closeModal = () => {
-    setModalMode(null);
-    setEditingContact(null);
+      const created = await emergencyContactsApi.createEmergencyContact({
+        child_id: childId,
+        name: payload.name,
+        phone: payload.phone,
+        relationship: payload.relationship,
+      });
+      setContacts((prev) => [
+        ...prev,
+        {
+          id: created.id,
+          name: created.name,
+          phone: created.phone,
+          relationship: created.relationship ?? '',
+          avatarColor: AVATAR_COLORS[prev.length % AVATAR_COLORS.length],
+        },
+      ]);
+      showToast('Emergency contact added');
+      closeModal();
+    })();
   };
 
   return (

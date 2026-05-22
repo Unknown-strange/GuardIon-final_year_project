@@ -64,6 +64,13 @@ module.exports = ({ config }) => {
             'GuardIon accesses your photos so you can set a child profile picture.',
         },
       ],
+      [
+        'expo-notifications',
+        {
+          icon: './assets/images/guardion-logo.png',
+          color: '#072B59',
+        },
+      ],
     ],
   };
 };

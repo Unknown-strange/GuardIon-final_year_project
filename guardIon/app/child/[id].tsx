@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -17,6 +17,7 @@ import { StatusBadge } from '@/components/guardian/status-badge';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { getChildColorTheme } from '@/constants/child-colors';
+import { useAlertsRealtime } from '@/contexts/alerts-realtime-context';
 import { useGuardianData } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
 import { useCheckIn } from '@/hooks/use-check-in';
@@ -28,6 +29,7 @@ export default function ChildDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { getChildById } = useGuardianData();
+  const { deviceSafeCheck } = useAlertsRealtime();
   const child = getChildById(childId);
   const colors = getChildColorTheme(childId);
   const { childZones, refresh } = useSafeZones(childId);
@@ -67,6 +69,18 @@ export default function ChildDetailScreen() {
     cancelCheckIn();
     setCheckInOpen(false);
   };
+
+  useEffect(() => {
+    if (!checkInOpen) return;
+    if (deviceSafeCheck?.childId === childId) {
+      closeCheckIn();
+      return;
+    }
+    if (checkInStatus === 'confirmed') {
+      const timer = setTimeout(() => closeCheckIn(), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [deviceSafeCheck, checkInOpen, childId, checkInStatus, closeCheckIn]);
 
   const confirmCheckIn = () => {
     startCheckIn();

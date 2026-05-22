@@ -101,10 +101,15 @@ export function AddChildModal({ visible, onClose, onRegister, onRegistered }: Pr
     if (uri) setAvatarUri(uri);
   };
 
-  const onDateChange = (_event: DateTimePickerEvent, selected?: Date) => {
-    if (Platform.OS === 'android') setShowDatePicker(false);
+  const onDateChange = (event: DateTimePickerEvent, selected?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+      if (event.type === 'dismissed') return;
+    }
     if (selected) setBirthDate(selected);
   };
+
+  const openDatePicker = () => setShowDatePicker(true);
 
   const handleRegister = () => {
     if (!canRegister) return;
@@ -126,6 +131,7 @@ export function AddChildModal({ visible, onClose, onRegister, onRegistered }: Pr
   };
 
   return (
+    <>
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.backdrop}
@@ -156,23 +162,27 @@ export function AddChildModal({ visible, onClose, onRegister, onRegistered }: Pr
             <Field label="Last Name" value={lastName} onChangeText={setLastName} placeholder="Enter last name" />
 
             <ThemedText style={styles.fieldLabel}>Date of Birth</ThemedText>
-            <Pressable style={styles.dateField} onPress={() => setShowDatePicker(true)}>
+            <Pressable style={styles.dateField} onPress={openDatePicker}>
               <ThemedText style={styles.dateText}>{formatBirthDateShort(birthDate)}</ThemedText>
               <Ionicons name="calendar-outline" size={20} color={GuardianColors.primary} />
             </Pressable>
-            {showDatePicker ? (
-              <DateTimePicker
-                value={birthDate}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                maximumDate={new Date()}
-                onChange={onDateChange}
-              />
-            ) : null}
             {Platform.OS === 'ios' && showDatePicker ? (
-              <Pressable onPress={() => setShowDatePicker(false)} style={styles.dateDone}>
-                <ThemedText style={styles.dateDoneText}>Done</ThemedText>
-              </Pressable>
+              <View style={styles.iosPickerWrap}>
+                <DateTimePicker
+                  value={birthDate}
+                  mode="date"
+                  display="inline"
+                  maximumDate={new Date()}
+                  themeVariant="light"
+                  textColor={GuardianColors.text}
+                  accentColor={GuardianColors.primary}
+                  onChange={onDateChange}
+                  style={styles.iosDatePicker}
+                />
+                <Pressable onPress={() => setShowDatePicker(false)} style={styles.dateDone}>
+                  <ThemedText style={styles.dateDoneText}>Done</ThemedText>
+                </Pressable>
+              </View>
             ) : null}
 
             <Field
@@ -215,6 +225,16 @@ export function AddChildModal({ visible, onClose, onRegister, onRegistered }: Pr
         </View>
       </KeyboardAvoidingView>
     </Modal>
+    {visible && showDatePicker && Platform.OS === 'android' ? (
+      <DateTimePicker
+        value={birthDate}
+        mode="date"
+        display="default"
+        maximumDate={new Date()}
+        onChange={onDateChange}
+      />
+    ) : null}
+    </>
   );
 }
 
@@ -343,6 +363,18 @@ const styles = StyleSheet.create({
   dateDoneText: {
     color: GuardianColors.primary,
     fontWeight: '800',
+  },
+  iosPickerWrap: {
+    marginBottom: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: GuardianColors.surface,
+    borderWidth: 1,
+    borderColor: GuardianColors.border,
+  },
+  iosDatePicker: {
+    width: '100%',
+    minHeight: 320,
   },
   genderRow: {
     flexDirection: 'row',

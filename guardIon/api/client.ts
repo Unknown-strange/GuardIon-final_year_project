@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '@/api/config';
 import { ApiError } from '@/api/errors';
-import { getAccessToken } from '@/lib/storage/auth-storage';
+import { getValidAccessToken } from '@/lib/storage/get-valid-access-token';
 
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
@@ -33,15 +33,27 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   if (auth) {
-    const token = await getAccessToken();
+    const token = await getValidAccessToken();
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(buildUrl(path, query), {
+  let response = await fetch(buildUrl(path, query), {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+
+  if (auth && response.status === 401) {
+    const retryToken = await getValidAccessToken();
+    if (retryToken) {
+      headers.Authorization = `Bearer ${retryToken}`;
+      response = await fetch(buildUrl(path, query), {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+    }
+  }
 
   if (response.status === 204) {
     return undefined as T;

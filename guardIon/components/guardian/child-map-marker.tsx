@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Marker } from 'react-native-maps';
 
@@ -24,6 +24,17 @@ export function ChildMapMarker({
   onPress,
 }: Props) {
   const colors = getChildColorTheme(childId);
+  const [tracksViewChanges, setTracksViewChanges] = useState(true);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      const timer = setTimeout(() => setTracksViewChanges(false), 1000);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, []);
 
   return (
     <Marker
@@ -31,7 +42,7 @@ export function ChildMapMarker({
       title={name}
       anchor={{ x: 0.5, y: 1 }}
       onPress={onPress}
-      tracksViewChanges={false}>
+      tracksViewChanges={tracksViewChanges}>
       <View style={styles.wrap}>
         <View
           style={[
@@ -63,7 +74,10 @@ type ChildLocationDotProps = {
 
 export function ChildLocationDot({ latitude, longitude, color }: ChildLocationDotProps) {
   return (
-    <Marker coordinate={{ latitude, longitude }} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
+    <Marker
+      coordinate={{ latitude, longitude }}
+      anchor={{ x: 0.5, y: 0.5 }}
+      tracksViewChanges={false}>
       <View style={[styles.dotOuter, { borderColor: color }]}>
         <View style={[styles.dotInner, { backgroundColor: color }]} />
       </View>

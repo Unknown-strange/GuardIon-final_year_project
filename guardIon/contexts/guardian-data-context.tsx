@@ -15,11 +15,15 @@ import type { ChildResponse, DeviceResponse } from '@/api/types';
 import type { RegisterChildPayload } from '@/components/guardian/add-child-modal';
 import type { ChildSummary } from '@/components/guardian/child-summary-card';
 import { calculateAgeFromBirthDate } from '@/utils/child-age';
+import { applyLocationToChild } from '@/utils/apply-location-to-child';
 import { useAuth } from '@/contexts/auth-context';
+import { useMultiLocationWebSocket } from '@/hooks/use-multi-location-websocket';
 
 type GuardianDataContextValue = {
   children: ChildSummary[];
   isLoading: boolean;
+  /** Increments when live device GPS updates arrive (for alert polling). */
+  locationTick: number;
   refreshChildren: () => Promise<void>;
   getChildById: (id: string) => ChildSummary | undefined;
   registerChild: (payload: RegisterChildPayload) => Promise<ChildSummary>;
@@ -57,6 +61,47 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
   const { isAuthenticated } = useAuth();
   const [childSummaries, setChildSummaries] = useState<ChildSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [locationTick, setLocationTick] = useState(0);
+
+  const deviceToChild = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const child of childSummaries) {
+      if (child.deviceId) map[child.deviceId] = child.id;
+    }
+    return map;
+  }, [
+    childSummaries
+      .map((child) => `${child.id}:${child.deviceId ?? ''}`)
+      .sort()
+      .join('|'),
+  ]);
+
+  const liveUpdates = useMultiLocationWebSocket(deviceToChild, isAuthenticated);
+
+  useEffect(() => {
+    if (!liveUpdates || Object.keys(liveUpdates).length === 0) return;
+
+    let locationChanged = false;
+    setChildSummaries((prev) => {
+      const next = prev.map((child) => {
+        const update = liveUpdates[child.id];
+        if (update?.latitude == null || update?.longitude == null) return child;
+        if (
+          child.latitude === update.latitude &&
+          child.longitude === update.longitude &&
+          child.online
+        ) {
+          return child;
+        }
+        locationChanged = true;
+        return applyLocationToChild(child, update, true);
+      });
+      return locationChanged ? next : prev;
+    });
+    if (locationChanged) {
+      setLocationTick((value) => value + 1);
+    }
+  }, [liveUpdates]);
 
   const refreshChildren = useCallback(async () => {
     if (!isAuthenticated) {
@@ -140,6 +185,7 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
     () => ({
       children: childSummaries,
       isLoading,
+      locationTick,
       refreshChildren,
       getChildById,
       registerChild,
@@ -149,6 +195,7 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
     [
       childSummaries,
       isLoading,
+      locationTick,
       refreshChildren,
       getChildById,
       registerChild,

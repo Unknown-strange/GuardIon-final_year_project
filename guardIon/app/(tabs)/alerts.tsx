@@ -17,8 +17,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActiveAlertsSummary } from '@/components/guardian/active-alerts-summary';
 import { AlertsChildSelector } from '@/components/guardian/alerts-child-selector';
 import { PrimaryButton } from '@/components/guardian/buttons';
+import { CheckInSheet } from '@/components/guardian/check-in-sheet';
 import { ChildContactsSheet } from '@/components/guardian/child-contacts-sheet';
 import { ContactRow } from '@/components/guardian/contact-row';
+import { EmergencySosModal } from '@/components/guardian/emergency-sos-modal';
+import { GeofenceAlertActions } from '@/components/guardian/geofence-alert-actions';
 import { ScreenHeader } from '@/components/guardian/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -28,8 +31,11 @@ import {
   getAlertsForChild,
   useAlerts,
 } from '@/hooks/use-alerts';
+import { useCheckIn } from '@/hooks/use-check-in';
+import { useSafeZones } from '@/hooks/use-safe-zones';
 import type { AlertItem } from '@/constants/alerts-mocks';
 import { getContactsForChild } from '@/constants/child-contacts-mocks';
+import { useAlertsRealtime } from '@/contexts/alerts-realtime-context';
 import { useGuardianData } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
 import type { ChildContact } from '@/types/child-contact';
@@ -51,6 +57,8 @@ function alertIcon(type?: AlertItem['type']) {
       return 'warning' as const;
     case 'geofence':
       return 'navigate-circle' as const;
+    case 'check_in':
+      return 'shield-checkmark' as const;
     case 'battery':
       return 'battery-dead' as const;
     default:
@@ -118,11 +126,29 @@ export default function AlertsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ childId?: string }>();
   const { children, getChildById } = useGuardianData();
-  const { allAlerts } = useAlerts('all');
+  const { deviceSafeCheck } = useAlertsRealtime();
+  const { allAlerts, resolveAlertById } = useAlerts('all');
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [contactsOpen, setContactsOpen] = useState(false);
   const [contactChildId, setContactChildId] = useState('');
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkInChildId, setCheckInChildId] = useState('');
+  const [sosOpen, setSosOpen] = useState(false);
+  const [sosChildId, setSosChildId] = useState('');
+  const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
+
+  const checkInChild = getChildById(checkInChildId);
+  const {
+    status: checkInStatus,
+    lastLabel: checkInLastLabel,
+    start: startCheckIn,
+    cancel: cancelCheckIn,
+    canCheckIn,
+  } = useCheckIn(checkInOpen ? checkInChildId : null, checkInChild?.online ?? false);
+
+  const sosChild = getChildById(sosChildId);
+  const { childZones: sosZones } = useSafeZones(sosChildId || null);
 
   useEffect(() => {
     if (params.childId && typeof params.childId === 'string') {
@@ -161,7 +187,7 @@ export default function AlertsScreen() {
   const status = aggregateStatus(selectedChildId, children, getChildById);
   const contactsChildIdResolved = getContactsChildId(selectedChildId, children);
   const emergencyContacts = getContactsForChild(contactsChildIdResolved).slice(0, 2);
-  const sosChildId = getSosTargetChildId(selectedChildId, children);
+  const sosTargetChildId = getSosTargetChildId(selectedChildId, children);
   const contactChild = getChildById(contactChildId || contactsChildIdResolved);
 
   const selectChild = useCallback((childId: string | null) => {
@@ -177,6 +203,55 @@ export default function AlertsScreen() {
   const openContacts = (childId: string) => {
     setContactChildId(childId);
     setContactsOpen(true);
+  };
+
+  const openCheckIn = (childId: string) => {
+    cancelCheckIn();
+    setCheckInChildId(childId);
+    setCheckInOpen(true);
+  };
+
+  const closeCheckIn = () => {
+    cancelCheckIn();
+    setCheckInOpen(false);
+  };
+
+  useEffect(() => {
+    if (!checkInOpen || !checkInChildId) return;
+    if (deviceSafeCheck?.childId === checkInChildId) {
+      closeCheckIn();
+      return;
+    }
+    if (checkInStatus === 'confirmed') {
+      const timer = setTimeout(() => closeCheckIn(), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [deviceSafeCheck, checkInOpen, checkInChildId, checkInStatus, closeCheckIn]);
+
+  const openEmergencySos = (childId: string) => {
+    setSosChildId(childId);
+    setSosOpen(true);
+  };
+
+  const markChildSafe = (item: AlertItem) => {
+    const childName = getChildById(item.childId)?.name ?? 'Child';
+    Alert.alert(
+      'Confirm child is safe?',
+      `${childName} is outside the safe zone. Mark this alert as resolved?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Child is safe',
+          onPress: () => {
+            animateLayout();
+            setResolvingAlertId(item.id);
+            void resolveAlertById(item.id, 'Guardian confirmed child is safe').finally(() => {
+              setResolvingAlertId(null);
+            });
+          },
+        },
+      ],
+    );
   };
 
   const dialContact = (contact: ChildContact) => {
@@ -312,6 +387,15 @@ export default function AlertsScreen() {
                         <ThemedText style={styles.locText}>{item.location}</ThemedText>
                       </View>
                     ) : null}
+                    {item.type === 'geofence' ? (
+                      <GeofenceAlertActions
+                        childName={getChildById(item.childId)?.name ?? 'Child'}
+                        onCheckIn={() => openCheckIn(item.childId)}
+                        onEmergencySos={() => openEmergencySos(item.childId)}
+                        onMarkSafe={() => markChildSafe(item)}
+                        markingSafe={resolvingAlertId === item.id}
+                      />
+                    ) : null}
                     {item.type === 'sos' ? (
                       <View style={styles.sosActions}>
                         <Pressable
@@ -385,7 +469,7 @@ export default function AlertsScreen() {
             <PrimaryButton
               variant="danger"
               label="EMERGENCY SOS"
-              onPress={() => router.push(`/child/${sosChildId}` as any)}
+              onPress={() => openEmergencySos(sosTargetChildId)}
             />
           </View>
         </Animated.View>
@@ -397,6 +481,35 @@ export default function AlertsScreen() {
         childName={contactChild?.name ?? 'Child'}
         onClose={() => setContactsOpen(false)}
       />
+
+      <CheckInSheet
+        visible={checkInOpen}
+        childName={checkInChild?.name ?? 'Child'}
+        status={checkInStatus}
+        lastLabel={checkInLastLabel}
+        canCheckIn={canCheckIn}
+        onClose={closeCheckIn}
+        onConfirm={startCheckIn}
+        onCall={() => {
+          closeCheckIn();
+          if (checkInChildId) openContacts(checkInChildId);
+        }}
+        onViewMap={() => {
+          closeCheckIn();
+          if (checkInChildId) router.push(`/child/${checkInChildId}` as any);
+        }}
+      />
+
+      {sosChild ? (
+        <EmergencySosModal
+          visible={sosOpen}
+          child={sosChild}
+          zones={sosZones}
+          liveAddress={sosChild.location}
+          onClose={() => setSosOpen(false)}
+          onAcknowledge={() => {}}
+        />
+      ) : null}
     </ThemedView>
   );
 }

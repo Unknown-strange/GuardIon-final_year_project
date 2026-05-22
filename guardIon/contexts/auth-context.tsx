@@ -2,7 +2,8 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 
 import * as authApi from '@/api/auth';
 import { getErrorMessage } from '@/api/errors';
-import { clearTokens, getAccessToken, getRefreshToken, saveTokens } from '@/lib/storage/auth-storage';
+import { clearTokens, getRefreshToken, saveTokens } from '@/lib/storage/auth-storage';
+import { getValidAccessToken } from '@/lib/storage/get-valid-access-token';
 
 type AuthUser = authApi.UserResponse;
 
@@ -35,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const bootstrap = useCallback(async () => {
     try {
-      const accessToken = await getAccessToken();
+      const accessToken = await getValidAccessToken();
       if (!accessToken) {
         setUser(null);
         return;

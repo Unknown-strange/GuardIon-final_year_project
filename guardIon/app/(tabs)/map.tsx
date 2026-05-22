@@ -24,6 +24,7 @@ import { ThemedText } from '@/components/themed-text';
 import { getChildColorTheme } from '@/constants/child-colors';
 import { useGuardianData } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
+import { getAlertsForChild, useAlerts } from '@/hooks/use-alerts';
 import { useSafeZones } from '@/hooks/use-safe-zones';
 import { childGeofenceStatus } from '@/types/safe-zone';
 
@@ -52,6 +53,7 @@ export default function MapScreen() {
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const { childZones, refresh } = useSafeZones(selectedChildId);
+  const { allAlerts } = useAlerts('active');
 
   const selectedChild = useMemo(
     () => (selectedChildId ? getChildById(selectedChildId) ?? null : null),
@@ -65,8 +67,16 @@ export default function MapScreen() {
 
   const geofenceStatus = useMemo(() => {
     if (!selectedChild) return 'none' as const;
+
+    const hasActiveGeofenceAlert =
+      selectedChildId != null &&
+      getAlertsForChild(allAlerts, selectedChildId).some(
+        (alert) => alert.type === 'geofence' && alert.state === 'active',
+      );
+    if (hasActiveGeofenceAlert) return 'outside' as const;
+
     return childGeofenceStatus(selectedChild.latitude, selectedChild.longitude, childZones);
-  }, [childZones, selectedChild]);
+  }, [allAlerts, childZones, selectedChild, selectedChildId]);
 
   const focusChild = useCallback((childId: string) => {
     const child = getChildById(childId);

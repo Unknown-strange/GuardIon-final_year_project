@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+import { updateUserProfile } from '@/api/users';
 import { useAuth } from '@/contexts/auth-context';
 import {
   clearGuardianProfilePhotoUri,
@@ -19,7 +20,7 @@ type GuardianProfilePhotoContextValue = {
 const GuardianProfilePhotoContext = createContext<GuardianProfilePhotoContextValue | null>(null);
 
 export function GuardianProfilePhotoProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,6 +31,12 @@ export function GuardianProfilePhotoProvider({ children }: { children: React.Rea
       return;
     }
     setLoading(true);
+    const serverPhoto = user.profile_photo ?? null;
+    if (serverPhoto) {
+      setPhotoUri(serverPhoto);
+      setLoading(false);
+      return;
+    }
     const uri = await loadGuardianProfilePhotoUri(user.id);
     setPhotoUri(uri);
     setLoading(false);
@@ -44,15 +51,27 @@ export function GuardianProfilePhotoProvider({ children }: { children: React.Rea
     const uri = await pickChildPhoto();
     if (!uri) return null;
     await saveGuardianProfilePhotoUri(user.id, uri);
+    try {
+      await updateUserProfile({ profile_photo: uri });
+      await refreshProfile();
+    } catch {
+      /* local photo still saved */
+    }
     setPhotoUri(uri);
     return uri;
-  }, [user]);
+  }, [user, refreshProfile]);
 
   const removePhoto = useCallback(async () => {
     if (!user) return;
     await clearGuardianProfilePhotoUri(user.id);
+    try {
+      await updateUserProfile({ profile_photo: null });
+      await refreshProfile();
+    } catch {
+      /* ignore */
+    }
     setPhotoUri(null);
-  }, [user]);
+  }, [user, refreshProfile]);
 
   const value = useMemo(
     () => ({

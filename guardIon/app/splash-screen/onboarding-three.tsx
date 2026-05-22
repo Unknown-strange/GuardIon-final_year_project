@@ -8,15 +8,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { GuardianColors } from '@/constants/theme';
+import { setOnboardingComplete } from '@/lib/storage/onboarding';
 
 export default function OnboardingThreeScreen() {
   const router = useRouter();
 
-  // `expo-router` uses generated typed routes; the route map may lag behind newly added screens.
-  // Casting keeps runtime behavior correct while preventing a type-check failure.
-  const goToLogin = () => router.replace('/authentication/signin' as any);
-  // "Next" on the last onboarding screen should take the user to login.
-  const goNext = () => router.replace('/authentication/signin' as any);
+  const goToLogin = async () => {
+    await setOnboardingComplete();
+    router.replace('/authentication/signin' as any);
+  };
+  const goNext = async () => {
+    await setOnboardingComplete();
+    router.replace('/authentication/signin' as any);
+  };
   const goBack = () => router.back();
 
   return (
