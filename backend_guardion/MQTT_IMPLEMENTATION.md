@@ -1,5 +1,8 @@
 # GuardIon MQTT Implementation Guide
 
+> **Canonical contract (topics, QoS, payloads in production today):** see [`docs/MQTT_CONTRACT.md`](docs/MQTT_CONTRACT.md).  
+> This guide includes **future** topics (`health`, `command`, LWT) not yet subscribed in `app/mqtt/client.py`.
+
 ## Overview
 This document provides comprehensive guidance for implementing MQTT communication between ESP32 wearable devices and the FastAPI backend server. MQTT (Message Queuing Telemetry Transport) is a lightweight publish-subscribe messaging protocol designed for IoT devices with constrained resources.
 

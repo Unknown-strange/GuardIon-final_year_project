@@ -43,5 +43,6 @@ class CurrentLocationResponse(BaseModel):
     latitude: float
     longitude: float
     accuracy: Optional[float]
+    speed: Optional[float] = None
     timestamp: datetime
     battery_level: Optional[float]

@@ -9,7 +9,20 @@ from contextlib import asynccontextmanager
 import logging
 
 from app.config import settings
-from app.api.v1 import auth, users, children, devices, locations, safezones, alerts, notifications
+from app.api.v1 import (
+    auth,
+    users,
+    children,
+    devices,
+    locations,
+    safezones,
+    alerts,
+    notifications,
+    guardians,
+    emergency_contacts,
+    preferences,
+    check_ins,
+)
 from app.websocket import endpoints as websocket_endpoints
 from app.mqtt.client import mqtt_client
 from app.mqtt.handlers import handle_mqtt_message
@@ -29,6 +42,7 @@ async def lifespan(app: FastAPI):
     """
     # Startup: Connect to MQTT broker
     logger.info("[OK] Starting GuardIOn Backend...")
+    logger.info("[OK] Geofencing: armed-state mode (no breach cooldown)")
     try:
         # Get the current event loop
         import asyncio
@@ -78,6 +92,10 @@ app.include_router(locations.router, prefix=f"{settings.API_V1_PREFIX}/locations
 app.include_router(safezones.router, prefix=f"{settings.API_V1_PREFIX}/safezones", tags=["Safe Zones"])
 app.include_router(alerts.router, prefix=f"{settings.API_V1_PREFIX}/alerts", tags=["Alerts"])
 app.include_router(notifications.router, prefix=f"{settings.API_V1_PREFIX}/notifications", tags=["Notifications"])
+app.include_router(guardians.router, prefix=f"{settings.API_V1_PREFIX}/guardians", tags=["Guardians"])
+app.include_router(emergency_contacts.router, prefix=f"{settings.API_V1_PREFIX}/emergency-contacts", tags=["Emergency Contacts"])
+app.include_router(preferences.router, prefix=f"{settings.API_V1_PREFIX}/users", tags=["User Preferences"])
+app.include_router(check_ins.router, prefix=f"{settings.API_V1_PREFIX}/check-ins", tags=["Check-Ins"])
 
 # Include WebSocket router
 app.include_router(websocket_endpoints.router, tags=["WebSocket"])
@@ -104,5 +122,7 @@ def health_check():
         "status": "healthy",
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
-        "mqtt_connected": mqtt_client.is_connected
+        "mqtt_connected": mqtt_client.is_connected,
+        "mqtt_messages_received": mqtt_client.messages_received,
+        "mqtt_messages_failed": mqtt_client.messages_failed,
     }

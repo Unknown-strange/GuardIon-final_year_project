@@ -16,6 +16,7 @@ from app.database import Base
 class AlertType(str, enum.Enum):
     """Alert type enum"""
     SOS = "SOS"
+    CHECK_IN_SAFE = "check_in_safe"
     GEOFENCE_BREACH = "geofence_breach"
     LOW_BATTERY = "low_battery"
     DEVICE_OFFLINE = "device_offline"
@@ -36,6 +37,7 @@ class Alert(Base):
     child_id = Column(UUID(as_uuid=True), ForeignKey("children.id", ondelete="CASCADE"), nullable=False, index=True)
     device_id = Column(UUID(as_uuid=True), ForeignKey("devices.id", ondelete="CASCADE"), nullable=False, index=True)
     alert_type = Column(SQLEnum(AlertType), nullable=False, index=True)
+    zone_name = Column(String(255))
     location_lat = Column(Float)
     location_lng = Column(Float)
     status = Column(SQLEnum(AlertStatus), default=AlertStatus.ACTIVE, nullable=False, index=True)

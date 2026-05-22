@@ -24,7 +24,11 @@ class SafeZone(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     # Relationships
-    child = relationship("Child", back_populates="safezones")
+    child = relationship(
+        "Child",
+        back_populates="safezones",
+        foreign_keys=[child_id],
+    )
     
     def __repr__(self):
         return f"<SafeZone(name={self.zone_name}, child_id={self.child_id}, radius={self.radius}m)>"

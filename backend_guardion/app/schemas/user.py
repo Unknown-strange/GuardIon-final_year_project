@@ -24,11 +24,13 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     phone_number: Optional[str] = Field(None, max_length=20)
+    profile_photo: Optional[str] = Field(None, max_length=500)
 
 
 # Schema for user response (what API returns)
 class UserResponse(UserBase):
     id: UUID
+    profile_photo: Optional[str] = None
     created_at: datetime
     
     class Config:

@@ -36,6 +36,9 @@ def update_my_profile(
     
     if user_update.phone_number is not None:
         current_user.phone_number = user_update.phone_number
+
+    if user_update.profile_photo is not None:
+        current_user.profile_photo = user_update.profile_photo
     
     db.commit()
     db.refresh(current_user)

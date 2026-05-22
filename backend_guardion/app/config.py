@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     MQTT_USERNAME: str = ""
     MQTT_PASSWORD: str = ""
     MQTT_TLS_ENABLED: bool = False
+    MQTT_TLS_CA_CERT: str = ""
+    MQTT_TLS_CERT: str = ""
+    MQTT_TLS_KEY: str = ""
+    MQTT_TLS_INSECURE: bool = False
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -71,6 +75,10 @@ class Settings(BaseSettings):
     GOOGLE_ANDROID_CLIENT_ID: str = ""
     GOOGLE_IOS_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
+
+    # Push notifications
+    FCM_SERVER_KEY: str = ""
+    EXPO_PUSH_ACCESS_TOKEN: str = ""
 
     @property
     def google_client_ids(self) -> List[str]:

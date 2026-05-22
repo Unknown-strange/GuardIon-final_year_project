@@ -16,9 +16,11 @@ class Guardian(Base):
     __tablename__ = "guardians"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     child_id = Column(UUID(as_uuid=True), ForeignKey("children.id", ondelete="CASCADE"), nullable=False, index=True)
     priority = Column(Integer, default=1)  # 1=primary, 2=secondary, etc.
+    status = Column(String(20), default="active", nullable=False)  # active | pending
+    invited_email = Column(String(255))
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     # Relationships

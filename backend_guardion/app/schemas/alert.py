@@ -13,6 +13,7 @@ from enum import Enum
 class AlertTypeEnum(str, Enum):
     """Alert type enum"""
     SOS = "SOS"
+    CHECK_IN_SAFE = "check_in_safe"
     GEOFENCE_BREACH = "geofence_breach"
     LOW_BATTERY = "low_battery"
     DEVICE_OFFLINE = "device_offline"
@@ -32,6 +33,7 @@ class AlertResponse(BaseModel):
     child_id: UUID
     device_id: UUID
     alert_type: AlertTypeEnum
+    zone_name: Optional[str] = None
     location_lat: Optional[float]
     location_lng: Optional[float]
     status: AlertStatusEnum

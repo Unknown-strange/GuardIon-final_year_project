@@ -6,6 +6,7 @@ Connects to MQTT broker and subscribes to device messages
 import asyncio
 import json
 import logging
+import ssl
 import threading
 from typing import Optional
 import paho.mqtt.client as mqtt
@@ -24,6 +25,8 @@ class MQTTClient:
         self.is_connected = False
         self.message_handler = None
         self.loop: Optional[asyncio.AbstractEventLoop] = None
+        self.messages_received = 0
+        self.messages_failed = 0
         
     def set_message_handler(self, handler):
         """Set the message handler callback"""
@@ -66,6 +69,17 @@ class MQTTClient:
                 logger.info("MQTT authentication enabled")
             else:
                 logger.info("MQTT connecting with anonymous access")
+
+            if settings.MQTT_TLS_ENABLED:
+                self.client.tls_set(
+                    ca_certs=settings.MQTT_TLS_CA_CERT or None,
+                    certfile=settings.MQTT_TLS_CERT or None,
+                    keyfile=settings.MQTT_TLS_KEY or None,
+                    tls_version=ssl.PROTOCOL_TLS_CLIENT,
+                )
+                if settings.MQTT_TLS_INSECURE:
+                    self.client.tls_insecure_set(True)
+                logger.info("MQTT TLS enabled")
             
             # Connect to broker
             self.client.connect(
@@ -95,6 +109,7 @@ class MQTTClient:
                 ("guardion/devices/+/telemetry", 1),  # QoS 1
                 ("guardion/devices/+/alerts", 2),      # QoS 2 (critical)
                 ("guardion/devices/+/status", 1),      # QoS 1
+                ("guardion/devices/+/check_in", 1),  # Device check-in response
             ]
             
             for topic, qos in topics:
@@ -111,6 +126,7 @@ class MQTTClient:
             payload = json.loads(message.payload.decode())
             
             logger.info(f"[OK] Received message on {topic}")
+            self.messages_received += 1
             
             # Call the message handler if set
             if self.message_handler and self.loop:
@@ -121,8 +137,10 @@ class MQTTClient:
                 )
             
         except json.JSONDecodeError:
+            self.messages_failed += 1
             logger.error(f"[ERROR] Invalid JSON payload on {topic}: {message.payload}")
         except Exception as e:
+            self.messages_failed += 1
             logger.exception(f"[ERROR] Error processing message: {e}")
     
     def _on_disconnect(self, client, userdata, rc):
