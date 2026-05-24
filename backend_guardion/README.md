@@ -147,9 +147,6 @@ Once running, access:
 ### Issue: MQTT connection refused
 **Solution**: Start Mosquitto broker: `mosquitto -v`
 
-### Issue: Redis connection error
-**Solution**: Start Redis server: `redis-server`
-
 ### Issue: Import errors
 **Solution**: Make sure virtual environment is activated
 
@@ -158,10 +155,21 @@ Once running, access:
 See `.env.example` for all configuration options.
 
 Required variables:
-- `DATABASE_URL` - PostgreSQL connection string
+- `DATABASE_URL` - PostgreSQL connection string (Supabase Session pooler on Render)
 - `JWT_SECRET_KEY` - Secret key for JWT tokens (use a strong random string)
-- `MQTT_BROKER_HOST` - MQTT broker address
-- `REDIS_URL` - Redis connection string
+- `MQTT_BROKER_HOST`, `MQTT_BROKER_PORT`, `MQTT_USERNAME`, `MQTT_PASSWORD`, `MQTT_TLS_ENABLED` - HiveMQ Cloud
+
+## Deploy on Render
+
+| Setting | Value |
+|---------|--------|
+| Root Directory | `backend_guardion` |
+| Build Command | `pip install --upgrade pip && pip install -r requirements.txt` |
+| Start Command | `alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Health Check Path | `/health/live` |
+| `PYTHON_VERSION` | `3.11.11` |
+
+Set env vars from `.env.example`. Do **not** use Python 3.14 — `pydantic-core` has no pre-built wheel yet.
 
 ## Next Steps
 
