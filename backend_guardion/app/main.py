@@ -3,12 +3,14 @@ GuardIOn Backend API
 FastAPI application entry point
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
+from sqlalchemy import text
 
 from app.config import settings
+from app.database import engine
 from app.api.v1 import (
     auth,
     users,
@@ -113,15 +115,63 @@ def root():
     }
 
 
+@app.get("/health/live")
+def health_live():
+    """
+    Liveness probe for Render / load balancers.
+    Always returns 200 while the process is running (no DB/MQTT checks).
+    """
+    return {"status": "ok"}
+
+
+@app.get("/health/ready")
+def health_ready(response: Response):
+    """
+    Readiness probe — verifies database connectivity and MQTT status.
+    Returns 503 if the database is unreachable.
+    """
+    db_ok = False
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        db_ok = True
+    except Exception as e:
+        logger.warning("Health ready check: database unavailable: %s", e)
+
+    mqtt_ok = mqtt_client.is_connected
+    payload = {
+        "status": "ready" if db_ok else "degraded",
+        "service": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "database_connected": db_ok,
+        "mqtt_connected": mqtt_ok,
+    }
+
+    if not db_ok:
+        response.status_code = 503
+        payload["status"] = "unavailable"
+
+    return payload
+
+
 @app.get("/health")
 def health_check():
     """
-    Health check endpoint for monitoring
+    Full health status for monitoring dashboards.
     """
+    db_ok = False
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        db_ok = True
+    except Exception:
+        pass
+
     return {
-        "status": "healthy",
+        "status": "healthy" if db_ok else "degraded",
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
+        "database_connected": db_ok,
         "mqtt_connected": mqtt_client.is_connected,
         "mqtt_messages_received": mqtt_client.messages_received,
         "mqtt_messages_failed": mqtt_client.messages_failed,
