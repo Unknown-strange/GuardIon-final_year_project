@@ -72,6 +72,9 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ```bash
 # Backend health check
+curl http://localhost:8000/health/live
+
+# Full status (DB + MQTT)
 curl http://localhost:8000/health
 
 # API documentation
