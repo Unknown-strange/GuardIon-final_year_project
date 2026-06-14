@@ -3,9 +3,12 @@ Authentication API Endpoints
 Handles user registration, login, OTP verification, and token management
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+import json
 import secrets
+from urllib.parse import urlencode
 
 from app.api.deps import get_db, get_current_user
 from app.models.email_verification import OtpPurpose
@@ -348,6 +351,85 @@ def google_auth_code_exchange(payload: GoogleCodeExchangeRequest, db: Session = 
 
     user = _user_from_google_id_info(id_info, db)
     return _tokens_for_user(user)
+
+
+def _is_allowed_return_url(url: str) -> bool:
+    """Only redirect back to the mobile app's own deep links (prevents open-redirect abuse)."""
+    lowered = url.lower()
+    return lowered.startswith(
+        ("exp://", "exps://", "guardion://", "http://localhost", "http://127.0.0.1")
+    )
+
+
+@router.get("/google/callback")
+def google_auth_callback(request: Request, db: Session = Depends(get_db)):
+    """
+    Browser redirect target for Google Sign-In (Expo Go + standalone/dev builds).
+
+    Replaces the deprecated Expo `auth.expo.io` proxy: the app opens Google's consent
+    screen with this endpoint as `redirect_uri`, Google redirects here with a `code`,
+    we exchange it server-side, then deep-link back into the app with session tokens.
+
+    The app passes its return deep link and the redirect URI it used via `state`
+    (JSON), so the token exchange uses the exact same `redirect_uri` Google saw.
+    """
+    from app.config import settings
+
+    params = request.query_params
+    return_url = ""
+    redirect_uri = ""
+    try:
+        state = json.loads(params.get("state") or "{}")
+        return_url = str(state.get("returnUrl") or "")
+        redirect_uri = str(state.get("redirectUri") or "")
+    except (ValueError, TypeError):
+        pass
+
+    if not return_url or not _is_allowed_return_url(return_url):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or missing OAuth return URL.",
+        )
+
+    def _redirect_to_app(extra: dict[str, str]) -> RedirectResponse:
+        separator = "&" if "?" in return_url else "?"
+        return RedirectResponse(
+            url=f"{return_url}{separator}{urlencode(extra)}",
+            status_code=status.HTTP_302_FOUND,
+        )
+
+    error = params.get("error")
+    if error:
+        return _redirect_to_app({"error": error})
+
+    code = params.get("code")
+    if not code or not redirect_uri:
+        return _redirect_to_app({"error": "missing_code"})
+
+    if not settings.google_client_ids:
+        return _redirect_to_app({"error": "google_not_configured"})
+
+    try:
+        token_response = exchange_google_authorization_code(
+            code=code,
+            redirect_uri=redirect_uri,
+        )
+        id_info = verify_google_id_token(token_response["id_token"])
+    except ValueError:
+        return _redirect_to_app({"error": "google_exchange_failed"})
+
+    try:
+        user = _user_from_google_id_info(id_info, db)
+    except HTTPException:
+        return _redirect_to_app({"error": "google_account_unusable"})
+
+    tokens = _tokens_for_user(user)
+    return _redirect_to_app(
+        {
+            "access_token": tokens.access_token,
+            "refresh_token": tokens.refresh_token,
+        }
+    )
 
 
 @router.post("/refresh", response_model=TokenResponse)
