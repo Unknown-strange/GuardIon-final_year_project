@@ -115,11 +115,12 @@ def root():
     }
 
 
-@app.get("/health/live")
+@app.api_route("/health/live", methods=["GET", "HEAD"])
 def health_live():
     """
     Liveness probe for Render / load balancers.
     Always returns 200 while the process is running (no DB/MQTT checks).
+    Supports HEAD for UptimeRobot and similar monitors.
     """
     return {"status": "ok"}
 
