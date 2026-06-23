@@ -139,33 +139,9 @@ def invite_guardian(
             status="active",
         )
 
-    pending = db.query(Guardian).filter(
-        Guardian.child_id == child.id,
-        Guardian.invited_email == email,
-        Guardian.status == "pending",
-    ).first()
-    if pending:
-        raise HTTPException(status_code=400, detail="Invite already pending for this email")
-
-    link = Guardian(
-        user_id=None,
-        child_id=child.id,
-        priority=payload.priority,
-        status="pending",
-        invited_email=email,
-    )
-    db.add(link)
-    db.commit()
-    db.refresh(link)
-
-    return GuardianResponse(
-        id=str(link.id),
-        child_id=child.id,
-        name=email,
-        email=email,
-        role=_role_for_priority(link.priority, False),
-        is_primary=False,
-        status="pending",
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="No account found for this email.",
     )
 
 
