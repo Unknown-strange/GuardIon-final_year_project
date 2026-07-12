@@ -10,9 +10,9 @@ from typing import Optional
 from datetime import datetime
 from uuid import UUID
 
-from app.api.deps import get_db, get_current_active_user
+from app.api.deps import get_db, get_current_active_user, get_user_child, get_owned_child
+from app.api.child_access import user_can_access_child
 from app.models.user import User
-from app.models.child import Child
 from app.models.device import Device
 from app.models.location import LocationHistory
 from app.schemas.location import (
@@ -43,13 +43,7 @@ def get_current_location(
             detail="Device not found"
         )
     
-    # Verify the device belongs to one of the user's children
-    child = db.query(Child).filter(
-        Child.id == device.child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
+    if not user_can_access_child(current_user, device.child_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this device"
@@ -98,13 +92,7 @@ def get_location_history(
             detail="Device not found"
         )
     
-    # Verify the device belongs to one of the user's children
-    child = db.query(Child).filter(
-        Child.id == device.child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
+    if not user_can_access_child(current_user, device.child_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this device"
@@ -141,17 +129,7 @@ def get_child_current_location(
     Get the current location for a child (via their primary device)
     Convenient endpoint when you want to track by child instead of device
     """
-    # Verify the child belongs to the current user
-    child = db.query(Child).filter(
-        Child.id == child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found or does not belong to you"
-        )
+    get_user_child(child_id, current_user, db)
     
     # Get the child's device (assume first active device)
     device = db.query(Device).filter(Device.child_id == child_id).first()

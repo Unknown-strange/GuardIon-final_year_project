@@ -8,9 +8,9 @@ from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
 
-from app.api.deps import get_db, get_current_active_user
+from app.api.deps import get_db, get_current_active_user, get_owned_child
+from app.api.child_access import accessible_child_ids, user_can_access_child, user_owns_child
 from app.models.user import User
-from app.models.child import Child
 from app.models.device import Device, DeviceStatus
 from app.schemas.device import DeviceRegister, DeviceUpdate, DeviceResponse, DeviceHealthResponse
 
@@ -26,17 +26,8 @@ def register_device(
     """
     Register a new device and link it to a child
     """
-    # Verify the child belongs to the current user
-    child = db.query(Child).filter(
-        Child.id == device_data.child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found or does not belong to you"
-        )
+    # Verify the child belongs to the current user (primary guardian only)
+    get_owned_child(device_data.child_id, current_user, db)
     
     # Check if device_id already exists
     existing_device = db.query(Device).filter(Device.device_id == device_data.device_id).first()
@@ -66,13 +57,12 @@ def list_devices(
     db: Session = Depends(get_db)
 ):
     """
-    Get all devices for the current user's children
+    Get all devices for children the current user can access
     """
-    # Get all children for the user
-    child_ids = db.query(Child.id).filter(Child.user_id == current_user.id).all()
-    child_ids = [c[0] for c in child_ids]
-    
-    # Get all devices for these children
+    child_ids = accessible_child_ids(current_user, db)
+    if not child_ids:
+        return []
+
     devices = db.query(Device).filter(Device.child_id.in_(child_ids)).all()
     return devices
 
@@ -94,13 +84,7 @@ def get_device(
             detail="Device not found"
         )
     
-    # Verify the device belongs to one of the user's children
-    child = db.query(Child).filter(
-        Child.id == device.child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
+    if not user_can_access_child(current_user, device.child_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this device"
@@ -127,13 +111,7 @@ def update_device(
             detail="Device not found"
         )
     
-    # Verify the device belongs to one of the user's children
-    child = db.query(Child).filter(
-        Child.id == device.child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
+    if not user_owns_child(current_user, device.child_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this device"
@@ -141,16 +119,7 @@ def update_device(
     
     # If reassigning to a different child, verify the new child belongs to the user
     if device_data.child_id is not None:
-        new_child = db.query(Child).filter(
-            Child.id == device_data.child_id,
-            Child.user_id == current_user.id
-        ).first()
-        
-        if not new_child:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Target child not found or does not belong to you"
-            )
+        get_owned_child(device_data.child_id, current_user, db)
     
     # Update fields
     update_data = device_data.model_dump(exclude_unset=True)
@@ -180,13 +149,7 @@ def delete_device(
             detail="Device not found"
         )
     
-    # Verify the device belongs to one of the user's children
-    child = db.query(Child).filter(
-        Child.id == device.child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
+    if not user_owns_child(current_user, device.child_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this device"

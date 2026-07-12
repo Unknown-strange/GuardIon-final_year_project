@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
 
-from app.api.deps import get_db, get_current_active_user, get_user_child
+from app.api.deps import get_db, get_current_active_user, get_user_child, get_owned_child
+from app.api.child_access import accessible_child_ids, user_can_access_child
 from app.models.user import User
 from app.models.child import Child
 from app.models.guardian import Guardian
@@ -83,9 +84,15 @@ def list_guardians(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
-    """List guardians for the user's children."""
-    query = db.query(Child).filter(Child.user_id == current_user.id)
+    """List guardians for children the current user can access."""
+    child_ids = accessible_child_ids(current_user, db)
+    if not child_ids:
+        return GuardianListResponse(guardians=[])
+
+    query = db.query(Child).filter(Child.id.in_(child_ids))
     if child_id:
+        if child_id not in child_ids:
+            raise HTTPException(status_code=404, detail="Child not found")
         query = query.filter(Child.id == child_id)
 
     children = query.all()
@@ -103,7 +110,7 @@ def invite_guardian(
     db: Session = Depends(get_db),
 ):
     """Invite a co-guardian by email."""
-    child = get_user_child(payload.child_id, current_user, db)
+    child = get_owned_child(payload.child_id, current_user, db)
     email = payload.email.strip().lower()
 
     if email == current_user.email.lower():
