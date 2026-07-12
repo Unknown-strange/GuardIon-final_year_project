@@ -80,6 +80,12 @@ class Settings(BaseSettings):
     FCM_SERVER_KEY: str = ""
     EXPO_PUSH_ACCESS_TOKEN: str = ""
 
+    # ImageKit (child profile photos)
+    IMAGEKIT_PUBLIC_KEY: str = ""
+    IMAGEKIT_PRIVATE_KEY: str = ""
+    IMAGEKIT_URL_ENDPOINT: str = ""
+    IMAGEKIT_UPLOAD_FOLDER: str = "/guardion/children"
+
     @property
     def google_client_ids(self) -> List[str]:
         return [

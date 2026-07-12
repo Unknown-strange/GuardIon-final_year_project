@@ -137,6 +137,12 @@ def _get_notification_content(
             f"Device Tamper Alert: {child_name}",
             f"Possible tampering detected on {child_name}'s device. Please verify device status."
         )
+
+    elif alert.alert_type == AlertType.CHILD_MISSING:
+        return (
+            f"Missing Child: {child_name}",
+            f"A guardian reported {child_name} as missing. Please check the app immediately.",
+        )
     
     else:
         return (

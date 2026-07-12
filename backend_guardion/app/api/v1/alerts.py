@@ -14,7 +14,9 @@ from app.api.deps import get_db, get_current_active_user, get_user_child
 from app.api.child_access import accessible_child_ids, user_can_access_child
 from app.models.user import User
 from app.models.alert import Alert, AlertResponse as AlertResponseModel, AlertStatus, AlertType
+from app.models.child import Child
 from app.services.geofencing import confirm_child_safe
+from app.services.missing_child_alerts import notify_child_found
 from app.schemas.alert import (
     AlertResponse,
     AlertAcknowledge,
@@ -203,6 +205,11 @@ def resolve_alert(
             resolution_note=response_data.response_text
             or "Guardian confirmed child is safe",
         )
+
+    if alert.alert_type == AlertType.CHILD_MISSING:
+        child = db.query(Child).filter(Child.id == alert.child_id).first()
+        if child:
+            notify_child_found(alert=alert, child=child, resolver=current_user, db=db)
 
     db.commit()
     db.refresh(alert)

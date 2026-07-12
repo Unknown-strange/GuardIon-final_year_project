@@ -18,6 +18,7 @@ class AlertTypeEnum(str, Enum):
     LOW_BATTERY = "low_battery"
     DEVICE_OFFLINE = "device_offline"
     DEVICE_TAMPER = "device_tamper"
+    CHILD_MISSING = "child_missing"
 
 
 class AlertStatusEnum(str, Enum):

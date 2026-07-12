@@ -28,6 +28,8 @@ def _preference_allows(alert_type: AlertType, prefs: Optional[NotificationPrefer
         return prefs.geofence_enabled
     if alert_type == AlertType.LOW_BATTERY:
         return prefs.battery_enabled
+    if alert_type == AlertType.CHILD_MISSING:
+        return getattr(prefs, "missing_child_enabled", True)
     return True
 
 
@@ -38,6 +40,7 @@ def send_push_to_user(
     data: Optional[dict] = None,
     db: Optional[Session] = None,
     alert_type: Optional[AlertType] = None,
+    image_url: Optional[str] = None,
 ) -> int:
     """
     Send push notifications to all registered tokens for a user.
@@ -58,16 +61,18 @@ def send_push_to_user(
     if not tokens:
         return 0
 
-    messages = [
-        {
+    messages = []
+    for t in tokens:
+        message = {
             "to": t.token,
             "title": title,
             "body": body,
             "sound": "default",
-            "data": data or {},
+            "data": {**(data or {}), **({"image_url": image_url} if image_url else {})},
         }
-        for t in tokens
-    ]
+        if image_url:
+            message["mutableContent"] = True
+        messages.append(message)
 
     return _send_expo_messages(messages)
 
