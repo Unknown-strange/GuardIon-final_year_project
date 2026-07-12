@@ -21,6 +21,7 @@ class NotificationPreference(Base):
     geofence_enabled = Column(Boolean, default=True, nullable=False)
     battery_enabled = Column(Boolean, default=False, nullable=False)
     weekly_summary_enabled = Column(Boolean, default=True, nullable=False)
+    missing_child_enabled = Column(Boolean, default=True, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     user = relationship("User", back_populates="notification_preferences")
