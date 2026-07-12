@@ -3,7 +3,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
 
 
 class GuardianInvite(BaseModel):
@@ -27,3 +26,16 @@ class GuardianResponse(BaseModel):
 
 class GuardianListResponse(BaseModel):
     guardians: List[GuardianResponse]
+
+
+class GuardianInviteResponse(BaseModel):
+    id: UUID
+    child_id: UUID
+    child_name: str
+    invited_by_name: str
+    invited_by_email: str
+    status: str = "pending"
+
+
+class GuardianInviteListResponse(BaseModel):
+    invites: List[GuardianInviteResponse]
