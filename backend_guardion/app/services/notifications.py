@@ -4,7 +4,8 @@ Handles creation and delivery of notifications to users
 """
 
 import logging
-from typing import Optional
+from typing import List, Optional
+from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.models.user import User
@@ -14,6 +15,7 @@ from app.models.alert import Alert, AlertType
 from app.models.notification import Notification
 from app.models.notification_preference import NotificationPreference
 from app.services.push import send_push_to_user
+from app.api.child_access import guardian_user_ids_for_child
 
 logger = logging.getLogger(__name__)
 
@@ -46,33 +48,40 @@ def create_notification_for_alert(
         
         # Create notification message based on alert type
         title, message = _get_notification_content(alert, child, device)
-        
-        # Create notification
-        notification = Notification(
-            user_id=child.user_id,
-            alert_id=alert.id,
-            type="alert",
-            title=title,
-            message=message,
-            read=False
-        )
-        
-        db.add(notification)
-        db.commit()
-        db.refresh(notification)
-        
-        logger.info(f"[OK] Notification created for user {child.user_id}: {title}")
 
-        send_push_to_user(
-            child.user_id,
-            title=title,
-            body=message,
-            data={"alert_id": str(alert.id), "alert_type": alert.alert_type.value},
-            db=db,
-            alert_type=alert.alert_type,
+        guardian_ids = guardian_user_ids_for_child(child.id, db)
+        notifications: List[Notification] = []
+        for user_id_str in guardian_ids:
+            notification = Notification(
+                user_id=UUID(user_id_str),
+                alert_id=alert.id,
+                type="alert",
+                title=title,
+                message=message,
+                read=False,
+            )
+            db.add(notification)
+            notifications.append(notification)
+
+        db.commit()
+        if notifications:
+            db.refresh(notifications[0])
+
+        logger.info(
+            f"[OK] Notification created for {len(notifications)} guardian(s): {title}"
         )
-        
-        return notification
+
+        for user_id_str in guardian_ids:
+            send_push_to_user(
+                UUID(user_id_str),
+                title=title,
+                body=message,
+                data={"alert_id": str(alert.id), "alert_type": alert.alert_type.value},
+                db=db,
+                alert_type=alert.alert_type,
+            )
+
+        return notifications[0] if notifications else None
         
     except Exception as e:
         logger.exception(f"Error creating notification: {e}")

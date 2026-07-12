@@ -11,6 +11,7 @@ from typing import Optional
 from uuid import UUID
 
 from app.api.deps import get_db, get_current_active_user, get_user_child
+from app.api.child_access import user_can_access_child
 from app.models.user import User
 from app.models.child import Child
 from app.models.device import Device, DeviceStatus
@@ -34,12 +35,7 @@ def _get_user_check_in(
         logger.warning("Check-in %s not found in database", check_in_id)
         raise HTTPException(status_code=404, detail="Check-in not found")
 
-    child = (
-        db.query(Child)
-        .filter(Child.id == check_in.child_id, Child.user_id == current_user.id)
-        .first()
-    )
-    if not child:
+    if not user_can_access_child(current_user, check_in.child_id, db):
         logger.warning(
             "Check-in %s denied for user %s (child %s)",
             check_in_id,

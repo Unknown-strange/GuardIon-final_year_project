@@ -16,7 +16,7 @@ from app.websocket.manager import manager
 from app.database import SessionLocal
 from app.models.user import User
 from app.models.device import Device
-from app.models.child import Child
+from app.api.child_access import user_can_access_child
 from app.models.location import LocationHistory
 from app.config import settings
 
@@ -67,12 +67,7 @@ def _authorize_device_access(db: Session, user: User, device_id: str) -> bool:
         logger.warning(f"Device {device_id} not found")
         return False
 
-    child = db.query(Child).filter(
-        Child.id == device.child_id,
-        Child.user_id == user.id,
-    ).first()
-
-    if not child:
+    if not user_can_access_child(user, device.child_id, db):
         logger.warning(f"User {user.id} does not have access to device {device_id}")
         return False
 

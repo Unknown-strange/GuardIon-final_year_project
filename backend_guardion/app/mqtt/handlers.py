@@ -13,6 +13,7 @@ from app.database import SessionLocal
 from app.models.device import Device
 from app.models.location import LocationHistory
 from app.models.alert import Alert, AlertType, AlertStatus
+from app.api.child_access import guardian_user_ids_for_child
 from app.models.child import Child
 from app.mqtt.schemas import AlertPayload, CheckInResponsePayload, StatusPayload, TelemetryPayload
 from app.services.geofencing import check_geofence_breach, check_low_battery_alert, confirm_child_safe
@@ -40,6 +41,16 @@ def _parse_timestamp(timestamp_str: Optional[str]) -> datetime:
         return datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
     except (TypeError, ValueError):
         return datetime.utcnow()
+
+
+def _append_alert_broadcasts(
+    alert_broadcasts: list[tuple[str, dict]],
+    child_id: UUID,
+    alert_data: dict,
+    db,
+) -> None:
+    for user_id in guardian_user_ids_for_child(child_id, db):
+        alert_broadcasts.append((user_id, alert_data))
 
 
 def _format_coords(latitude: Optional[float], longitude: Optional[float]) -> str:
@@ -148,22 +159,22 @@ async def handle_telemetry(payload: Dict):
                         db.commit()
                         child = db.query(Child).filter(Child.id == device.child_id).first()
                         if child:
-                            alert_broadcasts.append(
-                                (
-                                    str(child.user_id),
-                                    {
-                                        "alert_id": str(breach_alert.id),
-                                        "alert_type": breach_alert.alert_type.value,
-                                        "child_id": str(breach_alert.child_id),
-                                        "child_name": child.name,
-                                        "device_id": device_id,
-                                        "zone_name": breach_alert.zone_name,
-                                        "location_lat": breach_alert.location_lat,
-                                        "location_lng": breach_alert.location_lng,
-                                        "status": breach_alert.status.value,
-                                        "created_at": breach_alert.created_at.isoformat(),
-                                    },
-                                )
+                            _append_alert_broadcasts(
+                                alert_broadcasts,
+                                device.child_id,
+                                {
+                                    "alert_id": str(breach_alert.id),
+                                    "alert_type": breach_alert.alert_type.value,
+                                    "child_id": str(breach_alert.child_id),
+                                    "child_name": child.name,
+                                    "device_id": device_id,
+                                    "zone_name": breach_alert.zone_name,
+                                    "location_lat": breach_alert.location_lat,
+                                    "location_lng": breach_alert.location_lng,
+                                    "status": breach_alert.status.value,
+                                    "created_at": breach_alert.created_at.isoformat(),
+                                },
+                                db,
                             )
 
                 if battery_level is not None:
@@ -173,19 +184,19 @@ async def handle_telemetry(payload: Dict):
                         db.commit()
                         child = db.query(Child).filter(Child.id == device.child_id).first()
                         if child:
-                            alert_broadcasts.append(
-                                (
-                                    str(child.user_id),
-                                    {
-                                        "alert_id": str(low_battery_alert.id),
-                                        "alert_type": low_battery_alert.alert_type.value,
-                                        "child_id": str(low_battery_alert.child_id),
-                                        "device_id": device_id,
-                                        "status": low_battery_alert.status.value,
-                                        "created_at": low_battery_alert.created_at.isoformat(),
-                                        "battery_level": battery_level,
-                                    },
-                                )
+                            _append_alert_broadcasts(
+                                alert_broadcasts,
+                                device.child_id,
+                                {
+                                    "alert_id": str(low_battery_alert.id),
+                                    "alert_type": low_battery_alert.alert_type.value,
+                                    "child_id": str(low_battery_alert.child_id),
+                                    "device_id": device_id,
+                                    "status": low_battery_alert.status.value,
+                                    "created_at": low_battery_alert.created_at.isoformat(),
+                                    "battery_level": battery_level,
+                                },
+                                db,
                             )
             except Exception:
                 db.rollback()
@@ -206,7 +217,7 @@ async def handle_telemetry(payload: Dict):
 async def handle_alert(payload: Dict):
     """Handle alert messages (SOS, low battery, etc.)."""
     async with _handler_lock:
-        alert_broadcast: Optional[tuple[str, dict]] = None
+        alert_broadcasts: list[tuple[str, dict]] = []
 
         try:
             try:
@@ -269,8 +280,9 @@ async def handle_alert(payload: Dict):
 
                 child = db.query(Child).filter(Child.id == device.child_id).first()
                 if child:
-                    alert_broadcast = (
-                        str(child.user_id),
+                    _append_alert_broadcasts(
+                        alert_broadcasts,
+                        device.child_id,
                         {
                             "alert_id": str(alert.id),
                             "alert_type": alert.alert_type.value,
@@ -283,6 +295,7 @@ async def handle_alert(payload: Dict):
                             "priority": priority,
                             "created_at": alert.created_at.isoformat(),
                         },
+                        db,
                     )
             except Exception:
                 db.rollback()
@@ -290,8 +303,7 @@ async def handle_alert(payload: Dict):
             finally:
                 db.close()
 
-            if alert_broadcast:
-                user_id, alert_data = alert_broadcast
+            for user_id, alert_data in alert_broadcasts:
                 await manager.broadcast_alert(user_id, alert_data)
 
         except Exception as e:

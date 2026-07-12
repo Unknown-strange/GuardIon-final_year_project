@@ -9,6 +9,8 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
+from app.api.child_access import get_accessible_child as _get_accessible_child
+from app.api.child_access import get_owned_child as _get_owned_child
 from app.database import SessionLocal
 from app.models.user import User
 from app.models.child import Child
@@ -89,14 +91,14 @@ def get_user_child(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ) -> Child:
-    """Ensure the child belongs to the current user."""
-    child = db.query(Child).filter(
-        Child.id == child_id,
-        Child.user_id == current_user.id,
-    ).first()
-    if not child:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found",
-        )
-    return child
+    """Ensure the current user may access the child (owner or active co-guardian)."""
+    return _get_accessible_child(child_id, current_user, db)
+
+
+def get_owned_child(
+    child_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+) -> Child:
+    """Ensure the child belongs to the current user (primary guardian only)."""
+    return _get_owned_child(child_id, current_user, db)

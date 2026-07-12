@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
 
-from app.api.deps import get_db, get_current_active_user
+from app.api.deps import get_db, get_current_active_user, get_user_child, get_owned_child
+from app.api.child_access import accessible_child_ids
 from app.models.user import User
 from app.models.child import Child
 from app.schemas.child import ChildCreate, ChildUpdate, ChildResponse
@@ -46,9 +47,12 @@ def list_children(
     db: Session = Depends(get_db)
 ):
     """
-    Get all children for the current user
+    Get all children the current user owns or co-guards
     """
-    children = db.query(Child).filter(Child.user_id == current_user.id).all()
+    child_ids = accessible_child_ids(current_user, db)
+    if not child_ids:
+        return []
+    children = db.query(Child).filter(Child.id.in_(child_ids)).all()
     return children
 
 
@@ -61,18 +65,7 @@ def get_child(
     """
     Get a specific child by ID
     """
-    child = db.query(Child).filter(
-        Child.id == child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found"
-        )
-    
-    return child
+    return get_user_child(child_id, current_user, db)
 
 
 @router.patch("/{child_id}", response_model=ChildResponse)
@@ -85,16 +78,7 @@ def update_child(
     """
     Update a child's information
     """
-    child = db.query(Child).filter(
-        Child.id == child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found"
-        )
+    child = get_owned_child(child_id, current_user, db)
     
     # Update fields if provided
     update_data = child_data.model_dump(exclude_unset=True)
@@ -116,16 +100,7 @@ def delete_child(
     """
     Delete a child profile (also deletes associated devices, alerts, etc.)
     """
-    child = db.query(Child).filter(
-        Child.id == child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found"
-        )
+    child = get_owned_child(child_id, current_user, db)
     
     db.delete(child)
     db.commit()

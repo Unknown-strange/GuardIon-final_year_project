@@ -9,9 +9,9 @@ from typing import List
 from uuid import UUID
 import math
 
-from app.api.deps import get_db, get_current_active_user
+from app.api.deps import get_db, get_current_active_user, get_user_child, get_owned_child
+from app.api.child_access import user_can_access_child, user_owns_child
 from app.models.user import User
-from app.models.child import Child
 from app.models.safezone import SafeZone
 from app.schemas.safezone import (
     SafeZoneCreate,
@@ -54,17 +54,7 @@ def create_safezone(
     """
     Create a new safe zone (geofence) for a child
     """
-    # Verify the child belongs to the current user
-    child = db.query(Child).filter(
-        Child.id == safezone_data.child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found or does not belong to you"
-        )
+    get_owned_child(safezone_data.child_id, current_user, db)
     
     # Create safezone
     db_safezone = SafeZone(
@@ -91,17 +81,7 @@ def list_safezones(
     """
     Get all safe zones for a child
     """
-    # Verify the child belongs to the current user
-    child = db.query(Child).filter(
-        Child.id == child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found or does not belong to you"
-        )
+    get_user_child(child_id, current_user, db)
     
     safezones = db.query(SafeZone).filter(SafeZone.child_id == child_id).all()
     return safezones
@@ -124,13 +104,7 @@ def get_safezone(
             detail="Safe zone not found"
         )
     
-    # Verify the safezone belongs to one of the user's children
-    child = db.query(Child).filter(
-        Child.id == safezone.child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
+    if not user_can_access_child(current_user, safezone.child_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this safe zone"
@@ -157,13 +131,7 @@ def update_safezone(
             detail="Safe zone not found"
         )
     
-    # Verify the safezone belongs to one of the user's children
-    child = db.query(Child).filter(
-        Child.id == safezone.child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
+    if not user_owns_child(current_user, safezone.child_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this safe zone"
@@ -197,13 +165,7 @@ def delete_safezone(
             detail="Safe zone not found"
         )
     
-    # Verify the safezone belongs to one of the user's children
-    child = db.query(Child).filter(
-        Child.id == safezone.child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
+    if not user_owns_child(current_user, safezone.child_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this safe zone"
@@ -234,13 +196,7 @@ def check_location_in_safezone(
             detail="Safe zone not found"
         )
     
-    # Verify the safezone belongs to one of the user's children
-    child = db.query(Child).filter(
-        Child.id == safezone.child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
+    if not user_can_access_child(current_user, safezone.child_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this safe zone"

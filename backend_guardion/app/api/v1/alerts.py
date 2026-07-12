@@ -10,9 +10,9 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 
-from app.api.deps import get_db, get_current_active_user
+from app.api.deps import get_db, get_current_active_user, get_user_child
+from app.api.child_access import accessible_child_ids, user_can_access_child
 from app.models.user import User
-from app.models.child import Child
 from app.models.alert import Alert, AlertResponse as AlertResponseModel, AlertStatus, AlertType
 from app.services.geofencing import confirm_child_safe
 from app.schemas.alert import (
@@ -35,9 +35,9 @@ def get_active_alerts(
     """
     Get all active (unresolved) alerts for the current user's children
     """
-    # Get all children for the user
-    child_ids = db.query(Child.id).filter(Child.user_id == current_user.id).all()
-    child_ids = [c[0] for c in child_ids]
+    child_ids = accessible_child_ids(current_user, db)
+    if not child_ids:
+        return AlertListResponse(alerts=[], total_count=0)
     
     # Get active alerts
     alerts = db.query(Alert).filter(
@@ -63,9 +63,9 @@ def get_alert_history(
     """
     Get alert history for the current user's children
     """
-    # Get all children for the user
-    child_ids = db.query(Child.id).filter(Child.user_id == current_user.id).all()
-    child_ids = [c[0] for c in child_ids]
+    child_ids = accessible_child_ids(current_user, db)
+    if not child_ids:
+        return AlertListResponse(alerts=[], total_count=0)
     
     # Build query
     query = db.query(Alert).filter(Alert.child_id.in_(child_ids))
@@ -107,13 +107,7 @@ def get_alert(
             detail="Alert not found"
         )
     
-    # Verify the alert belongs to one of the user's children
-    child = db.query(Child).filter(
-        Child.id == alert.child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
+    if not user_can_access_child(current_user, alert.child_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this alert"
@@ -140,13 +134,7 @@ def acknowledge_alert(
             detail="Alert not found"
         )
     
-    # Verify the alert belongs to one of the user's children
-    child = db.query(Child).filter(
-        Child.id == alert.child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
+    if not user_can_access_child(current_user, alert.child_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this alert"
@@ -188,13 +176,7 @@ def resolve_alert(
             detail="Alert not found"
         )
     
-    # Verify the alert belongs to one of the user's children
-    child = db.query(Child).filter(
-        Child.id == alert.child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
+    if not user_can_access_child(current_user, alert.child_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this alert"
@@ -237,17 +219,7 @@ def get_child_active_alerts(
     """
     Get active alerts for a specific child
     """
-    # Verify the child belongs to the current user
-    child = db.query(Child).filter(
-        Child.id == child_id,
-        Child.user_id == current_user.id
-    ).first()
-    
-    if not child:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found or does not belong to you"
-        )
+    get_user_child(child_id, current_user, db)
     
     # Get active alerts for this child
     alerts = db.query(Alert).filter(
