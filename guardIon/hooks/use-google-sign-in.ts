@@ -1,173 +1,116 @@
-import Constants, { ExecutionEnvironment } from 'expo-constants';
+import Constants from 'expo-constants';
 import * as AuthSession from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useMemo } from 'react';
 
+import { API_BASE_URL } from '@/api/config';
+
 WebBrowser.maybeCompleteAuthSession();
 
-const EXPO_PROJECT_FULL_NAME = '@tekmart-boys/guardIon';
+const GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 
-export type GoogleSignInResult =
-  | { type: 'id_token'; idToken: string }
-  | {
-      type: 'code';
-      code: string;
-      redirectUri: string;
-      codeVerifier?: string;
-    };
+export type GoogleSignInResult = {
+  accessToken: string;
+  refreshToken: string;
+};
 
-function getGoogleAuthConfig() {
+function getWebClientId() {
   const extra = Constants.expoConfig?.extra ?? {};
-  return {
-    webClientId: String(extra.googleWebClientId ?? ''),
-    androidClientId: String(extra.googleAndroidClientId ?? ''),
-    iosClientId: String(extra.googleIosClientId ?? ''),
-    configuredRedirectUri: String(extra.googleRedirectUri ?? ''),
-    expoProjectFullName: String(extra.expoProjectFullName ?? EXPO_PROJECT_FULL_NAME),
+  return String(extra.googleWebClientId ?? '');
+}
+
+/** Parse params from both the query string and fragment of a returned deep link. */
+function parseReturnedUrl(url: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  const collect = (search: string) => {
+    new URLSearchParams(search).forEach((value, key) => {
+      result[key] = value;
+    });
   };
-}
 
-function buildGoogleNativeRedirectUri(webClientId: string) {
-  const prefix = webClientId.replace(/\.apps\.googleusercontent\.com$/i, '');
-  return `com.googleusercontent.apps.${prefix}:/oauthredirect`;
-}
-
-function resolveRedirectStrategy(
-  webClientId: string,
-  configuredRedirectUri: string,
-  expoProjectFullName: string,
-) {
-  const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
-
-  if (isExpoGo) {
-    let proxyRedirectUri = configuredRedirectUri;
-    if (!proxyRedirectUri.includes('auth.expo.io')) {
-      try {
-        proxyRedirectUri = AuthSession.getRedirectUrl();
-      } catch {
-        proxyRedirectUri = expoProjectFullName.startsWith('@')
-          ? `https://auth.expo.io/${expoProjectFullName}`
-          : `https://auth.expo.io/@${expoProjectFullName}`;
-      }
-    }
-
-    return {
-      isExpoGo: true,
-      googleRedirectUri: proxyRedirectUri,
-      appReturnUrl: AuthSession.makeRedirectUri({ path: 'oauthredirect' }),
-    };
+  const queryIndex = url.indexOf('?');
+  const hashIndex = url.indexOf('#');
+  if (queryIndex >= 0) {
+    const end = hashIndex > queryIndex ? hashIndex : url.length;
+    collect(url.slice(queryIndex + 1, end));
   }
+  if (hashIndex >= 0) {
+    collect(url.slice(hashIndex + 1));
+  }
+  return result;
+}
 
-  const googleRedirectUri =
-    configuredRedirectUri && !configuredRedirectUri.includes('auth.expo.io')
-      ? configuredRedirectUri
-      : buildGoogleNativeRedirectUri(webClientId);
-
-  return {
-    isExpoGo: false,
-    googleRedirectUri,
-    appReturnUrl: googleRedirectUri,
-  };
+function googleErrorMessage(error: string): string {
+  switch (error) {
+    case 'access_denied':
+      return 'Google sign-in was cancelled.';
+    case 'google_not_configured':
+      return 'Google Sign-In is not configured on the server.';
+    case 'google_exchange_failed':
+      return 'Could not verify your Google account. Please try again.';
+    case 'google_account_unusable':
+      return 'This Google account has no verified email and cannot be used.';
+    case 'missing_code':
+      return 'Google sign-in failed. Please try again.';
+    default:
+      return 'Google sign-in failed. Please try again.';
+  }
 }
 
 export function useGoogleSignIn() {
-  const { webClientId, androidClientId, iosClientId, configuredRedirectUri, expoProjectFullName } =
-    useMemo(() => getGoogleAuthConfig(), []);
-
-  const redirectStrategy = useMemo(
-    () => resolveRedirectStrategy(webClientId, configuredRedirectUri, expoProjectFullName),
-    [configuredRedirectUri, expoProjectFullName, webClientId],
-  );
-
-  const isConfigured = redirectStrategy.isExpoGo
-    ? Boolean(webClientId)
-    : Boolean(webClientId) || Boolean(androidClientId) || Boolean(iosClientId);
-
-  const oauthClientIds = useMemo(
-    () => ({
-      webClientId: webClientId || undefined,
-      iosClientId: (redirectStrategy.isExpoGo ? webClientId : iosClientId) || undefined,
-      androidClientId: (redirectStrategy.isExpoGo ? webClientId : androidClientId) || undefined,
-    }),
-    [androidClientId, iosClientId, redirectStrategy.isExpoGo, webClientId],
-  );
-
-  const [request, , promptAsync] = Google.useAuthRequest({
-    ...oauthClientIds,
-    redirectUri: redirectStrategy.googleRedirectUri,
-  });
+  const webClientId = useMemo(() => getWebClientId(), []);
+  const isConfigured = Boolean(webClientId);
 
   const promptGoogleSignIn = useCallback(async (): Promise<GoogleSignInResult> => {
     if (!isConfigured) {
       throw new Error('Google Sign-In is not configured. Add client IDs to your .env file.');
     }
-    if (!request) {
-      throw new Error('Google Sign-In is still loading. Try again in a moment.');
-    }
 
-    if (redirectStrategy.isExpoGo) {
-      if (!request.url) {
-        throw new Error('Google Sign-In is still loading. Try again in a moment.');
-      }
+    // Deep link back into the app. In Expo Go this resolves to an exp:// URL automatically;
+    // in dev/standalone builds it uses the `guardion` scheme.
+    const returnUrl = AuthSession.makeRedirectUri({ scheme: 'guardion', path: 'oauthredirect' });
 
-      const startUrl = `${redirectStrategy.googleRedirectUri}/start?${new URLSearchParams({
-        authUrl: request.url,
-        returnUrl: redirectStrategy.appReturnUrl,
-      }).toString()}`;
+    // Google redirects here; the backend exchanges the code and deep-links tokens to returnUrl.
+    const redirectUri = `${API_BASE_URL}/auth/google/callback`;
 
-      const browserResult = await WebBrowser.openAuthSessionAsync(
-        startUrl,
-        redirectStrategy.appReturnUrl,
-      );
+    const authUrl =
+      `${GOOGLE_AUTH_ENDPOINT}?` +
+      new URLSearchParams({
+        client_id: webClientId,
+        redirect_uri: redirectUri,
+        response_type: 'code',
+        scope: 'openid email profile',
+        include_granted_scopes: 'true',
+        prompt: 'select_account',
+        state: JSON.stringify({ returnUrl, redirectUri }),
+      }).toString();
 
-      if (browserResult.type === 'cancel' || browserResult.type === 'dismiss') {
-        throw new Error('Google sign-in was cancelled.');
-      }
-      if (browserResult.type !== 'success') {
-        throw new Error('Google sign-in failed.');
-      }
+    const result = await WebBrowser.openAuthSessionAsync(authUrl, returnUrl);
 
-      const result = request.parseReturnUrl(browserResult.url);
-
-      if (result.type === 'error' || result.type !== 'success') {
-        throw new Error('Google sign-in failed.');
-      }
-
-      if (!result.params?.code) {
-        throw new Error('Google sign-in did not return an authorization code.');
-      }
-
-      return {
-        type: 'code',
-        code: result.params.code,
-        redirectUri: redirectStrategy.googleRedirectUri,
-        codeVerifier: request.codeVerifier ?? undefined,
-      };
-    }
-
-    const result = await promptAsync();
     if (result.type === 'cancel' || result.type === 'dismiss') {
       throw new Error('Google sign-in was cancelled.');
     }
-    if (result.type !== 'success') {
+    if (result.type !== 'success' || !result.url) {
       throw new Error('Google sign-in failed.');
     }
 
-    const idToken =
-      result.authentication?.idToken ?? (result.params?.id_token as string | undefined);
-    if (!idToken) {
-      throw new Error(
-        'No Google ID token received. Add the native redirect URI to your Web OAuth client in Google Cloud.',
-      );
+    const params = parseReturnedUrl(result.url);
+    if (params.error) {
+      throw new Error(googleErrorMessage(params.error));
     }
 
-    return { type: 'id_token', idToken };
-  }, [isConfigured, promptAsync, redirectStrategy, request]);
+    const accessToken = params.access_token;
+    const refreshToken = params.refresh_token;
+    if (!accessToken || !refreshToken) {
+      throw new Error('Google sign-in did not return a session. Please try again.');
+    }
+
+    return { accessToken, refreshToken };
+  }, [isConfigured, webClientId]);
 
   return {
     isConfigured,
-    isReady: Boolean(request),
+    isReady: true,
     promptGoogleSignIn,
   };
 }

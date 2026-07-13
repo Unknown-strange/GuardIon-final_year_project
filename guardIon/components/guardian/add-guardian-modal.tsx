@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ApiError } from '@/api/errors';
 import { PrimaryButton, SecondaryButton } from '@/components/guardian/buttons';
 import { ThemedText } from '@/components/themed-text';
 import type { GuardianMember } from '@/constants/guardian-profile-mocks';
@@ -30,7 +31,7 @@ export type AddGuardianPayload = {
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onInvite: (payload: AddGuardianPayload) => void;
+  onInvite: (payload: AddGuardianPayload) => Promise<void>;
   onInvited?: () => void;
 };
 
@@ -51,6 +52,7 @@ export function AddGuardianModal({ visible, onClose, onInvite, onInvited }: Prop
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<GuardianRole>('primary');
   const [submitting, setSubmitting] = useState(false);
+  const [emailNotFoundOpen, setEmailNotFoundOpen] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -60,6 +62,7 @@ export function AddGuardianModal({ visible, onClose, onInvite, onInvited }: Prop
     setPhone('');
     setRole('primary');
     setSubmitting(false);
+    setEmailNotFoundOpen(false);
   }, [visible]);
 
   const canInvite =
@@ -71,7 +74,7 @@ export function AddGuardianModal({ visible, onClose, onInvite, onInvited }: Prop
     if (!canInvite) return;
     setSubmitting(true);
     try {
-      onInvite({
+      await onInvite({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim(),
@@ -80,12 +83,19 @@ export function AddGuardianModal({ visible, onClose, onInvite, onInvited }: Prop
       });
       onClose();
       onInvited?.();
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        setEmailNotFoundOpen(true);
+        return;
+      }
+      throw error;
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
+    <>
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.backdrop}
@@ -108,8 +118,8 @@ export function AddGuardianModal({ visible, onClose, onInvite, onInvited }: Prop
             contentContainerStyle={styles.body}>
             <ThemedText style={styles.sectionTitle}>Guardian Details</ThemedText>
             <ThemedText style={styles.sectionHint}>
-              Invite a trusted adult to help monitor child safety. They will receive an invitation
-              via email to join your circle.
+              Add a trusted adult who already has a Guardion account. They must sign in with the
+              email address you enter below.
             </ThemedText>
 
             <Field label="First Name" value={firstName} onChangeText={setFirstName} placeholder="Jane" />
@@ -168,6 +178,31 @@ export function AddGuardianModal({ visible, onClose, onInvite, onInvited }: Prop
         </View>
       </KeyboardAvoidingView>
     </Modal>
+
+    <Modal
+      visible={emailNotFoundOpen}
+      animationType="fade"
+      transparent
+      onRequestClose={() => setEmailNotFoundOpen(false)}>
+      <View style={styles.errorBackdrop}>
+        <View style={styles.errorCard}>
+          <View style={styles.errorIconWrap}>
+            <Ionicons name="mail-unread-outline" size={28} color={GuardianColors.danger} />
+          </View>
+          <ThemedText style={styles.errorTitle}>Email does not exist</ThemedText>
+          <ThemedText style={styles.errorBody}>
+            No Guardion account was found for{' '}
+            <ThemedText style={styles.errorEmail}>{email.trim()}</ThemedText>. Ask them to create
+            an account first, then try again.
+          </ThemedText>
+          <PrimaryButton
+            label="OK"
+            onPress={() => setEmailNotFoundOpen(false)}
+          />
+        </View>
+      </View>
+    </Modal>
+    </>
   );
 }
 
@@ -343,5 +378,49 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: GuardianColors.border,
+  },
+  errorBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Layout.screenPadding,
+  },
+  errorCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: GuardianColors.surface,
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: GuardianColors.border,
+    gap: 12,
+  },
+  errorIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 4,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: GuardianColors.text,
+    textAlign: 'center',
+  },
+  errorBody: {
+    ...Typography.body,
+    color: GuardianColors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  errorEmail: {
+    fontWeight: '800',
+    color: GuardianColors.text,
   },
 });

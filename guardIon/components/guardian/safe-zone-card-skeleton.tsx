@@ -1,48 +1,26 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 
+import { ShimmerBlock } from '@/components/guardian/skeleton/shimmer-block';
 import { GuardianColors, Layout } from '@/constants/theme';
 
-function ShimmerBlock({
-  style,
-  opacity,
-}: {
-  style: object;
-  opacity: Animated.Value;
-}) {
-  return <Animated.View style={[styles.block, style, { opacity }]} />;
-}
-
 export function SafeZoneCardSkeleton() {
-  const opacity = useRef(new Animated.Value(0.45)).current;
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, { toValue: 0.9, duration: 750, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.45, duration: 750, useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [opacity]);
-
   return (
     <View style={styles.card}>
-      <ShimmerBlock style={styles.map} opacity={opacity} />
+      <ShimmerBlock style={styles.map} />
       <View style={styles.body}>
         <View style={styles.titleRow}>
-          <ShimmerBlock style={styles.title} opacity={opacity} />
+          <ShimmerBlock style={styles.title} />
           <View style={styles.actions}>
-            <ShimmerBlock style={styles.icon} opacity={opacity} />
-            <ShimmerBlock style={styles.icon} opacity={opacity} />
+            <ShimmerBlock style={styles.icon} />
+            <ShimmerBlock style={styles.icon} />
           </View>
         </View>
-        <ShimmerBlock style={styles.address} opacity={opacity} />
+        <ShimmerBlock style={styles.address} />
         <View style={styles.divider} />
         <View style={styles.footer}>
-          <ShimmerBlock style={styles.pill} opacity={opacity} />
-          <ShimmerBlock style={styles.pillWide} opacity={opacity} />
+          <ShimmerBlock style={styles.pill} />
+          <ShimmerBlock style={styles.pillWide} />
         </View>
       </View>
     </View>
@@ -75,10 +53,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
-  },
-  block: {
-    backgroundColor: '#E5E7EB',
-    borderRadius: 8,
   },
   map: {
     width: '100%',

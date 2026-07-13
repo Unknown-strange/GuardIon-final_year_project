@@ -1,11 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ContactRow } from '@/components/guardian/contact-row';
+import { PrimaryButton } from '@/components/guardian/buttons';
+import { ListCardSkeletonList } from '@/components/guardian/skeleton';
 import { ThemedText } from '@/components/themed-text';
-import { getContactsForChild } from '@/constants/child-contacts-mocks';
+import { useEmergencyContacts } from '@/hooks/use-emergency-contacts';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
 import type { ChildContact } from '@/types/child-contact';
 import { callPhone } from '@/utils/phone';
@@ -15,7 +18,7 @@ type Props = {
   childId: string;
   childName: string;
   onClose: () => void;
-  /** When set, only show these contacts (e.g. emergency-only for SOS modal). */
+  /** @deprecated Emergency contacts come from the API; filter is ignored. */
   filterTypes?: ChildContact['type'][];
 };
 
@@ -24,12 +27,16 @@ export function ChildContactsSheet({
   childId,
   childName,
   onClose,
-  filterTypes,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const contacts = getContactsForChild(childId).filter(
-    (c) => !filterTypes?.length || filterTypes.includes(c.type),
-  );
+  const router = useRouter();
+  const { contacts, loading, refresh } = useEmergencyContacts(childId, visible);
+
+  useEffect(() => {
+    if (visible && childId) {
+      void refresh();
+    }
+  }, [visible, childId, refresh]);
 
   const handleCall = (contact: ChildContact) => {
     const dial = () => {
@@ -70,13 +77,28 @@ export function ChildContactsSheet({
           </View>
 
           <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-            {contacts.map((contact) => (
-              <View key={contact.id} style={styles.rowWrap}>
-                <ContactRow contact={contact} onPress={() => handleCall(contact)} />
+            {loading && contacts.length === 0 ? (
+              <ListCardSkeletonList variant="contact" count={2} />
+            ) : null}
+            {!loading &&
+              contacts.map((contact) => (
+                <View key={contact.id} style={styles.rowWrap}>
+                  <ContactRow contact={contact} onPress={() => handleCall(contact)} />
+                </View>
+              ))}
+            {!loading && contacts.length === 0 ? (
+              <View style={styles.emptyWrap}>
+                <ThemedText style={styles.empty}>
+                  No emergency contacts added yet.
+                </ThemedText>
+                <PrimaryButton
+                  label="Add emergency contact"
+                  onPress={() => {
+                    onClose();
+                    router.push('/settings/emergency-contacts' as any);
+                  }}
+                />
               </View>
-            ))}
-            {contacts.length === 0 ? (
-              <ThemedText style={styles.empty}>No contacts available.</ThemedText>
             ) : null}
           </ScrollView>
         </Pressable>
@@ -133,6 +155,9 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: GuardianColors.textMuted,
     textAlign: 'center',
-    paddingVertical: 24,
+  },
+  emptyWrap: {
+    paddingVertical: 16,
+    gap: 12,
   },
 });

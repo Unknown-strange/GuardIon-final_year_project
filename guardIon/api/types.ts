@@ -104,6 +104,7 @@ export type SafeZoneResponse = {
   center_lat: number;
   center_lng: number;
   radius: number;
+  zone_type: 'SAFE' | 'DANGER';
   created_at: string;
 };
 
@@ -113,6 +114,7 @@ export type SafeZoneCreate = {
   center_lat: number;
   center_lng: number;
   radius: number;
+  zone_type?: 'SAFE' | 'DANGER';
 };
 
 export type SafeZoneUpdate = {
@@ -120,6 +122,7 @@ export type SafeZoneUpdate = {
   center_lat?: number;
   center_lng?: number;
   radius?: number;
+  zone_type?: 'SAFE' | 'DANGER';
 };
 
 export type AlertType =
@@ -128,7 +131,9 @@ export type AlertType =
   | 'check_in_safe'
   | 'low_battery'
   | 'device_offline'
-  | 'device_tamper';
+  | 'device_tamper'
+  | 'child_missing'
+  | 'danger_zone_entry';
 
 export type AlertStatus = 'active' | 'acknowledged' | 'resolved';
 

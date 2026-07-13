@@ -16,6 +16,9 @@ export type AlertWsPayload = {
   priority?: string;
   battery_level?: number;
   created_at: string;
+  image_url?: string | null;
+  reporter_name?: string | null;
+  notes?: string | null;
 };
 
 type AlertMessage = {

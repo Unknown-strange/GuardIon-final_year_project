@@ -25,6 +25,8 @@ export type ChildSummary = {
   dateOfBirth?: string;
   deviceId?: string;
   profilePhoto?: string;
+  /** ISO timestamp of the last GPS fix used for map/online status. */
+  coordinatesAt?: string | null;
 };
 
 type Props = {

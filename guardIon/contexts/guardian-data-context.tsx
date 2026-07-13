@@ -11,11 +11,14 @@ import * as childrenApi from '@/api/children';
 import * as devicesApi from '@/api/devices';
 import * as locationsApi from '@/api/locations';
 import { childCreatePayload, childSummaryFromApi } from '@/api/mappers';
+import { setChildCustomAvatar } from '@/utils/child-custom-avatars';
 import type { ChildResponse, DeviceResponse } from '@/api/types';
 import type { RegisterChildPayload } from '@/components/guardian/add-child-modal';
 import type { ChildSummary } from '@/components/guardian/child-summary-card';
 import { calculateAgeFromBirthDate } from '@/utils/child-age';
+import { ensureHttpsProfilePhoto } from '@/lib/imagekit-upload';
 import { applyLocationToChild } from '@/utils/apply-location-to-child';
+import { isFreshCoordinateTimestamp } from '@/utils/device-online';
 import { useAuth } from '@/contexts/auth-context';
 import { useMultiLocationWebSocket } from '@/hooks/use-multi-location-websocket';
 
@@ -86,15 +89,20 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
       const next = prev.map((child) => {
         const update = liveUpdates[child.id];
         if (update?.latitude == null || update?.longitude == null) return child;
+
+        const signalAt = update.timestamp ?? child.coordinatesAt ?? null;
+        const fresh = isFreshCoordinateTimestamp(signalAt);
         if (
           child.latitude === update.latitude &&
           child.longitude === update.longitude &&
-          child.online
+          child.online === fresh &&
+          child.coordinatesAt === signalAt
         ) {
           return child;
         }
+
         locationChanged = true;
-        return applyLocationToChild(child, update, true);
+        return applyLocationToChild(child, update, fresh);
       });
       return locationChanged ? next : prev;
     });
@@ -102,6 +110,35 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
       setLocationTick((value) => value + 1);
     }
   }, [liveUpdates]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const interval = setInterval(() => {
+      setChildSummaries((prev) => {
+        let changed = false;
+        const next = prev.map((child) => {
+          const stillLive = isFreshCoordinateTimestamp(child.coordinatesAt);
+          if (stillLive === child.online) return child;
+          changed = true;
+          return {
+            ...child,
+            online: stillLive,
+            status: stillLive ? (child.alertMessage ? 'warning' : 'safe') : 'offline',
+            movement: stillLive ? child.movement : 'Unknown',
+            lastUpdate: stillLive
+              ? child.lastUpdate
+              : child.coordinatesAt
+                ? child.lastUpdate
+                : 'Unknown',
+          };
+        });
+        return changed ? next : prev;
+      });
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   const refreshChildren = useCallback(async () => {
     if (!isAuthenticated) {
@@ -137,11 +174,14 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
   const registerChild = useCallback(
     async (payload: RegisterChildPayload) => {
       const name = `${payload.firstName} ${payload.lastName}`.trim();
+      const profilePhoto = payload.avatarUri
+        ? await ensureHttpsProfilePhoto(payload.avatarUri, 'child')
+        : null;
       const created = await childrenApi.createChild(
         childCreatePayload({
           name,
           age: calculateAgeFromBirthDate(payload.dateOfBirth),
-          profile_photo: payload.avatarUri ?? null,
+          profile_photo: profilePhoto,
         }),
       );
 
@@ -154,6 +194,9 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
       const device = devices.find((d) => d.child_id === created.id) ?? null;
       const location = await fetchLocationSafely(created.id);
       const summary = childSummaryFromApi(created, device, location);
+      if (profilePhoto) {
+        await setChildCustomAvatar(created.id, profilePhoto).catch(() => undefined);
+      }
       setChildSummaries((prev) => [...prev, summary]);
       return summary;
     },
@@ -165,7 +208,16 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
       childId: string,
       payload: { name: string; age?: number | null; profile_photo?: string | null },
     ) => {
-      const updated = await childrenApi.updateChild(childId, childCreatePayload(payload));
+      const profilePhoto = payload.profile_photo
+        ? await ensureHttpsProfilePhoto(payload.profile_photo, 'child')
+        : payload.profile_photo ?? null;
+      const updated = await childrenApi.updateChild(
+        childId,
+        childCreatePayload({ ...payload, profile_photo: profilePhoto }),
+      );
+      if (profilePhoto) {
+        await setChildCustomAvatar(updated.id, profilePhoto).catch(() => undefined);
+      }
       const devices = await devicesApi.listDevices();
       const device = devices.find((d) => d.child_id === updated.id) ?? null;
       const location = await fetchLocationSafely(updated.id);

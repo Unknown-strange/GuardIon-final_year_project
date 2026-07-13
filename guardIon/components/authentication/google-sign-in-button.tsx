@@ -19,7 +19,7 @@ type GoogleSignInButtonProps = {
 };
 
 export function GoogleSignInButton({ onSuccess, disabled, style }: GoogleSignInButtonProps) {
-  const { signInWithGoogle, signInWithGoogleCode } = useAuth();
+  const { signInWithGoogleTokens } = useAuth();
   const { promptGoogleSignIn, isConfigured, isReady } = useGoogleSignIn();
   const [loading, setLoading] = useState(false);
 
@@ -35,15 +35,7 @@ export function GoogleSignInButton({ onSuccess, disabled, style }: GoogleSignInB
     setLoading(true);
     try {
       const result = await promptGoogleSignIn();
-      if (result.type === 'code') {
-        await signInWithGoogleCode({
-          code: result.code,
-          redirectUri: result.redirectUri,
-          codeVerifier: result.codeVerifier,
-        });
-      } else {
-        await signInWithGoogle(result.idToken);
-      }
+      await signInWithGoogleTokens(result.accessToken, result.refreshToken);
       onSuccess();
     } catch (error) {
       const message = getErrorMessage(error, 'Google sign-in failed.');

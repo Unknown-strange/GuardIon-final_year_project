@@ -49,6 +49,7 @@ export function useSafeZones(childId?: string | null) {
           center_lat: input.latitude,
           center_lng: input.longitude,
           radius: input.radiusM,
+          zone_type: input.zoneType,
         }),
       );
       const next = safeZoneFromApi(created);
@@ -67,6 +68,7 @@ export function useSafeZones(childId?: string | null) {
           center_lat: patch.latitude,
           center_lng: patch.longitude,
           radius: patch.radiusM,
+          zone_type: patch.zoneType,
         }),
       );
       const mapped = safeZoneFromApi(updated);

@@ -7,7 +7,27 @@ type RequestOptions = {
   body?: unknown;
   auth?: boolean;
   query?: Record<string, string | number | boolean | undefined | null>;
+  /** Abort the request after this many ms (default 20s) so a slow/down server can't hang the app. */
+  timeoutMs?: number;
 };
+
+const DEFAULT_TIMEOUT_MS = 20000;
+
+/** fetch with an AbortController timeout; surfaces a clear ApiError instead of hanging forever. */
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new ApiError('The server took too long to respond. Check your connection and try again.', 408);
+    }
+    throw new ApiError('Could not reach the server. Check your connection and try again.', 0);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 function buildUrl(path: string, query?: RequestOptions['query']) {
   const url = new URL(`${API_BASE_URL}${path}`);
@@ -22,7 +42,7 @@ function buildUrl(path: string, query?: RequestOptions['query']) {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, auth = false, query } = options;
+  const { method = 'GET', body, auth = false, query, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'ngrok-skip-browser-warning': 'true',
@@ -37,21 +57,19 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  let response = await fetch(buildUrl(path, query), {
+  const requestInit = {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  };
+
+  let response = await fetchWithTimeout(buildUrl(path, query), requestInit, timeoutMs);
 
   if (auth && response.status === 401) {
     const retryToken = await getValidAccessToken();
     if (retryToken) {
       headers.Authorization = `Bearer ${retryToken}`;
-      response = await fetch(buildUrl(path, query), {
-        method,
-        headers,
-        body: body !== undefined ? JSON.stringify(body) : undefined,
-      });
+      response = await fetchWithTimeout(buildUrl(path, query), requestInit, timeoutMs);
     }
   }
 

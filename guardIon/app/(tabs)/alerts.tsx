@@ -23,6 +23,12 @@ import { ContactRow } from '@/components/guardian/contact-row';
 import { EmergencySosModal } from '@/components/guardian/emergency-sos-modal';
 import { GeofenceAlertActions } from '@/components/guardian/geofence-alert-actions';
 import { ScreenHeader } from '@/components/guardian/screen-header';
+import {
+  ActiveAlertsSummarySkeleton,
+  AlertCardSkeletonList,
+  AlertsChildSelectorSkeleton,
+  AlertsContactRowSkeletonList,
+} from '@/components/guardian/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import {
@@ -32,9 +38,9 @@ import {
   useAlerts,
 } from '@/hooks/use-alerts';
 import { useCheckIn } from '@/hooks/use-check-in';
+import { useEmergencyContacts } from '@/hooks/use-emergency-contacts';
 import { useSafeZones } from '@/hooks/use-safe-zones';
 import type { AlertItem } from '@/constants/alerts-mocks';
-import { getContactsForChild } from '@/constants/child-contacts-mocks';
 import { useAlertsRealtime } from '@/contexts/alerts-realtime-context';
 import { useGuardianData } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
@@ -59,6 +65,8 @@ function alertIcon(type?: AlertItem['type']) {
       return 'navigate-circle' as const;
     case 'check_in':
       return 'shield-checkmark' as const;
+    case 'missing':
+      return 'alert-circle' as const;
     case 'battery':
       return 'battery-dead' as const;
     default:
@@ -125,9 +133,9 @@ export default function AlertsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ childId?: string }>();
-  const { children, getChildById } = useGuardianData();
+  const { children, getChildById, isLoading: childrenLoading } = useGuardianData();
   const { deviceSafeCheck } = useAlertsRealtime();
-  const { allAlerts, resolveAlertById } = useAlerts('all');
+  const { allAlerts, resolveAlertById, loading: alertsLoading } = useAlerts('all');
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [contactsOpen, setContactsOpen] = useState(false);
@@ -186,7 +194,9 @@ export default function AlertsScreen() {
     selectedChildId === null ? 'All children' : (getChildById(selectedChildId)?.name ?? 'Child');
   const status = aggregateStatus(selectedChildId, children, getChildById);
   const contactsChildIdResolved = getContactsChildId(selectedChildId, children);
-  const emergencyContacts = getContactsForChild(contactsChildIdResolved).slice(0, 2);
+  const { contacts: emergencyContacts, loading: contactsLoading } = useEmergencyContacts(
+    contactsChildIdResolved || null,
+  );
   const sosTargetChildId = getSosTargetChildId(selectedChildId, children);
   const contactChild = getChildById(contactChildId || contactsChildIdResolved);
 
@@ -254,6 +264,68 @@ export default function AlertsScreen() {
     );
   };
 
+  const markMissingFound = (item: AlertItem) => {
+    const childName = getChildById(item.childId)?.name ?? 'Child';
+    Alert.alert(
+      'Child is found?',
+      `Confirm that ${childName} has been found and is safe. All guardians will be notified.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Child is found',
+          onPress: () => {
+            animateLayout();
+            setResolvingAlertId(item.id);
+            void resolveAlertById(item.id, 'Guardian confirmed child is found and safe').finally(
+              () => {
+                setResolvingAlertId(null);
+              },
+            );
+          },
+        },
+      ],
+    );
+  };
+
+  const markSosSafe = (item: AlertItem) => {
+    const childName = getChildById(item.childId)?.name ?? 'Child';
+    Alert.alert(
+      'Mark child as safe?',
+      `Confirm that ${childName} is safe now. This resolves the emergency SOS alert.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Child is safe now',
+          onPress: () => {
+            animateLayout();
+            setResolvingAlertId(item.id);
+            void resolveAlertById(item.id, 'Guardian confirmed child is safe after SOS').finally(
+              () => {
+                setResolvingAlertId(null);
+              },
+            );
+          },
+        },
+      ],
+    );
+  };
+
+  const markAlertResolved = (item: AlertItem) => {
+    Alert.alert('Mark as resolved?', `Resolve "${item.title}"? It will move to resolved alerts.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Mark resolved',
+        onPress: () => {
+          animateLayout();
+          setResolvingAlertId(item.id);
+          void resolveAlertById(item.id, 'Resolved by guardian').finally(() => {
+            setResolvingAlertId(null);
+          });
+        },
+      },
+    ]);
+  };
+
   const dialContact = (contact: ChildContact) => {
     const dial = () => void callPhone(contact.phone, contact.name);
 
@@ -282,6 +354,10 @@ export default function AlertsScreen() {
       ? 'No resolved alerts yet'
       : `No resolved alerts for ${getChildById(selectedChildId)?.name ?? 'this child'}`;
 
+  const showAlertsSkeleton = alertsLoading && allAlerts.length === 0;
+  const showChildrenSkeleton = childrenLoading && children.length === 0;
+  const showContactsSkeleton = contactsLoading && emergencyContacts.length === 0;
+
   return (
     <ThemedView style={styles.screen}>
       <ScrollView
@@ -301,22 +377,30 @@ export default function AlertsScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(100).duration(320)}>
-          <AlertsChildSelector
-            items={children}
-            selectedChildId={selectedChildId}
-            activeCounts={activeCounts}
-            onSelect={selectChild}
-          />
+          {showChildrenSkeleton ? (
+            <AlertsChildSelectorSkeleton />
+          ) : (
+            <AlertsChildSelector
+              items={children}
+              selectedChildId={selectedChildId}
+              activeCounts={activeCounts}
+              onSelect={selectChild}
+            />
+          )}
         </Animated.View>
 
-        <ActiveAlertsSummary
-          key={selectedChildId ?? 'all'}
-          activeCount={activeAlerts}
-          selectionLabel={selectionLabel}
-          statusLabel={status.label}
-          statusVariant={status.variant}
-          updatedLabel={status.updated}
-        />
+        {showAlertsSkeleton ? (
+          <ActiveAlertsSummarySkeleton />
+        ) : (
+          <ActiveAlertsSummary
+            key={selectedChildId ?? 'all'}
+            activeCount={activeAlerts}
+            selectionLabel={selectionLabel}
+            statusLabel={status.label}
+            statusVariant={status.variant}
+            updatedLabel={status.updated}
+          />
+        )}
 
         <Animated.View entering={FadeInDown.delay(220).duration(300)} style={styles.segment}>
           {(['all', 'active', 'resolved'] as const).map((key) => (
@@ -338,7 +422,9 @@ export default function AlertsScreen() {
         </View>
 
         {filter !== 'resolved' ? (
-          activeList.length === 0 ? (
+          showAlertsSkeleton ? (
+            <AlertCardSkeletonList count={3} />
+          ) : activeList.length === 0 ? (
             <EmptyAlerts message={emptyActiveMessage} />
           ) : (
             activeList.map((item, index) => (
@@ -397,21 +483,96 @@ export default function AlertsScreen() {
                       />
                     ) : null}
                     {item.type === 'sos' ? (
-                      <View style={styles.sosActions}>
+                      <View style={styles.sosActionsWrap}>
+                        <View style={styles.sosActions}>
+                          <Pressable
+                            style={styles.sosCallBtn}
+                            onPress={() => openContacts(item.childId)}>
+                            <Ionicons name="call" size={16} color="#FFFFFF" />
+                            <ThemedText
+                              lightColor="#FFF"
+                              darkColor="#FFF"
+                              style={styles.sosCallText}>
+                              Call contacts
+                            </ThemedText>
+                          </Pressable>
+                          <Pressable
+                            style={styles.sosViewBtn}
+                            onPress={() => router.push(`/child/${item.childId}` as any)}>
+                            <ThemedText style={styles.sosViewText}>View child</ThemedText>
+                          </Pressable>
+                        </View>
                         <Pressable
-                          style={styles.sosCallBtn}
-                          onPress={() => openContacts(item.childId)}>
-                          <Ionicons name="call" size={16} color="#FFFFFF" />
-                          <ThemedText lightColor="#FFF" darkColor="#FFF" style={styles.sosCallText}>
-                            Call contacts
+                          style={[
+                            styles.safeBtn,
+                            resolvingAlertId === item.id && styles.safeBtnDisabled,
+                          ]}
+                          disabled={resolvingAlertId === item.id}
+                          onPress={() => markSosSafe(item)}>
+                          <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
+                          <ThemedText
+                            lightColor="#FFF"
+                            darkColor="#FFF"
+                            style={styles.safeBtnText}>
+                            {resolvingAlertId === item.id ? 'Marking safe…' : 'Child is safe now'}
                           </ThemedText>
                         </Pressable>
+                      </View>
+                    ) : null}
+                    {item.type === 'missing' ? (
+                      <View style={styles.sosActionsWrap}>
+                        <View style={styles.sosActions}>
+                          <Pressable
+                            style={styles.sosCallBtn}
+                            onPress={() => openContacts(item.childId)}>
+                            <Ionicons name="call" size={16} color="#FFFFFF" />
+                            <ThemedText
+                              lightColor="#FFF"
+                              darkColor="#FFF"
+                              style={styles.sosCallText}>
+                              Call contacts
+                            </ThemedText>
+                          </Pressable>
+                          <Pressable
+                            style={styles.sosViewBtn}
+                            onPress={() => router.push(`/child/${item.childId}` as any)}>
+                            <ThemedText style={styles.sosViewText}>View on map</ThemedText>
+                          </Pressable>
+                        </View>
                         <Pressable
-                          style={styles.sosViewBtn}
-                          onPress={() => router.push(`/child/${item.childId}` as any)}>
-                          <ThemedText style={styles.sosViewText}>View child</ThemedText>
+                          style={[
+                            styles.safeBtn,
+                            resolvingAlertId === item.id && styles.safeBtnDisabled,
+                          ]}
+                          disabled={resolvingAlertId === item.id}
+                          onPress={() => markMissingFound(item)}>
+                          <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
+                          <ThemedText
+                            lightColor="#FFF"
+                            darkColor="#FFF"
+                            style={styles.safeBtnText}>
+                            {resolvingAlertId === item.id ? 'Marking found…' : 'Child is found'}
+                          </ThemedText>
                         </Pressable>
                       </View>
+                    ) : null}
+                    {item.type !== 'geofence' && item.type !== 'sos' && item.type !== 'missing' ? (
+                      <Pressable
+                        style={[
+                          styles.safeBtn,
+                          { marginTop: 12 },
+                          resolvingAlertId === item.id && styles.safeBtnDisabled,
+                        ]}
+                        disabled={resolvingAlertId === item.id}
+                        onPress={() => markAlertResolved(item)}>
+                        <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
+                        <ThemedText
+                          lightColor="#FFF"
+                          darkColor="#FFF"
+                          style={styles.safeBtnText}>
+                          {resolvingAlertId === item.id ? 'Resolving…' : 'Mark as resolved'}
+                        </ThemedText>
+                      </Pressable>
                     ) : null}
                   </View>
                 </View>
@@ -425,7 +586,9 @@ export default function AlertsScreen() {
         ) : null}
 
         {filter !== 'active' ? (
-          resolvedList.length === 0 && filter === 'resolved' ? (
+          showAlertsSkeleton && filter === 'resolved' ? (
+            <AlertCardSkeletonList count={3} />
+          ) : resolvedList.length === 0 && filter === 'resolved' ? (
             <EmptyAlerts message={emptyResolvedMessage} />
           ) : (
             resolvedList.map((item, index) => (
@@ -459,11 +622,25 @@ export default function AlertsScreen() {
 
         <Animated.View entering={FadeInDown.delay(280).duration(300)}>
           <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Emergency Contacts</ThemedText>
-          {emergencyContacts.map((contact) => (
-            <View key={contact.id} style={styles.contactWrap}>
-              <ContactRow contact={contact} onPress={() => dialContact(contact)} />
+          {showContactsSkeleton ? (
+            <AlertsContactRowSkeletonList count={2} />
+          ) : emergencyContacts.length === 0 ? (
+            <View style={styles.emergencyEmptyWrap}>
+              <ThemedText style={styles.emergencyEmpty}>
+                No emergency numbers on file for this child.
+              </ThemedText>
+              <PrimaryButton
+                label="Add emergency contact"
+                onPress={() => router.push('/settings/emergency-contacts' as any)}
+              />
             </View>
-          ))}
+          ) : (
+            emergencyContacts.map((contact) => (
+              <View key={contact.id} style={styles.contactWrap}>
+                <ContactRow contact={contact} onPress={() => dialContact(contact)} />
+              </View>
+            ))
+          )}
 
           <View style={{ marginTop: 8 }}>
             <PrimaryButton
@@ -655,10 +832,38 @@ const styles = StyleSheet.create({
   contactWrap: {
     marginBottom: 10,
   },
+  emergencyEmpty: {
+    ...Typography.body,
+    color: GuardianColors.textSecondary,
+    textAlign: 'center',
+  },
+  emergencyEmptyWrap: {
+    marginBottom: 8,
+    gap: 12,
+  },
+  sosActionsWrap: {
+    gap: 10,
+    marginTop: 10,
+  },
   sosActions: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 10,
+  },
+  safeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: GuardianColors.safe,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  safeBtnDisabled: {
+    opacity: 0.6,
+  },
+  safeBtnText: {
+    fontWeight: '800',
+    fontSize: 14,
   },
   sosCallBtn: {
     flex: 1,

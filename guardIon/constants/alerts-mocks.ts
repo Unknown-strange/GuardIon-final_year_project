@@ -9,7 +9,7 @@ export type AlertItem = {
   accent: 'red' | 'yellow' | 'gray';
   location?: string;
   state: 'active' | 'resolved';
-  type?: 'sos' | 'geofence' | 'check_in' | 'system' | 'battery';
+  type?: 'sos' | 'geofence' | 'check_in' | 'system' | 'battery' | 'missing';
   zoneName?: string;
 };
 

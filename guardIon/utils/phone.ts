@@ -5,12 +5,17 @@ export function formatPhoneDisplay(phone: string): string {
   if (!trimmed) return '';
 
   const digits = trimmed.replace(/\D/g, '');
-  if (digits.length === 10) {
-    return `+1 (${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-  }
 
   if (digits.startsWith('233') && digits.length >= 12) {
     return `+${digits.slice(0, 3)} ${digits.slice(3, 5)} ${digits.slice(5, 8)} ${digits.slice(8)}`;
+  }
+
+  if (digits.length === 10 && digits.startsWith('0')) {
+    return `+233 ${digits.slice(1, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+  }
+
+  if (digits.length === 10) {
+    return `+1 (${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   }
 
   return trimmed;
