@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.models.child import Child
 from app.models.device import Device
-from app.models.safezone import SafeZone
+from app.models.safezone import SafeZone, ZoneType
 from app.models.alert import Alert, AlertType, AlertStatus
 
 logger = logging.getLogger(__name__)
@@ -212,7 +212,14 @@ def check_geofence_breach(
         if not child:
             return None
 
-        safezones = db.query(SafeZone).filter(SafeZone.child_id == device.child_id).all()
+        safezones = (
+            db.query(SafeZone)
+            .filter(
+                SafeZone.child_id == device.child_id,
+                SafeZone.zone_type == ZoneType.SAFE,
+            )
+            .all()
+        )
         if not safezones:
             return None
 
@@ -322,4 +329,132 @@ def check_low_battery_alert(
 
 def get_child_safezones(child_id, db: Session) -> List[SafeZone]:
     """Get all safe zones for a child."""
-    return db.query(SafeZone).filter(SafeZone.child_id == child_id).all()
+    return (
+        db.query(SafeZone)
+        .filter(SafeZone.child_id == child_id, SafeZone.zone_type == ZoneType.SAFE)
+        .all()
+    )
+
+
+def _active_danger_entry_alerts(child_id: UUID, db: Session) -> List[Alert]:
+    return (
+        db.query(Alert)
+        .filter(
+            Alert.child_id == child_id,
+            Alert.alert_type == AlertType.DANGER_ZONE_ENTRY,
+            Alert.status.in_([AlertStatus.ACTIVE, AlertStatus.ACKNOWLEDGED]),
+        )
+        .all()
+    )
+
+
+def _resolve_danger_entry_alert(alert: Alert, db: Session, *, note: str | None = None) -> None:
+    alert.status = AlertStatus.RESOLVED
+    alert.resolved_at = datetime.utcnow()
+    if note:
+        logger.info(f"Resolved danger zone alert {alert.id}: {note}")
+
+
+def _create_danger_entry_alert(
+    device: Device,
+    child: Child,
+    zone_name: str,
+    latitude: float,
+    longitude: float,
+    db: Session,
+) -> Alert:
+    alert = Alert(
+        child_id=device.child_id,
+        device_id=device.id,
+        alert_type=AlertType.DANGER_ZONE_ENTRY,
+        zone_name=zone_name,
+        location_lat=latitude,
+        location_lng=longitude,
+        status=AlertStatus.ACTIVE,
+        confidence=1.0,
+    )
+    db.add(alert)
+    db.flush()
+    logger.warning(
+        f"[WARNING] DANGER ZONE ENTRY: Device {device.device_id} entered "
+        f"danger zone {zone_name}!"
+    )
+    return alert
+
+
+def check_danger_zone_entry(
+    device: Device,
+    latitude: float,
+    longitude: float,
+    db: Session,
+    *,
+    accuracy: Optional[float] = None,
+) -> List[Alert]:
+    """
+    Track danger-zone state for a child:
+    - Enter danger zone while no active entry alert → create alert
+    - Leave danger zone while active entry alert → auto-resolve
+    """
+    try:
+        child = db.query(Child).filter(Child.id == device.child_id).first()
+        if not child:
+            return []
+
+        danger_zones = (
+            db.query(SafeZone)
+            .filter(
+                SafeZone.child_id == device.child_id,
+                SafeZone.zone_type == ZoneType.DANGER,
+            )
+            .all()
+        )
+        if not danger_zones:
+            return []
+
+        active_alerts = _active_danger_entry_alerts(device.child_id, db)
+        active_by_zone = {a.zone_name: a for a in active_alerts if a.zone_name}
+
+        inside_zone_names: set[str] = set()
+        for zone in danger_zones:
+            if _distance_to_zone(latitude, longitude, zone) <= zone.radius:
+                inside_zone_names.add(zone.zone_name)
+
+        new_alerts: List[Alert] = []
+
+        resolved_any = False
+        for zone_name, alert in list(active_by_zone.items()):
+            if zone_name not in inside_zone_names:
+                _resolve_danger_entry_alert(
+                    alert,
+                    db,
+                    note=f"Child left danger zone {zone_name}",
+                )
+                resolved_any = True
+
+        for zone in danger_zones:
+            if zone.zone_name not in inside_zone_names:
+                continue
+            if zone.zone_name in active_by_zone:
+                continue
+            new_alerts.append(
+                _create_danger_entry_alert(
+                    device,
+                    child,
+                    zone.zone_name,
+                    latitude,
+                    longitude,
+                    db,
+                )
+            )
+
+        if new_alerts or resolved_any:
+            db.commit()
+            for alert in new_alerts:
+                db.refresh(alert)
+
+        return new_alerts
+
+    except Exception as e:
+        logger.exception(f"Error checking danger zone entry: {e}")
+        db.rollback()
+        return []
