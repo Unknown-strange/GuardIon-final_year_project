@@ -6,6 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EmergencyContactCard } from '@/components/guardian/emergency-contact-card';
+import { ListCardSkeletonList } from '@/components/guardian/skeleton';
 import {
   EmergencyContactModal,
   type EmergencyContactPayload,
@@ -42,6 +43,7 @@ export default function EmergencyContactsScreen() {
       setContacts(
         res.contacts.map((c, index) => ({
           id: c.id,
+          childId: c.child_id,
           name: c.name,
           phone: c.phone,
           relationship: c.relationship ?? '',
@@ -123,11 +125,8 @@ export default function EmergencyContactsScreen() {
         return;
       }
 
-      const childId = children[0]?.id;
-      if (!childId) return;
-
       const created = await emergencyContactsApi.createEmergencyContact({
-        child_id: childId,
+        child_id: payload.childId,
         name: payload.name,
         phone: payload.phone,
         relationship: payload.relationship,
@@ -136,6 +135,7 @@ export default function EmergencyContactsScreen() {
         ...prev,
         {
           id: created.id,
+          childId: created.child_id,
           name: created.name,
           phone: created.phone,
           relationship: created.relationship ?? '',
@@ -182,7 +182,9 @@ export default function EmergencyContactsScreen() {
         </ThemedText>
 
         <View style={styles.list}>
-          {contacts.length === 0 ? (
+          {loading && contacts.length === 0 ? (
+            <ListCardSkeletonList variant="contact" count={3} />
+          ) : contacts.length === 0 ? (
             <View style={styles.empty}>
               <Ionicons name="call-outline" size={28} color={GuardianColors.textMuted} />
               <ThemedText style={styles.emptyTitle}>No emergency contacts yet</ThemedText>
@@ -225,6 +227,11 @@ export default function EmergencyContactsScreen() {
       <EmergencyContactModal
         visible={modalMode !== null}
         mode={modalMode === 'edit' ? 'edit' : 'add'}
+        children={children.map((child) => ({
+          id: child.id,
+          name: child.name,
+          profilePhoto: child.profilePhoto,
+        }))}
         contact={editingContact}
         onClose={closeModal}
         onSave={handleSave}

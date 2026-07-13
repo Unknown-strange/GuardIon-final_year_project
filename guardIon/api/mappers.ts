@@ -1,8 +1,13 @@
 import type { AlertResponse, ChildResponse, CurrentLocationResponse, DeviceResponse } from '@/api/types';
 import type { AlertItem } from '@/constants/alerts-mocks';
 import type { ChildSummary } from '@/components/guardian/child-summary-card';
-import type { SafeZone } from '@/types/safe-zone';
+import type { SafeZone, ZoneType } from '@/types/safe-zone';
+import { zoneTypeFromApi, zoneTypeToApi } from '@/types/safe-zone';
 import type { SafeZoneCreate, SafeZoneResponse, SafeZoneUpdate } from '@/api/types';
+import {
+  coordinatesTimestamp,
+  isDeviceLiveFromCoords,
+} from '@/utils/device-online';
 
 const DEFAULT_LAT = 5.6037;
 const DEFAULT_LNG = -0.187;
@@ -26,15 +31,14 @@ export function childSummaryFromApi(
   device?: DeviceResponse | null,
   location?: CurrentLocationResponse | null,
 ): ChildSummary {
-  const online =
-    device?.status === 'active' &&
-    (!device.last_seen || Date.now() - new Date(device.last_seen).getTime() < 15 * 60 * 1000);
+  const online = isDeviceLiveFromCoords(device, location);
+  const coordinatesAt = coordinatesTimestamp(location, device);
 
   const battery = device?.battery_level ?? location?.battery_level;
   const lowBattery = typeof battery === 'number' && battery <= 20;
 
   let status: ChildSummary['status'] = 'safe';
-  if (!device || device.status === 'inactive' || device.status === 'lost') {
+  if (!device || device.status === 'inactive' || device.status === 'lost' || !online) {
     status = 'offline';
   } else if (lowBattery) {
     status = 'warning';
@@ -53,8 +57,9 @@ export function childSummaryFromApi(
     longitude: location?.longitude ?? DEFAULT_LNG,
     status,
     movement: online ? 'Active' : 'Unknown',
-    lastUpdate: formatRelativeTime(location?.timestamp ?? device?.last_seen),
+    lastUpdate: formatRelativeTime(coordinatesAt),
     online: !!online,
+    coordinatesAt,
     alertMessage: lowBattery ? 'Low battery on device' : undefined,
     profilePhoto: child.profile_photo ?? undefined,
   };
@@ -80,6 +85,7 @@ export function safeZoneFromApi(zone: SafeZoneResponse): SafeZone {
     latitude: zone.center_lat,
     longitude: zone.center_lng,
     radiusM: zone.radius,
+    zoneType: zoneTypeFromApi(zone.zone_type),
     isActive: true,
   };
 }
@@ -90,6 +96,7 @@ export function safeZoneToCreate(input: {
   center_lat: number;
   center_lng: number;
   radius: number;
+  zone_type?: ZoneType;
 }): SafeZoneCreate {
   return {
     child_id: input.child_id,
@@ -97,6 +104,7 @@ export function safeZoneToCreate(input: {
     center_lat: input.center_lat,
     center_lng: input.center_lng,
     radius: input.radius,
+    zone_type: zoneTypeToApi(input.zone_type ?? 'safe'),
   };
 }
 
@@ -105,12 +113,14 @@ export function safeZoneToUpdate(patch: {
   center_lat?: number;
   center_lng?: number;
   radius?: number;
+  zone_type?: ZoneType;
 }): SafeZoneUpdate {
   const payload: SafeZoneUpdate = {};
   if (patch.zone_name !== undefined) payload.zone_name = patch.zone_name.trim();
   if (patch.center_lat !== undefined) payload.center_lat = patch.center_lat;
   if (patch.center_lng !== undefined) payload.center_lng = patch.center_lng;
   if (patch.radius !== undefined) payload.radius = patch.radius;
+  if (patch.zone_type !== undefined) payload.zone_type = zoneTypeToApi(patch.zone_type);
   return payload;
 }
 
@@ -128,8 +138,12 @@ function alertTitle(type: AlertResponse['alert_type']): string {
       return 'Device offline';
     case 'device_tamper':
       return 'Device tamper';
+    case 'child_missing':
+      return 'Missing child alert';
+    case 'danger_zone_entry':
+      return 'Danger zone alert';
     default:
-      return 'Alert';
+      return `${type}`.replace(/_/g, ' ');
   }
 }
 
@@ -150,8 +164,14 @@ function alertBody(alert: AlertResponse, childName?: string): string {
       return `${name}'s device is offline`;
     case 'device_tamper':
       return `${name}'s device may have been tampered with`;
+    case 'child_missing':
+      return `${name} was reported missing by a guardian`;
+    case 'danger_zone_entry': {
+      const zone = alert.zone_name?.trim() || 'danger zone';
+      return `${name} entered danger zone ${zone}`;
+    }
     default:
-      return alert.alert_type.replace(/_/g, ' ');
+      return `${alert.alert_type}`.replace(/_/g, ' ');
   }
 }
 
@@ -165,6 +185,10 @@ function alertAccent(type: AlertResponse['alert_type']): AlertItem['accent'] {
       return 'gray';
     case 'low_battery':
       return 'yellow';
+    case 'child_missing':
+      return 'red';
+    case 'danger_zone_entry':
+      return 'red';
     default:
       return 'gray';
   }
@@ -180,6 +204,10 @@ function alertUiType(type: AlertResponse['alert_type']): AlertItem['type'] {
       return 'check_in';
     case 'low_battery':
       return 'battery';
+    case 'child_missing':
+      return 'missing';
+    case 'danger_zone_entry':
+      return 'danger';
     default:
       return 'system';
   }

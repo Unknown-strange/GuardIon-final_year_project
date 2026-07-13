@@ -19,15 +19,12 @@ module.exports = ({ config }) => {
     owner: config.owner ?? 'tekmart-boys',
     extra: {
       ...config.extra,
-      apiUrl: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1',
+      apiUrl:
+        process.env.EXPO_PUBLIC_API_URL ??
+        'https://guardion-final-year-project.onrender.com/api/v1',
       googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '',
       googleAndroidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? '',
       googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '',
-      googleRedirectUri:
-        process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_URI ??
-        'https://auth.expo.io/@tekmart-boys/guardIon',
-      expoProjectFullName:
-        process.env.EXPO_PUBLIC_EXPO_PROJECT_FULL_NAME ?? '@tekmart-boys/guardIon',
     },
     ios: {
       ...config.ios,

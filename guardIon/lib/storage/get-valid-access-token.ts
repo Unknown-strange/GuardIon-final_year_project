@@ -9,10 +9,14 @@ import {
 
 let refreshInFlight: Promise<string | null> | null = null;
 
+const REFRESH_TIMEOUT_MS = 20000;
+
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = await getRefreshToken();
   if (!refreshToken) return null;
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
   try {
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
@@ -22,6 +26,7 @@ async function refreshAccessToken(): Promise<string | null> {
         'ngrok-skip-browser-warning': 'true',
       },
       body: JSON.stringify({ refresh_token: refreshToken }),
+      signal: controller.signal,
     });
 
     if (!response.ok) return null;
@@ -30,7 +35,10 @@ async function refreshAccessToken(): Promise<string | null> {
     await saveTokens(tokens.access_token, tokens.refresh_token);
     return tokens.access_token;
   } catch {
+    // Network error / timeout / abort — fall back to no token so startup can proceed.
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

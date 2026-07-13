@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GuardianProfileCard } from '@/components/guardian/guardian-profile-card';
 import { GuardianToast } from '@/components/guardian/guardian-toast';
+import { SettingsScreenSkeleton } from '@/components/guardian/skeleton';
 import { SettingsMenuGroup } from '@/components/guardian/settings-menu-group';
 import { SettingsMenuRow } from '@/components/guardian/settings-menu-row';
 import { ThemedText } from '@/components/themed-text';
@@ -36,6 +37,13 @@ const MANAGEMENT_ROWS = [
     href: '/settings/emergency-contacts' as const,
   },
   {
+    icon: 'alert-circle-outline' as const,
+    iconVariant: 'danger' as const,
+    label: 'Missing Child Alert',
+    hint: 'Report a child missing and alert all guardians',
+    href: '/settings/missing-child' as const,
+  },
+  {
     icon: 'notifications-outline' as const,
     label: 'Notifications',
     hint: 'Alerts, SOS, and weekly summaries',
@@ -61,8 +69,9 @@ const ACCOUNT_ROWS = [
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, signOut } = useAuth();
-  const { photoUri, pickAndSavePhoto, removePhoto } = useGuardianProfilePhoto();
+  const { user, signOut, isLoading: authLoading } = useAuth();
+  const { photoUri, pickAndSavePhoto, removePhoto, loading: photoLoading } =
+    useGuardianProfilePhoto();
   const [toastVisible, setToastVisible] = React.useState(false);
   const [toastMessage, setToastMessage] = React.useState('');
 
@@ -121,6 +130,8 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const showSkeleton = authLoading || photoLoading;
+
   return (
     <ThemedView style={styles.screen}>
       <ScrollView
@@ -130,6 +141,10 @@ export default function SettingsScreen() {
           paddingBottom: insets.bottom + 28,
         }}
         showsVerticalScrollIndicator={false}>
+        {showSkeleton ? (
+          <SettingsScreenSkeleton />
+        ) : (
+          <>
         <Animated.View entering={FadeInDown.duration(280)} style={styles.header}>
           <View style={styles.headerSide} />
           <ThemedText style={styles.headerTitle}>Account Profile</ThemedText>
@@ -191,6 +206,8 @@ export default function SettingsScreen() {
             <ThemedText style={styles.logoutText}>Log Out</ThemedText>
           </Pressable>
         </Animated.View>
+          </>
+        )}
       </ScrollView>
 
       <GuardianToast

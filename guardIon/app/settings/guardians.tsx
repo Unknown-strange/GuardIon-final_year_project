@@ -16,6 +16,7 @@ import {
   type AddGuardianPayload,
 } from '@/components/guardian/add-guardian-modal';
 import { GuardianMemberCard } from '@/components/guardian/guardian-member-card';
+import { ListCardSkeletonList } from '@/components/guardian/skeleton';
 import { GuardianToast } from '@/components/guardian/guardian-toast';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -90,7 +91,7 @@ export default function GuardiansScreen() {
 
     const created = await guardiansApi.inviteGuardian({
       child_id: childId,
-      email: payload.email,
+      email: payload.email.trim().toLowerCase(),
       priority: payload.role === 'primary' ? 1 : 2,
     });
     setGuardians((prev) => [...prev, mapApiGuardian(created, prev.length)]);
@@ -152,8 +153,8 @@ export default function GuardiansScreen() {
         ) : null}
 
         <View style={styles.list}>
-          {loading ? (
-            <ThemedText style={styles.emptyText}>Loading guardians…</ThemedText>
+          {loading && guardians.length === 0 ? (
+            <ListCardSkeletonList variant="guardian" count={3} />
           ) : filtered.length === 0 ? (
             <View style={styles.empty}>
               <Ionicons name="people-outline" size={28} color={GuardianColors.textMuted} />
@@ -192,7 +193,7 @@ export default function GuardiansScreen() {
 
       <GuardianToast
         visible={toastVisible}
-        message="Guardion invite sent"
+        message="Guardian added successfully"
         onHide={() => setToastVisible(false)}
       />
     </ThemedView>

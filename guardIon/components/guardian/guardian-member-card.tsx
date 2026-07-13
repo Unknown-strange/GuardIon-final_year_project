@@ -75,7 +75,7 @@ export function GuardianMemberCard({ guardian, onMenuPress }: Props) {
           {guardian.email}
         </ThemedText>
         {isPending ? (
-          <ThemedText style={styles.pendingHint}>Waiting for them to accept the email invite</ThemedText>
+          <ThemedText style={styles.pendingHint}>Waiting for them to accept in the app</ThemedText>
         ) : null}
       </View>
 

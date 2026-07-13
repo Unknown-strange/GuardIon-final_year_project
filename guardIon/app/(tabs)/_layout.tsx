@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
+import { AlertsTabIcon } from '@/components/guardian/alerts-tab-icon';
 import { GuardianColors } from '@/constants/theme';
 
 function TabIcon({
@@ -64,12 +65,7 @@ export default function TabLayout() {
         options={{
           title: 'Alerts',
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon
-              name="notifications"
-              nameOutline="notifications-outline"
-              color={color}
-              focused={focused}
-            />
+            <AlertsTabIcon color={color} focused={focused} />
           ),
         }}
       />

@@ -28,6 +28,7 @@ function contactIcon(type: ChildContact['type']) {
 export function ContactRow({ contact, onPress, disabled }: Props) {
   const isEmergency = contact.type === 'emergency';
   const noPhone = !contact.phone.trim();
+  const relationship = contact.role?.trim();
 
   return (
     <Pressable
@@ -44,8 +45,11 @@ export function ContactRow({ contact, onPress, disabled }: Props) {
       </View>
       <View style={styles.meta}>
         <ThemedText style={styles.name}>{contact.name}</ThemedText>
-        <ThemedText style={styles.role}>
-          {noPhone ? 'No number on file' : contact.role}
+        {relationship ? (
+          <ThemedText style={styles.relationship}>{relationship}</ThemedText>
+        ) : null}
+        <ThemedText style={styles.phone}>
+          {noPhone ? 'No number on file' : contact.phone.trim()}
         </ThemedText>
       </View>
       <View style={[styles.phoneBtn, isEmergency ? styles.phoneRed : styles.phoneBlue]}>
@@ -82,15 +86,23 @@ const styles = StyleSheet.create({
   },
   meta: {
     flex: 1,
+    gap: 2,
   },
   name: {
     fontWeight: '800',
     color: GuardianColors.text,
     fontSize: 16,
   },
-  role: {
-    ...Typography.caption,
+  relationship: {
+    ...Typography.body,
     color: GuardianColors.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  phone: {
+    ...Typography.caption,
+    color: GuardianColors.textMuted,
+    fontSize: 13,
     marginTop: 2,
   },
   phoneBtn: {

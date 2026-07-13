@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import React, { useEffect, useMemo, useState } from 'react';
 
@@ -17,6 +17,7 @@ import {
   type RegisterChildPayload,
 } from '@/components/guardian/add-child-modal';
 import { ChildManagedCard } from '@/components/guardian/child-managed-card';
+import { ListCardSkeletonList } from '@/components/guardian/skeleton';
 import { EditChildModal, type EditChildPayload } from '@/components/guardian/edit-child-modal';
 import { GuardianToast } from '@/components/guardian/guardian-toast';
 import { ThemedText } from '@/components/themed-text';
@@ -37,11 +38,13 @@ import { calculateAgeFromBirthDate } from '@/utils/child-age';
 export default function FamilyDevicesScreen() {
 
   const router = useRouter();
+  const params = useLocalSearchParams<{ add?: string }>();
 
   const insets = useSafeAreaInsets();
 
   const {
     children,
+    isLoading,
     registerChild: registerChildApi,
     updateChildProfile,
     removeChild: removeChildApi,
@@ -64,6 +67,19 @@ export default function FamilyDevicesScreen() {
     void loadChildCustomAvatars().then(setCustomAvatars);
 
   }, []);
+
+  useEffect(() => {
+    if (params.add === '1') {
+      setAddOpen(true);
+    }
+  }, [params.add]);
+
+  const closeAddModal = () => {
+    setAddOpen(false);
+    if (params.add) {
+      router.replace('/settings/family-devices' as any);
+    }
+  };
 
 
 
@@ -105,15 +121,7 @@ export default function FamilyDevicesScreen() {
 
   const registerChild = async (payload: RegisterChildPayload) => {
     try {
-      const created = await registerChildApi(payload);
-      if (payload.avatarUri) {
-        await persistAvatar(created.id, payload.avatarUri);
-        await updateChildProfile(created.id, {
-          name: created.name,
-          age: created.age,
-          profile_photo: payload.avatarUri,
-        });
-      }
+      await registerChildApi(payload);
       showToast('Child registered successfully');
     } catch (error) {
       Alert.alert('Registration failed', getErrorMessage(error));
@@ -143,9 +151,6 @@ export default function FamilyDevicesScreen() {
         age,
         profile_photo: payload.avatarUri ?? null,
       });
-      if (payload.avatarUri) {
-        await persistAvatar(childId, payload.avatarUri);
-      }
       showToast('Child profile updated');
     } catch (error) {
       Alert.alert('Update failed', getErrorMessage(error));
@@ -224,7 +229,10 @@ export default function FamilyDevicesScreen() {
 
         <View style={styles.list}>
 
-          {children.map((child, index) => (
+          {isLoading && children.length === 0 ? (
+            <ListCardSkeletonList variant="child-managed" count={2} />
+          ) : (
+          children.map((child, index) => (
 
             <Animated.View key={child.id} entering={FadeInDown.delay(index * 60).duration(280)}>
 
@@ -276,7 +284,8 @@ export default function FamilyDevicesScreen() {
 
             </Animated.View>
 
-          ))}
+          ))
+          )}
 
         </View>
 
@@ -308,7 +317,7 @@ export default function FamilyDevicesScreen() {
 
         visible={addOpen}
 
-        onClose={() => setAddOpen(false)}
+        onClose={closeAddModal}
 
         onRegister={(payload) => void registerChild(payload)}
 

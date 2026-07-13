@@ -10,6 +10,35 @@ export type GuardianMemberResponse = {
   status?: 'active' | 'pending';
 };
 
+export type GuardianInviteResponse = {
+  id: string;
+  child_id: string;
+  child_name: string;
+  invited_by_name: string;
+  invited_by_email: string;
+  status: 'pending';
+};
+
+export async function listPendingInvites() {
+  return apiRequest<{ invites: GuardianInviteResponse[] }>('/guardians/invites', {
+    auth: true,
+  });
+}
+
+export async function acceptGuardianInvite(guardianId: string) {
+  return apiRequest<GuardianMemberResponse>(`/guardians/${guardianId}/accept`, {
+    method: 'POST',
+    auth: true,
+  });
+}
+
+export async function declineGuardianInvite(guardianId: string) {
+  return apiRequest<void>(`/guardians/${guardianId}/decline`, {
+    method: 'POST',
+    auth: true,
+  });
+}
+
 export async function listGuardians(childId?: string) {
   return apiRequest<{ guardians: GuardianMemberResponse[] }>('/guardians/', {
     auth: true,

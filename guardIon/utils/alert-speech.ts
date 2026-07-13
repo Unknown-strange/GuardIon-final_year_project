@@ -69,6 +69,9 @@ function alertSpeechMessage(
     const zone = zoneName?.trim() || 'safe zone';
     return `${childName} has left safe zone ${zone}`;
   }
+  if (type === 'CHILD_MISSING') {
+    return `${childName} has been reported missing. Check the alert immediately.`;
+  }
   return `${childName} safety alert`;
 }
 
@@ -76,6 +79,7 @@ function alertNotificationTitle(alertType: string) {
   const type = normalizeAlertType(alertType);
   if (type === 'SOS') return 'Emergency SOS';
   if (type === 'GEOFENCE_BREACH') return 'Safe zone alert';
+  if (type === 'CHILD_MISSING') return 'Missing child alert';
   return 'GuardIon alert';
 }
 

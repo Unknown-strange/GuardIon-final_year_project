@@ -8,6 +8,8 @@ import { GuardianFab } from '@/components/guardian/fab';
 import { PrimaryButton } from '@/components/guardian/buttons';
 import { ChildAvatar } from '@/components/guardian/child-avatar';
 import { CheckInSheet } from '@/components/guardian/check-in-sheet';
+import { ContactRow } from '@/components/guardian/contact-row';
+import { AlertsContactRowSkeletonList } from '@/components/guardian/skeleton';
 import { ChildContactsSheet } from '@/components/guardian/child-contacts-sheet';
 import { ChildLiveLocationMap } from '@/components/guardian/child-live-location-map';
 import { EmergencySosModal } from '@/components/guardian/emergency-sos-modal';
@@ -21,7 +23,10 @@ import { useAlertsRealtime } from '@/contexts/alerts-realtime-context';
 import { useGuardianData } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
 import { useCheckIn } from '@/hooks/use-check-in';
+import { useEmergencyContacts } from '@/hooks/use-emergency-contacts';
 import { useSafeZones } from '@/hooks/use-safe-zones';
+import type { ChildContact } from '@/types/child-contact';
+import { callPhone } from '@/utils/phone';
 
 export default function ChildDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,18 +38,22 @@ export default function ChildDetailScreen() {
   const child = getChildById(childId);
   const colors = getChildColorTheme(childId);
   const { childZones, refresh } = useSafeZones(childId);
+  const { contacts: emergencyContacts, loading: contactsLoading, refresh: refreshContacts } =
+    useEmergencyContacts(childId);
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+      void refreshContacts();
+    }, [refresh, refreshContacts]),
+  );
+
   const { status: checkInStatus, lastLabel, start: startCheckIn, cancel: cancelCheckIn, canCheckIn } =
     useCheckIn(childId, child?.online ?? false);
 
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [contactsOpen, setContactsOpen] = useState(false);
   const [sosOpen, setSosOpen] = useState(false);
-
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-    }, [refresh]),
-  );
 
   const openOnMap = () => {
     router.push({
@@ -96,6 +105,24 @@ export default function ChildDetailScreen() {
         { text: 'Continue', style: 'destructive', onPress: () => setSosOpen(true) },
       ],
     );
+  };
+
+  const dialContact = (contact: ChildContact) => {
+    const dial = () => void callPhone(contact.phone, contact.name);
+
+    if (contact.type === 'emergency') {
+      Alert.alert(
+        'Call emergency services?',
+        `Place a call to ${contact.name}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Call', style: 'destructive', onPress: dial },
+        ],
+      );
+      return;
+    }
+
+    dial();
   };
 
   if (!child) {
@@ -216,7 +243,30 @@ export default function ChildDetailScreen() {
           <ThemedText style={styles.attention}>ATTENTION</ThemedText>
         </View>
 
-        <PrimaryButton variant="danger" label="EMERGENCY SOS" onPress={openSos} />
+        <SectionTitle title="Emergency" />
+        {contactsLoading && emergencyContacts.length === 0 ? (
+          <AlertsContactRowSkeletonList count={2} />
+        ) : emergencyContacts.length === 0 ? (
+          <View style={styles.emergencyEmptyWrap}>
+            <ThemedText style={styles.emergencyEmpty}>
+              No emergency numbers on file for {child.name}.
+            </ThemedText>
+            <PrimaryButton
+              label="Add emergency contact"
+              onPress={() => router.push('/settings/emergency-contacts' as any)}
+            />
+          </View>
+        ) : (
+          emergencyContacts.map((contact) => (
+            <View key={contact.id} style={styles.emergencyRow}>
+              <ContactRow contact={contact} onPress={() => dialContact(contact)} />
+            </View>
+          ))
+        )}
+
+        <View style={styles.sosWrap}>
+          <PrimaryButton variant="danger" label="EMERGENCY SOS" onPress={openSos} />
+        </View>
       </ScrollView>
 
       <CheckInSheet
@@ -470,5 +520,21 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: GuardianColors.danger,
     fontSize: 12,
+  },
+  emergencyRow: {
+    marginBottom: 10,
+  },
+  emergencyEmpty: {
+    ...Typography.body,
+    color: GuardianColors.textSecondary,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  emergencyEmptyWrap: {
+    marginBottom: 12,
+    gap: 12,
+  },
+  sosWrap: {
+    marginTop: 8,
   },
 });

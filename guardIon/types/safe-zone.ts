@@ -1,3 +1,5 @@
+export type ZoneType = 'safe' | 'danger';
+
 export type SafeZoneSchedule = {
   start: string;
   end: string;
@@ -11,6 +13,7 @@ export type SafeZone = {
   latitude: number;
   longitude: number;
   radiusM: number;
+  zoneType: ZoneType;
   schedule?: SafeZoneSchedule | null;
   isActive?: boolean;
 };
@@ -18,6 +21,21 @@ export type SafeZone = {
 export const SAFE_ZONE_RADIUS_MIN = 2;
 export const SAFE_ZONE_RADIUS_MAX = 1000;
 export const SAFE_ZONE_RADIUS_DEFAULT = 15;
+
+export function zoneTypeFromApi(value?: string | null): ZoneType {
+  return value === 'DANGER' ? 'danger' : 'safe';
+}
+
+export function zoneTypeToApi(value: ZoneType): 'SAFE' | 'DANGER' {
+  return value === 'danger' ? 'DANGER' : 'SAFE';
+}
+
+export function zoneColors(zoneType: ZoneType): { stroke: string; fill: string; muted: string } {
+  if (zoneType === 'danger') {
+    return { stroke: '#DC2626', fill: 'rgba(220, 38, 38, 0.18)', muted: '#FEE2E2' };
+  }
+  return { stroke: '#16A34A', fill: 'rgba(22, 163, 74, 0.18)', muted: '#DCFCE7' };
+}
 
 /** Map zoom level that frames a zone circle with padding. */
 export function mapDeltaForZoneRadius(radiusM: number): number {
@@ -47,7 +65,8 @@ export function childGeofenceStatus(
   childLng: number,
   zones: SafeZone[],
 ): 'inside' | 'outside' | 'none' {
-  if (zones.length === 0) return 'none';
-  const inside = zones.some((zone) => isPointInZone(childLat, childLng, zone));
+  const safeZones = zones.filter((zone) => zone.zoneType === 'safe');
+  if (safeZones.length === 0) return 'none';
+  const inside = safeZones.some((zone) => isPointInZone(childLat, childLng, zone));
   return inside ? 'inside' : 'outside';
 }

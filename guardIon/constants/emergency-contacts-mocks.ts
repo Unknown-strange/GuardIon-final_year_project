@@ -3,6 +3,7 @@ export type EmergencyContact = {
   name: string;
   relationship: string;
   phone: string;
+  childId?: string;
   avatarColor?: string;
 };
 

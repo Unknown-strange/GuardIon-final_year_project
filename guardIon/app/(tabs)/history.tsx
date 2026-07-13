@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ListCardSkeletonList } from '@/components/guardian/skeleton';
 import { ScreenHeader } from '@/components/guardian/screen-header';
 import { SectionTitle } from '@/components/guardian/section-title';
 import { ThemedText } from '@/components/themed-text';
@@ -29,8 +30,8 @@ export default function HistoryScreen() {
           Alerts and location updates from your children&apos;s devices.
         </ThemedText>
 
-        {loading ? (
-          <ActivityIndicator color={GuardianColors.primary} style={{ marginTop: 24 }} />
+        {loading && items.length === 0 ? (
+          <ListCardSkeletonList variant="guardian" count={5} />
         ) : items.length === 0 ? (
           <ThemedText style={styles.empty}>No activity yet.</ThemedText>
         ) : (

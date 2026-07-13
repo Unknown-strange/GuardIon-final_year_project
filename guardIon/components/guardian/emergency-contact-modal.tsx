@@ -13,11 +13,20 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton, SecondaryButton } from '@/components/guardian/buttons';
+import { ChildAvatar } from '@/components/guardian/child-avatar';
 import { ThemedText } from '@/components/themed-text';
 import type { EmergencyContact } from '@/constants/emergency-contacts-mocks';
+import { getChildColorTheme } from '@/constants/child-colors';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
 
+export type EmergencyContactChildOption = {
+  id: string;
+  name: string;
+  profilePhoto?: string;
+};
+
 export type EmergencyContactPayload = {
+  childId: string;
   name: string;
   relationship: string;
   phone: string;
@@ -26,6 +35,7 @@ export type EmergencyContactPayload = {
 type Props = {
   visible: boolean;
   mode: 'add' | 'edit';
+  children: EmergencyContactChildOption[];
   contact?: EmergencyContact | null;
   onClose: () => void;
   onSave: (payload: EmergencyContactPayload) => void;
@@ -37,12 +47,14 @@ const RELATIONSHIP_SUGGESTIONS = ['Aunt', 'Uncle', 'Grandparent', 'Neighbor', 'F
 export function EmergencyContactModal({
   visible,
   mode,
+  children,
   contact,
   onClose,
   onSave,
   onSaved,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const [selectedChildId, setSelectedChildId] = useState('');
   const [name, setName] = useState('');
   const [relationship, setRelationship] = useState('');
   const [phone, setPhone] = useState('');
@@ -51,25 +63,31 @@ export function EmergencyContactModal({
   useEffect(() => {
     if (!visible) return;
     if (mode === 'edit' && contact) {
+      setSelectedChildId(contact.childId ?? children[0]?.id ?? '');
       setName(contact.name);
       setRelationship(contact.relationship);
       setPhone(contact.phone);
     } else {
+      setSelectedChildId(children[0]?.id ?? '');
       setName('');
       setRelationship('');
       setPhone('');
     }
     setSubmitting(false);
-  }, [visible, mode, contact]);
+  }, [visible, mode, contact, children]);
 
   const canSave =
-    name.trim().length > 0 && relationship.trim().length > 0 && phone.trim().length >= 7;
+    selectedChildId.length > 0 &&
+    name.trim().length > 0 &&
+    relationship.trim().length > 0 &&
+    phone.trim().length >= 7;
 
   const handleSave = () => {
     if (!canSave) return;
     setSubmitting(true);
     try {
       onSave({
+        childId: selectedChildId,
         name: name.trim(),
         relationship: relationship.trim(),
         phone: phone.trim(),
@@ -80,6 +98,9 @@ export function EmergencyContactModal({
       setSubmitting(false);
     }
   };
+
+  const selectedChild =
+    children.find((child) => child.id === selectedChildId) ?? children[0];
 
   const title = mode === 'add' ? 'Add Emergency Contact' : 'Edit Emergency Contact';
   const actionLabel = mode === 'add' ? 'Add contact' : 'Save changes';
@@ -110,6 +131,64 @@ export function EmergencyContactModal({
                 ? 'Add someone who should be notified immediately during an SOS alert.'
                 : 'Update this contact’s details so alerts reach the right person.'}
             </ThemedText>
+
+            <ThemedText style={styles.fieldLabel}>Assign to child</ThemedText>
+            {children.length === 0 ? (
+              <ThemedText style={styles.noChildren}>
+                Register a child first under Settings → Children.
+              </ThemedText>
+            ) : mode === 'add' ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.childRow}>
+                {children.map((child) => {
+                  const selected = child.id === selectedChildId;
+                  const colors = getChildColorTheme(child.id);
+                  return (
+                    <Pressable
+                      key={child.id}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      onPress={() => setSelectedChildId(child.id)}
+                      style={[
+                        styles.childCard,
+                        {
+                          borderColor: selected ? colors.main : GuardianColors.border,
+                          backgroundColor: selected ? colors.muted : GuardianColors.surface,
+                        },
+                      ]}>
+                      <ChildAvatar
+                        childId={child.id}
+                        size={44}
+                        borderRadius={12}
+                        imageUri={child.profilePhoto}
+                        borderWidth={selected ? 2 : 0}
+                        borderColor={selected ? colors.main : undefined}
+                      />
+                      <ThemedText
+                        style={[styles.childName, selected && { color: colors.border }]}
+                        numberOfLines={1}>
+                        {child.name}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            ) : selectedChild ? (
+              <View style={styles.childCardReadonly}>
+                <ChildAvatar
+                  childId={selectedChild.id}
+                  size={44}
+                  borderRadius={12}
+                  imageUri={selectedChild.profilePhoto}
+                />
+                <View style={styles.childReadonlyMeta}>
+                  <ThemedText style={styles.childName}>{selectedChild.name}</ThemedText>
+                  <ThemedText style={styles.childReadonlyHint}>Linked child</ThemedText>
+                </View>
+              </View>
+            ) : null}
 
             <Field label="Full Name" value={name} onChangeText={setName} placeholder="Sarah Mitchell" />
             <Field
@@ -241,6 +320,51 @@ const styles = StyleSheet.create({
     color: GuardianColors.textSecondary,
     lineHeight: 22,
     marginBottom: 16,
+  },
+  childRow: {
+    gap: 10,
+    paddingBottom: 4,
+    marginBottom: 14,
+  },
+  childCard: {
+    width: 108,
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  childName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: GuardianColors.text,
+    textAlign: 'center',
+    maxWidth: 88,
+  },
+  childCardReadonly: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: GuardianColors.border,
+    backgroundColor: GuardianColors.overlaySheet,
+    marginBottom: 14,
+  },
+  childReadonlyMeta: {
+    flex: 1,
+    gap: 2,
+  },
+  childReadonlyHint: {
+    ...Typography.caption,
+    color: GuardianColors.textMuted,
+  },
+  noChildren: {
+    ...Typography.body,
+    color: GuardianColors.textSecondary,
+    marginBottom: 14,
   },
   field: {
     marginBottom: 14,

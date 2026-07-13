@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Dimensions,
   NativeSyntheticEvent,
@@ -10,9 +10,12 @@ import {
   View,
   type NativeScrollEvent,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CoGuardianInviteCard } from '@/components/guardian/co-guardian-invite-card';
 import { ChildSummaryCard } from '@/components/guardian/child-summary-card';
+import { ListCardSkeletonList } from '@/components/guardian/skeleton';
 import { GuardianFab } from '@/components/guardian/fab';
 import { PrimaryButton } from '@/components/guardian/buttons';
 import { ScreenHeader } from '@/components/guardian/screen-header';
@@ -20,6 +23,7 @@ import { SectionTitle } from '@/components/guardian/section-title';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useGuardianData } from '@/contexts/guardian-data-context';
+import { usePendingGuardianInvites } from '@/hooks/use-pending-guardian-invites';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
 
 type IonName = keyof typeof Ionicons.glyphMap;
@@ -70,9 +74,24 @@ const SAFETY_TIPS: TipSlide[] = [
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { children, isLoading } = useGuardianData();
+  const { children, isLoading, refreshChildren } = useGuardianData();
+  const { invites, acceptInvite, declineInvite, isLoading: invitesLoading } =
+    usePendingGuardianInvites();
   const [query, setQuery] = useState('');
   const [tipIndex, setTipIndex] = useState(0);
+  const [animatedChildId, setAnimatedChildId] = useState<string | null>(null);
+
+  const handleAcceptInvite = useCallback(
+    async (guardianId: string) => {
+      const invite = invites.find((item) => item.id === guardianId);
+      await acceptInvite(guardianId);
+      if (invite) {
+        setAnimatedChildId(invite.child_id);
+      }
+      await refreshChildren();
+    },
+    [acceptInvite, invites, refreshChildren],
+  );
 
   const screenW = Dimensions.get('window').width;
   const carouselPageWidth = screenW;
@@ -110,7 +129,7 @@ export default function HomeScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-        <ScreenHeader />
+        <ScreenHeader onBellPress={() => router.push('/notifications' as any)} />
 
         <SectionTitle
           title="My Children"
@@ -134,19 +153,41 @@ export default function HomeScreen() {
           />
         </View>
 
-        {filtered.map((item) => (
-          <ChildSummaryCard
-            key={item.id}
-            item={item}
-            onPress={() => router.push(`/child/${item.id}` as any)}
-            onLongPress={() =>
-              router.push({
-                pathname: '/(tabs)/map',
-                params: { childId: item.id },
-              } as any)
-            }
-          />
-        ))}
+        {invitesLoading && invites.length === 0 ? (
+          <ListCardSkeletonList variant="invite" count={1} />
+        ) : (
+          invites.map((invite) => (
+            <CoGuardianInviteCard
+              key={invite.id}
+              invite={invite}
+              onAccept={handleAcceptInvite}
+              onDecline={declineInvite}
+            />
+          ))
+        )}
+
+        {isLoading && filtered.length === 0 ? (
+          <ListCardSkeletonList variant="child-summary" count={2} />
+        ) : (
+          filtered.map((item) => (
+            <Animated.View
+              key={item.id}
+              entering={
+                animatedChildId === item.id ? FadeInDown.duration(420) : undefined
+              }>
+              <ChildSummaryCard
+                item={item}
+                onPress={() => router.push(`/child/${item.id}` as any)}
+                onLongPress={() =>
+                  router.push({
+                    pathname: '/(tabs)/map',
+                    params: { childId: item.id },
+                  } as any)
+                }
+              />
+            </Animated.View>
+          ))
+        )}
 
         <PrimaryButton label="View all" onPress={() => {}} />
 
@@ -189,8 +230,8 @@ export default function HomeScreen() {
       </ScrollView>
 
       <GuardianFab
-        accessibilityLabel="Open map to add devices or zones"
-        onPress={() => router.push('/map' as any)}
+        accessibilityLabel="Add child"
+        onPress={() => router.push('/settings/family-devices?add=1' as any)}
         style={[styles.fab, { bottom: fabBottom }]}
       />
     </ThemedView>

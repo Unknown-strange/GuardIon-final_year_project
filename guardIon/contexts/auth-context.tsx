@@ -12,12 +12,7 @@ type AuthContextValue = {
   isLoading: boolean;
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signInWithGoogle: (idToken: string) => Promise<void>;
-  signInWithGoogleCode: (payload: {
-    code: string;
-    redirectUri: string;
-    codeVerifier?: string;
-  }) => Promise<void>;
+  signInWithGoogleTokens: (accessToken: string, refreshToken: string) => Promise<void>;
   completeSignup: (email: string, code: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -70,20 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await refreshProfile();
   }, [refreshProfile]);
 
-  const signInWithGoogle = useCallback(async (idToken: string) => {
-    const tokens = await authApi.googleSignIn(idToken);
-    await saveTokens(tokens.access_token, tokens.refresh_token);
-    await refreshProfile();
-  }, [refreshProfile]);
-
-  const signInWithGoogleCode = useCallback(
-    async (payload: { code: string; redirectUri: string; codeVerifier?: string }) => {
-      const tokens = await authApi.googleSignInWithCode({
-        code: payload.code,
-        redirect_uri: payload.redirectUri,
-        code_verifier: payload.codeVerifier,
-      });
-      await saveTokens(tokens.access_token, tokens.refresh_token);
+  const signInWithGoogleTokens = useCallback(
+    async (accessToken: string, refreshToken: string) => {
+      await saveTokens(accessToken, refreshToken);
       await refreshProfile();
     },
     [refreshProfile],
@@ -106,13 +90,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       isAuthenticated: !!user,
       signIn,
-      signInWithGoogle,
-      signInWithGoogleCode,
+      signInWithGoogleTokens,
       completeSignup,
       signOut,
       refreshProfile,
     }),
-    [user, isLoading, signIn, signInWithGoogle, signInWithGoogleCode, completeSignup, signOut, refreshProfile],
+    [user, isLoading, signIn, signInWithGoogleTokens, completeSignup, signOut, refreshProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
