@@ -3,13 +3,19 @@ SafeZone Model
 Geofence definitions for child safety zones
 """
 
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey
+from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
+import enum
 
 from app.database import Base
+
+
+class ZoneType(str, enum.Enum):
+    SAFE = "SAFE"
+    DANGER = "DANGER"
 
 
 class SafeZone(Base):
@@ -21,6 +27,12 @@ class SafeZone(Base):
     center_lat = Column(Float, nullable=False)  # Center latitude
     center_lng = Column(Float, nullable=False)  # Center longitude
     radius = Column(Float, nullable=False)  # Radius in meters
+    zone_type = Column(
+        SQLEnum(ZoneType),
+        nullable=False,
+        default=ZoneType.SAFE,
+        server_default="SAFE",
+    )
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     # Relationships

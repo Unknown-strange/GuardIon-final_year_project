@@ -7,6 +7,12 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 from uuid import UUID
+from enum import Enum
+
+
+class ZoneTypeEnum(str, Enum):
+    SAFE = "SAFE"
+    DANGER = "DANGER"
 
 
 class SafeZoneBase(BaseModel):
@@ -15,6 +21,7 @@ class SafeZoneBase(BaseModel):
     center_lat: float = Field(..., ge=-90, le=90)
     center_lng: float = Field(..., ge=-180, le=180)
     radius: float = Field(..., gt=0, description="Radius in meters")
+    zone_type: ZoneTypeEnum = ZoneTypeEnum.SAFE
 
 
 class SafeZoneCreate(SafeZoneBase):
@@ -28,6 +35,7 @@ class SafeZoneUpdate(BaseModel):
     center_lat: Optional[float] = Field(None, ge=-90, le=90)
     center_lng: Optional[float] = Field(None, ge=-180, le=180)
     radius: Optional[float] = Field(None, gt=0)
+    zone_type: Optional[ZoneTypeEnum] = None
 
 
 class SafeZoneResponse(SafeZoneBase):
@@ -35,7 +43,7 @@ class SafeZoneResponse(SafeZoneBase):
     id: UUID
     child_id: UUID
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 

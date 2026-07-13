@@ -26,6 +26,8 @@ def _preference_allows(alert_type: AlertType, prefs: Optional[NotificationPrefer
         return prefs.sos_enabled
     if alert_type == AlertType.GEOFENCE_BREACH:
         return prefs.geofence_enabled
+    if alert_type == AlertType.DANGER_ZONE_ENTRY:
+        return prefs.geofence_enabled
     if alert_type == AlertType.LOW_BATTERY:
         return prefs.battery_enabled
     if alert_type == AlertType.CHILD_MISSING:

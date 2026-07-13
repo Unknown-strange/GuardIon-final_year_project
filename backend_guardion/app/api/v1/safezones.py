@@ -3,22 +3,23 @@ Safe Zones API
 Endpoints for managing geofences
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 import math
 
 from app.api.deps import get_db, get_current_active_user, get_user_child, get_owned_child
 from app.api.child_access import user_can_access_child, user_owns_child
 from app.models.user import User
-from app.models.safezone import SafeZone
+from app.models.safezone import SafeZone, ZoneType
 from app.schemas.safezone import (
     SafeZoneCreate,
     SafeZoneUpdate,
     SafeZoneResponse,
     LocationCheckRequest,
-    LocationCheckResponse
+    LocationCheckResponse,
+    ZoneTypeEnum,
 )
 
 router = APIRouter()
@@ -62,7 +63,8 @@ def create_safezone(
         zone_name=safezone_data.zone_name,
         center_lat=safezone_data.center_lat,
         center_lng=safezone_data.center_lng,
-        radius=safezone_data.radius
+        radius=safezone_data.radius,
+        zone_type=ZoneType(safezone_data.zone_type.value),
     )
     
     db.add(db_safezone)
@@ -75,6 +77,7 @@ def create_safezone(
 @router.get("/child/{child_id}", response_model=List[SafeZoneResponse])
 def list_safezones(
     child_id: UUID,
+    zone_type: Optional[ZoneTypeEnum] = Query(None),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -82,9 +85,11 @@ def list_safezones(
     Get all safe zones for a child
     """
     get_user_child(child_id, current_user, db)
-    
-    safezones = db.query(SafeZone).filter(SafeZone.child_id == child_id).all()
-    return safezones
+
+    query = db.query(SafeZone).filter(SafeZone.child_id == child_id)
+    if zone_type is not None:
+        query = query.filter(SafeZone.zone_type == ZoneType(zone_type.value))
+    return query.all()
 
 
 @router.get("/{safezone_id}", response_model=SafeZoneResponse)
@@ -139,6 +144,9 @@ def update_safezone(
     
     # Update fields
     update_data = safezone_data.model_dump(exclude_unset=True)
+    if "zone_type" in update_data and update_data["zone_type"] is not None:
+        zt = update_data["zone_type"]
+        update_data["zone_type"] = ZoneType(zt.value if hasattr(zt, "value") else zt)
     for field, value in update_data.items():
         setattr(safezone, field, value)
     

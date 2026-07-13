@@ -16,7 +16,12 @@ from app.models.alert import Alert, AlertType, AlertStatus
 from app.api.child_access import guardian_user_ids_for_child
 from app.models.child import Child
 from app.mqtt.schemas import AlertPayload, CheckInResponsePayload, StatusPayload, TelemetryPayload
-from app.services.geofencing import check_geofence_breach, check_low_battery_alert, confirm_child_safe
+from app.services.geofencing import (
+    check_geofence_breach,
+    check_danger_zone_entry,
+    check_low_battery_alert,
+    confirm_child_safe,
+)
 from app.services.check_in_service import confirm_check_in_from_device, confirm_pending_check_ins_for_child
 from app.services.notifications import create_notification_for_alert
 from app.websocket.manager import manager
@@ -173,6 +178,36 @@ async def handle_telemetry(payload: Dict):
                                     "location_lng": breach_alert.location_lng,
                                     "status": breach_alert.status.value,
                                     "created_at": breach_alert.created_at.isoformat(),
+                                },
+                                db,
+                            )
+
+                    danger_alerts = check_danger_zone_entry(
+                        device,
+                        latitude,
+                        longitude,
+                        db,
+                        accuracy=location.accuracy,
+                    )
+                    for danger_alert in danger_alerts:
+                        create_notification_for_alert(danger_alert, db)
+                        db.commit()
+                        child = db.query(Child).filter(Child.id == device.child_id).first()
+                        if child:
+                            _append_alert_broadcasts(
+                                alert_broadcasts,
+                                device.child_id,
+                                {
+                                    "alert_id": str(danger_alert.id),
+                                    "alert_type": danger_alert.alert_type.value,
+                                    "child_id": str(danger_alert.child_id),
+                                    "child_name": child.name,
+                                    "device_id": device_id,
+                                    "zone_name": danger_alert.zone_name,
+                                    "location_lat": danger_alert.location_lat,
+                                    "location_lng": danger_alert.location_lng,
+                                    "status": danger_alert.status.value,
+                                    "created_at": danger_alert.created_at.isoformat(),
                                 },
                                 db,
                             )

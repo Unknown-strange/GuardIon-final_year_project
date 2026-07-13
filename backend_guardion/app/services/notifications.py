@@ -119,6 +119,13 @@ def _get_notification_content(
             f"Geofence Breach: {child_name}",
             f"{child_name} has left their designated safe zone. Current location is being tracked."
         )
+
+    elif alert.alert_type == AlertType.DANGER_ZONE_ENTRY:
+        zone = alert.zone_name or "a danger zone"
+        return (
+            f"Danger Zone Alert: {child_name}",
+            f'{child_name} has entered danger zone "{zone}". Check their location immediately.',
+        )
     
     elif alert.alert_type == AlertType.LOW_BATTERY:
         return (

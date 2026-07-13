@@ -22,6 +22,7 @@ class AlertType(str, enum.Enum):
     DEVICE_OFFLINE = "device_offline"
     DEVICE_TAMPER = "device_tamper"
     CHILD_MISSING = "child_missing"
+    DANGER_ZONE_ENTRY = "danger_zone_entry"
 
 
 class AlertStatus(str, enum.Enum):
