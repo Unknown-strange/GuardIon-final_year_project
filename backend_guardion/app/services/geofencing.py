@@ -458,3 +458,127 @@ def check_danger_zone_entry(
         logger.exception(f"Error checking danger zone entry: {e}")
         db.rollback()
         return []
+
+
+def _active_safe_entry_alerts(child_id: UUID, db: Session) -> List[Alert]:
+    return (
+        db.query(Alert)
+        .filter(
+            Alert.child_id == child_id,
+            Alert.alert_type == AlertType.SAFE_ZONE_ENTRY,
+            Alert.status.in_([AlertStatus.ACTIVE, AlertStatus.ACKNOWLEDGED]),
+        )
+        .all()
+    )
+
+
+def _resolve_safe_entry_alert(alert: Alert, db: Session, *, note: str | None = None) -> None:
+    alert.status = AlertStatus.RESOLVED
+    alert.resolved_at = datetime.utcnow()
+    if note:
+        logger.info(f"Resolved safe zone entry alert {alert.id}: {note}")
+
+
+def _create_safe_entry_alert(
+    device: Device,
+    child: Child,
+    zone_name: str,
+    latitude: float,
+    longitude: float,
+    db: Session,
+) -> Alert:
+    alert = Alert(
+        child_id=device.child_id,
+        device_id=device.id,
+        alert_type=AlertType.SAFE_ZONE_ENTRY,
+        zone_name=zone_name,
+        location_lat=latitude,
+        location_lng=longitude,
+        status=AlertStatus.ACTIVE,
+        confidence=1.0,
+    )
+    db.add(alert)
+    db.flush()
+    logger.info(
+        f"[OK] SAFE ZONE ENTRY: Device {device.device_id} arrived at "
+        f"safe zone {zone_name}"
+    )
+    return alert
+
+
+def check_safe_zone_entry(
+    device: Device,
+    latitude: float,
+    longitude: float,
+    db: Session,
+    *,
+    accuracy: Optional[float] = None,
+) -> List[Alert]:
+    """
+    Track safe-zone state for a child:
+    - Enter safe zone while no active entry alert → create alert
+    - Leave safe zone while active entry alert → auto-resolve
+    """
+    try:
+        child = db.query(Child).filter(Child.id == device.child_id).first()
+        if not child:
+            return []
+
+        safe_zones = (
+            db.query(SafeZone)
+            .filter(
+                SafeZone.child_id == device.child_id,
+                SafeZone.zone_type == ZoneType.SAFE,
+            )
+            .all()
+        )
+        if not safe_zones:
+            return []
+
+        active_alerts = _active_safe_entry_alerts(device.child_id, db)
+        active_by_zone = {a.zone_name: a for a in active_alerts if a.zone_name}
+
+        inside_zone_names: set[str] = set()
+        for zone in safe_zones:
+            if _distance_to_zone(latitude, longitude, zone) <= zone.radius:
+                inside_zone_names.add(zone.zone_name)
+
+        new_alerts: List[Alert] = []
+
+        resolved_any = False
+        for zone_name, alert in list(active_by_zone.items()):
+            if zone_name not in inside_zone_names:
+                _resolve_safe_entry_alert(
+                    alert,
+                    db,
+                    note=f"Child left safe zone {zone_name}",
+                )
+                resolved_any = True
+
+        for zone in safe_zones:
+            if zone.zone_name not in inside_zone_names:
+                continue
+            if zone.zone_name in active_by_zone:
+                continue
+            new_alerts.append(
+                _create_safe_entry_alert(
+                    device,
+                    child,
+                    zone.zone_name,
+                    latitude,
+                    longitude,
+                    db,
+                )
+            )
+
+        if new_alerts or resolved_any:
+            db.commit()
+            for alert in new_alerts:
+                db.refresh(alert)
+
+        return new_alerts
+
+    except Exception as e:
+        logger.exception(f"Error checking safe zone entry: {e}")
+        db.rollback()
+        return []

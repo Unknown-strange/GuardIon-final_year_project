@@ -126,6 +126,13 @@ def _get_notification_content(
             f"Danger Zone Alert: {child_name}",
             f'{child_name} has entered danger zone "{zone}". Check their location immediately.',
         )
+
+    elif alert.alert_type == AlertType.SAFE_ZONE_ENTRY:
+        zone = alert.zone_name or "safe zone"
+        return (
+            f"Arrived at {zone}: {child_name}",
+            f'{child_name} has arrived at safe zone "{zone}".',
+        )
     
     elif alert.alert_type == AlertType.LOW_BATTERY:
         return (

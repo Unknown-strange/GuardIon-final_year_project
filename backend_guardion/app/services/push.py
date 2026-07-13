@@ -17,6 +17,18 @@ logger = logging.getLogger(__name__)
 
 EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 
+ZONE_ALERT_SOUND = "beep-beep.mp3"
+
+
+def _push_sound_for(alert_type: AlertType | None) -> str:
+    if alert_type in (
+        AlertType.GEOFENCE_BREACH,
+        AlertType.DANGER_ZONE_ENTRY,
+        AlertType.SAFE_ZONE_ENTRY,
+    ):
+        return ZONE_ALERT_SOUND
+    return "default"
+
 
 def _preference_allows(alert_type: AlertType, prefs: Optional[NotificationPreference]) -> bool:
     if not prefs:
@@ -27,6 +39,8 @@ def _preference_allows(alert_type: AlertType, prefs: Optional[NotificationPrefer
     if alert_type == AlertType.GEOFENCE_BREACH:
         return prefs.geofence_enabled
     if alert_type == AlertType.DANGER_ZONE_ENTRY:
+        return prefs.geofence_enabled
+    if alert_type == AlertType.SAFE_ZONE_ENTRY:
         return prefs.geofence_enabled
     if alert_type == AlertType.LOW_BATTERY:
         return prefs.battery_enabled
@@ -69,7 +83,7 @@ def send_push_to_user(
             "to": t.token,
             "title": title,
             "body": body,
-            "sound": "default",
+            "sound": _push_sound_for(alert_type),
             "data": {**(data or {}), **({"image_url": image_url} if image_url else {})},
         }
         if image_url:
