@@ -17,7 +17,7 @@ from app.models.child import Child
 from app.models.device import Device, DeviceStatus
 from app.models.check_in import CheckIn
 from app.schemas.check_in import CheckInCreate, CheckInResponse, CheckInListResponse
-from app.services.check_in_service import timeout_check_in
+from app.services.check_in_service import timeout_check_in, cancel_check_in
 from app.mqtt.client import mqtt_client
 
 logger = logging.getLogger(__name__)
@@ -163,3 +163,16 @@ def mark_check_in_timeout(
     if check_in.status != "pending":
         return check_in
     return timeout_check_in(check_in, db)
+
+
+@router.post("/{check_in_id}/cancel", response_model=CheckInResponse)
+def cancel_check_in_request(
+    check_in_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Parent cancelled a pending check-in before the device responded."""
+    check_in = _get_user_check_in(check_in_id, current_user, db)
+    if check_in.status != "pending":
+        return check_in
+    return cancel_check_in(check_in, db)
