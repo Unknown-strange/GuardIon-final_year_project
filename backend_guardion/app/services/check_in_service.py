@@ -80,3 +80,13 @@ def timeout_check_in(check_in: CheckIn, db: Session) -> CheckIn:
         db.commit()
         db.refresh(check_in)
     return check_in
+
+
+def cancel_check_in(check_in: CheckIn, db: Session) -> CheckIn:
+    """Parent cancelled a pending check-in before the device responded."""
+    if check_in.status == "pending":
+        check_in.status = "cancelled"
+        db.commit()
+        db.refresh(check_in)
+        logger.info("Check-in %s cancelled by parent", check_in.id)
+    return check_in
