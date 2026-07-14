@@ -25,6 +25,7 @@ from app.api.v1 import (
     preferences,
     check_ins,
     uploads,
+    activity,
 )
 from app.websocket import endpoints as websocket_endpoints
 from app.mqtt.client import mqtt_client
@@ -99,6 +100,7 @@ app.include_router(guardians.router, prefix=f"{settings.API_V1_PREFIX}/guardians
 app.include_router(emergency_contacts.router, prefix=f"{settings.API_V1_PREFIX}/emergency-contacts", tags=["Emergency Contacts"])
 app.include_router(preferences.router, prefix=f"{settings.API_V1_PREFIX}/users", tags=["User Preferences"])
 app.include_router(check_ins.router, prefix=f"{settings.API_V1_PREFIX}/check-ins", tags=["Check-Ins"])
+app.include_router(activity.router, prefix=f"{settings.API_V1_PREFIX}/activity", tags=["Activity"])
 app.include_router(uploads.router, prefix=f"{settings.API_V1_PREFIX}/uploads", tags=["Uploads"])
 
 # Include WebSocket router
