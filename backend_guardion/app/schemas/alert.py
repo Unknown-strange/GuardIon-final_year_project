@@ -20,6 +20,7 @@ class AlertTypeEnum(str, Enum):
     DEVICE_TAMPER = "device_tamper"
     CHILD_MISSING = "child_missing"
     DANGER_ZONE_ENTRY = "danger_zone_entry"
+    SAFE_ZONE_ENTRY = "safe_zone_entry"
 
 
 class AlertStatusEnum(str, Enum):

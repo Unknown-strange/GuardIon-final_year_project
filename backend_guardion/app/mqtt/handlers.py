@@ -19,6 +19,7 @@ from app.mqtt.schemas import AlertPayload, CheckInResponsePayload, StatusPayload
 from app.services.geofencing import (
     check_geofence_breach,
     check_danger_zone_entry,
+    check_safe_zone_entry,
     check_low_battery_alert,
     confirm_child_safe,
 )
@@ -208,6 +209,36 @@ async def handle_telemetry(payload: Dict):
                                     "location_lng": danger_alert.location_lng,
                                     "status": danger_alert.status.value,
                                     "created_at": danger_alert.created_at.isoformat(),
+                                },
+                                db,
+                            )
+
+                    safe_entry_alerts = check_safe_zone_entry(
+                        device,
+                        latitude,
+                        longitude,
+                        db,
+                        accuracy=location.accuracy,
+                    )
+                    for safe_alert in safe_entry_alerts:
+                        create_notification_for_alert(safe_alert, db)
+                        db.commit()
+                        child = db.query(Child).filter(Child.id == device.child_id).first()
+                        if child:
+                            _append_alert_broadcasts(
+                                alert_broadcasts,
+                                device.child_id,
+                                {
+                                    "alert_id": str(safe_alert.id),
+                                    "alert_type": safe_alert.alert_type.value,
+                                    "child_id": str(safe_alert.child_id),
+                                    "child_name": child.name,
+                                    "device_id": device_id,
+                                    "zone_name": safe_alert.zone_name,
+                                    "location_lat": safe_alert.location_lat,
+                                    "location_lng": safe_alert.location_lng,
+                                    "status": safe_alert.status.value,
+                                    "created_at": safe_alert.created_at.isoformat(),
                                 },
                                 db,
                             )
