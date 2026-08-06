@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActiveAlertsSummary } from '@/components/guardian/active-alerts-summary';
 import { AlertsChildSelector } from '@/components/guardian/alerts-child-selector';
 import { PrimaryButton } from '@/components/guardian/buttons';
-import { CheckInSheet } from '@/components/guardian/check-in-sheet';
+import { CheckInConfirmModal } from '@/components/guardian/check-in-confirm-modal';
 import { ChildContactsSheet } from '@/components/guardian/child-contacts-sheet';
 import { ContactRow } from '@/components/guardian/contact-row';
 import { EmergencySosModal } from '@/components/guardian/emergency-sos-modal';
@@ -41,7 +41,6 @@ import { useCheckIn } from '@/hooks/use-check-in';
 import { useEmergencyContacts } from '@/hooks/use-emergency-contacts';
 import { useSafeZones } from '@/hooks/use-safe-zones';
 import type { AlertItem } from '@/constants/alerts-mocks';
-import { useAlertsRealtime } from '@/contexts/alerts-realtime-context';
 import { useGuardianData } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
 import type { ChildContact } from '@/types/child-contact';
@@ -63,6 +62,8 @@ function alertIcon(type?: AlertItem['type']) {
       return 'warning' as const;
     case 'geofence':
       return 'navigate-circle' as const;
+    case 'danger':
+      return 'warning' as const;
     case 'check_in':
       return 'shield-checkmark' as const;
     case 'missing':
@@ -134,26 +135,22 @@ export default function AlertsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ childId?: string }>();
   const { children, getChildById, isLoading: childrenLoading } = useGuardianData();
-  const { deviceSafeCheck } = useAlertsRealtime();
   const { allAlerts, resolveAlertById, loading: alertsLoading } = useAlerts('all');
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [contactsOpen, setContactsOpen] = useState(false);
   const [contactChildId, setContactChildId] = useState('');
-  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkInConfirmOpen, setCheckInConfirmOpen] = useState(false);
   const [checkInChildId, setCheckInChildId] = useState('');
   const [sosOpen, setSosOpen] = useState(false);
   const [sosChildId, setSosChildId] = useState('');
   const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
 
   const checkInChild = getChildById(checkInChildId);
-  const {
-    status: checkInStatus,
-    lastLabel: checkInLastLabel,
-    start: startCheckIn,
-    cancel: cancelCheckIn,
-    canCheckIn,
-  } = useCheckIn(checkInOpen ? checkInChildId : null, checkInChild?.online ?? false);
+  const { lastLabel: checkInLastLabel, canCheckIn } = useCheckIn(
+    checkInChildId || null,
+    checkInChild?.online ?? false,
+  );
 
   const sosChild = getChildById(sosChildId);
   const { childZones: sosZones } = useSafeZones(sosChildId || null);
@@ -216,27 +213,21 @@ export default function AlertsScreen() {
   };
 
   const openCheckIn = (childId: string) => {
-    cancelCheckIn();
     setCheckInChildId(childId);
-    setCheckInOpen(true);
+    setCheckInConfirmOpen(true);
   };
 
-  const closeCheckIn = () => {
-    cancelCheckIn();
-    setCheckInOpen(false);
+  const closeCheckInConfirm = () => {
+    setCheckInConfirmOpen(false);
   };
 
-  useEffect(() => {
-    if (!checkInOpen || !checkInChildId) return;
-    if (deviceSafeCheck?.childId === checkInChildId) {
-      closeCheckIn();
-      return;
+  const confirmCheckIn = () => {
+    const targetId = checkInChildId;
+    setCheckInConfirmOpen(false);
+    if (targetId) {
+      router.push(`/check-in/${targetId}` as any);
     }
-    if (checkInStatus === 'confirmed') {
-      const timer = setTimeout(() => closeCheckIn(), 1200);
-      return () => clearTimeout(timer);
-    }
-  }, [deviceSafeCheck, checkInOpen, checkInChildId, checkInStatus, closeCheckIn]);
+  };
 
   const openEmergencySos = (childId: string) => {
     setSosChildId(childId);
@@ -556,7 +547,28 @@ export default function AlertsScreen() {
                         </Pressable>
                       </View>
                     ) : null}
-                    {item.type !== 'geofence' && item.type !== 'sos' && item.type !== 'missing' ? (
+                    {item.type === 'danger' ? (
+                      <Pressable
+                        style={[
+                          styles.safeBtn,
+                          { marginTop: 12, backgroundColor: GuardianColors.danger },
+                          resolvingAlertId === item.id && styles.safeBtnDisabled,
+                        ]}
+                        disabled={resolvingAlertId === item.id}
+                        onPress={() => markAlertResolved(item)}>
+                        <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
+                        <ThemedText
+                          lightColor="#FFF"
+                          darkColor="#FFF"
+                          style={styles.safeBtnText}>
+                          {resolvingAlertId === item.id ? 'Resolving…' : 'Mark as resolved'}
+                        </ThemedText>
+                      </Pressable>
+                    ) : null}
+                    {item.type !== 'geofence' &&
+                    item.type !== 'sos' &&
+                    item.type !== 'missing' &&
+                    item.type !== 'danger' ? (
                       <Pressable
                         style={[
                           styles.safeBtn,
@@ -659,22 +671,13 @@ export default function AlertsScreen() {
         onClose={() => setContactsOpen(false)}
       />
 
-      <CheckInSheet
-        visible={checkInOpen}
+      <CheckInConfirmModal
+        visible={checkInConfirmOpen}
         childName={checkInChild?.name ?? 'Child'}
-        status={checkInStatus}
-        lastLabel={checkInLastLabel}
         canCheckIn={canCheckIn}
-        onClose={closeCheckIn}
-        onConfirm={startCheckIn}
-        onCall={() => {
-          closeCheckIn();
-          if (checkInChildId) openContacts(checkInChildId);
-        }}
-        onViewMap={() => {
-          closeCheckIn();
-          if (checkInChildId) router.push(`/child/${checkInChildId}` as any);
-        }}
+        lastLabel={checkInLastLabel}
+        onClose={closeCheckInConfirm}
+        onConfirm={confirmCheckIn}
       />
 
       {sosChild ? (

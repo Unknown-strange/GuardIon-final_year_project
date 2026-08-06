@@ -4,13 +4,14 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
 import * as childrenApi from '@/api/children';
 import * as devicesApi from '@/api/devices';
 import * as locationsApi from '@/api/locations';
-import { childCreatePayload, childSummaryFromApi } from '@/api/mappers';
+import { applyDevicePollToChild, childCreatePayload, childSummaryFromApi } from '@/api/mappers';
 import { setChildCustomAvatar } from '@/utils/child-custom-avatars';
 import type { ChildResponse, DeviceResponse } from '@/api/types';
 import type { RegisterChildPayload } from '@/components/guardian/add-child-modal';
@@ -22,12 +23,19 @@ import { isFreshCoordinateTimestamp } from '@/utils/device-online';
 import { useAuth } from '@/contexts/auth-context';
 import { useMultiLocationWebSocket } from '@/hooks/use-multi-location-websocket';
 
+type RefreshOptions = {
+  /** When true, keep showing cached children and skip blocking loaders. */
+  background?: boolean;
+};
+
 type GuardianDataContextValue = {
   children: ChildSummary[];
+  /** True only on first load when no cached children exist yet. */
   isLoading: boolean;
+  isRefreshing: boolean;
   /** Increments when live device GPS updates arrive (for alert polling). */
   locationTick: number;
-  refreshChildren: () => Promise<void>;
+  refreshChildren: (options?: RefreshOptions) => Promise<void>;
   getChildById: (id: string) => ChildSummary | undefined;
   registerChild: (payload: RegisterChildPayload) => Promise<ChildSummary>;
   updateChildProfile: (
@@ -36,6 +44,8 @@ type GuardianDataContextValue = {
   ) => Promise<ChildSummary>;
   removeChild: (childId: string) => Promise<void>;
 };
+
+const DEVICE_STATUS_POLL_MS = 4000;
 
 const GuardianDataContext = createContext<GuardianDataContextValue | null>(null);
 
@@ -64,6 +74,11 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
   const { isAuthenticated } = useAuth();
   const [childSummaries, setChildSummaries] = useState<ChildSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const childSummariesRef = useRef(childSummaries);
+  childSummariesRef.current = childSummaries;
+  const hasLoadedOnceRef = useRef(false);
+
   const [locationTick, setLocationTick] = useState(0);
 
   const deviceToChild = useMemo(() => {
@@ -111,43 +126,97 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
     }
   }, [liveUpdates]);
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
+  const pollDeviceStatus = useCallback(async () => {
+    const current = childSummariesRef.current;
+    if (!isAuthenticated || current.length === 0) return;
 
-    const interval = setInterval(() => {
+    try {
+      const devices = await devicesApi.listDevices();
+      const polled = await Promise.all(
+        current.map(async (child) => {
+          const device = devices.find((d) => d.child_id === child.id) ?? null;
+          const location = await fetchLocationSafely(child.id);
+          return applyDevicePollToChild(child, device, location);
+        }),
+      );
+      const polledById = new Map(polled.map((child) => [child.id, child]));
+
+      let locationChanged = false;
       setChildSummaries((prev) => {
         let changed = false;
         const next = prev.map((child) => {
-          const stillLive = isFreshCoordinateTimestamp(child.coordinatesAt);
-          if (stillLive === child.online) return child;
+          const updated = polledById.get(child.id);
+          if (!updated) return child;
+
+          const coordsChanged =
+            child.online !== updated.online ||
+            child.coordinatesAt !== updated.coordinatesAt ||
+            child.latitude !== updated.latitude ||
+            child.longitude !== updated.longitude;
+
+          if (coordsChanged) {
+            locationChanged = true;
+          }
+
+          if (
+            child.online === updated.online &&
+            child.coordinatesAt === updated.coordinatesAt &&
+            child.latitude === updated.latitude &&
+            child.longitude === updated.longitude &&
+            child.lastUpdate === updated.lastUpdate &&
+            child.status === updated.status &&
+            child.movement === updated.movement &&
+            child.alertMessage === updated.alertMessage &&
+            child.deviceId === updated.deviceId
+          ) {
+            return child;
+          }
+
           changed = true;
-          return {
-            ...child,
-            online: stillLive,
-            status: stillLive ? (child.alertMessage ? 'warning' : 'safe') : 'offline',
-            movement: stillLive ? child.movement : 'Unknown',
-            lastUpdate: stillLive
-              ? child.lastUpdate
-              : child.coordinatesAt
-                ? child.lastUpdate
-                : 'Unknown',
-          };
+          return updated;
         });
+
         return changed ? next : prev;
       });
-    }, 30_000);
 
-    return () => clearInterval(interval);
+      if (locationChanged) {
+        setLocationTick((value) => value + 1);
+      }
+    } catch {
+      /* keep last known state */
+    }
   }, [isAuthenticated]);
 
-  const refreshChildren = useCallback(async () => {
+  useEffect(() => {
+    if (!isAuthenticated || childSummaries.length === 0) return;
+
+    void pollDeviceStatus();
+    const interval = setInterval(() => {
+      void pollDeviceStatus();
+    }, DEVICE_STATUS_POLL_MS);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, childSummaries.length, pollDeviceStatus]);
+
+  const refreshChildren = useCallback(async (options?: RefreshOptions) => {
     if (!isAuthenticated) {
       setChildSummaries([]);
       setIsLoading(false);
+      setIsRefreshing(false);
+      hasLoadedOnceRef.current = false;
       return;
     }
 
-    setIsLoading(true);
+    const hasCached =
+      childSummariesRef.current.length > 0 || hasLoadedOnceRef.current;
+    const background = options?.background === true && hasCached;
+
+    if (background) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
+
     try {
       const [apiChildren, devices] = await Promise.all([
         childrenApi.listChildren(),
@@ -155,10 +224,14 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
       ]);
       const mapped = await mapChildren(apiChildren, devices);
       setChildSummaries(mapped);
+      hasLoadedOnceRef.current = true;
     } catch {
-      setChildSummaries([]);
+      if (!background) {
+        setChildSummaries([]);
+      }
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [isAuthenticated]);
 
@@ -237,6 +310,7 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
     () => ({
       children: childSummaries,
       isLoading,
+      isRefreshing,
       locationTick,
       refreshChildren,
       getChildById,
@@ -247,6 +321,7 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
     [
       childSummaries,
       isLoading,
+      isRefreshing,
       locationTick,
       refreshChildren,
       getChildById,

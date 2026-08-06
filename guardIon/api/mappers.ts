@@ -65,6 +65,49 @@ export function childSummaryFromApi(
   };
 }
 
+function movementLabel(speed?: number | null): string {
+  if (speed == null) return 'Active';
+  return speed > 0.5 ? 'Moving' : 'Stationary';
+}
+
+export function applyDevicePollToChild(
+  child: ChildSummary,
+  device?: DeviceResponse | null,
+  location?: CurrentLocationResponse | null,
+): ChildSummary {
+  const online = isDeviceLiveFromCoords(device, location);
+  const coordinatesAt = coordinatesTimestamp(location, device);
+
+  const battery = device?.battery_level ?? location?.battery_level;
+  const lowBattery = typeof battery === 'number' && battery <= 20;
+
+  let status: ChildSummary['status'] = 'safe';
+  if (!device || device.status === 'inactive' || device.status === 'lost' || !online) {
+    status = 'offline';
+  } else if (lowBattery) {
+    status = 'warning';
+  }
+
+  const hasLocation = location?.latitude != null && location?.longitude != null;
+
+  return {
+    ...child,
+    deviceLabel: device ? `Device · ${device.device_id}` : child.deviceLabel,
+    deviceId: device?.device_id ?? child.deviceId,
+    location: hasLocation
+      ? `${location!.latitude.toFixed(4)}, ${location!.longitude.toFixed(4)}`
+      : child.location,
+    latitude: hasLocation ? location!.latitude : child.latitude,
+    longitude: hasLocation ? location!.longitude : child.longitude,
+    status,
+    movement: hasLocation ? movementLabel(location!.speed) : online ? child.movement : 'Unknown',
+    lastUpdate: formatRelativeTime(coordinatesAt),
+    online: !!online,
+    coordinatesAt,
+    alertMessage: lowBattery ? 'Low battery on device' : undefined,
+  };
+}
+
 export function childCreatePayload(input: {
   name: string;
   age?: number | null;
@@ -142,6 +185,8 @@ function alertTitle(type: AlertResponse['alert_type']): string {
       return 'Missing child alert';
     case 'danger_zone_entry':
       return 'Danger zone alert';
+    case 'safe_zone_entry':
+      return 'Safe zone arrival';
     default:
       return `${type}`.replace(/_/g, ' ');
   }
@@ -170,6 +215,10 @@ function alertBody(alert: AlertResponse, childName?: string): string {
       const zone = alert.zone_name?.trim() || 'danger zone';
       return `${name} entered danger zone ${zone}`;
     }
+    case 'safe_zone_entry': {
+      const zone = alert.zone_name?.trim() || 'safe zone';
+      return `${name} arrived at ${zone}`;
+    }
     default:
       return `${alert.alert_type}`.replace(/_/g, ' ');
   }
@@ -189,6 +238,8 @@ function alertAccent(type: AlertResponse['alert_type']): AlertItem['accent'] {
       return 'red';
     case 'danger_zone_entry':
       return 'red';
+    case 'safe_zone_entry':
+      return 'gray';
     default:
       return 'gray';
   }
@@ -208,6 +259,8 @@ function alertUiType(type: AlertResponse['alert_type']): AlertItem['type'] {
       return 'missing';
     case 'danger_zone_entry':
       return 'danger';
+    case 'safe_zone_entry':
+      return 'safe_zone';
     default:
       return 'system';
   }
@@ -222,7 +275,10 @@ export function alertFromApi(alert: AlertResponse, childName?: string): AlertIte
   return {
     id: alert.id,
     childId: alert.child_id,
-    title: alertTitle(alert.alert_type),
+    title:
+      alert.alert_type === 'safe_zone_entry'
+        ? `Arrived at ${alert.zone_name?.trim() || 'safe zone'}`
+        : alertTitle(alert.alert_type),
     body: alertBody(alert, childName),
     time: formatRelativeTime(alert.created_at),
     accent: alertAccent(alert.alert_type),
@@ -239,11 +295,13 @@ export function historyItemFromLocation(input: {
   latitude: number;
   longitude: number;
   timestamp: string;
+  category?: 'location';
 }) {
   return {
     id: input.id,
     title: input.title,
     sub: `${input.latitude.toFixed(4)}, ${input.longitude.toFixed(4)}`,
     time: formatRelativeTime(input.timestamp),
+    category: input.category,
   };
 }

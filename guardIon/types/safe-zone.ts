@@ -70,3 +70,17 @@ export function childGeofenceStatus(
   const inside = safeZones.some((zone) => isPointInZone(childLat, childLng, zone));
   return inside ? 'inside' : 'outside';
 }
+
+export function childInsideSafeZoneName(
+  childLat: number,
+  childLng: number,
+  zones: SafeZone[],
+): string | null {
+  const safeZones = zones.filter((zone) => zone.zoneType === 'safe');
+  for (const zone of safeZones) {
+    if (isPointInZone(childLat, childLng, zone)) {
+      return zone.name;
+    }
+  }
+  return null;
+}

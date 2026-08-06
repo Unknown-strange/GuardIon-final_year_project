@@ -1,0 +1,3897 @@
+{
+    "$schema": "https://schemas.kicad.org/drc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-07-27T12:09:19+0000",
+    "kicad_version": "9.0.0",
+    "schematic_parity": [],
+    "source": "final_final_kicad.kicad_pcb",
+    "unconnected_items": [
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 210.0,
+                        "y": 114.0
+                    },
+                    "uuid": "482e4aa0-fe44-4aaa-ae34-067d2134d2db"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 224.0,
+                        "y": 114.0
+                    },
+                    "uuid": "b8b5b3ae-8933-47ee-87a7-d1dd7e86cf04"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 166.5,
+                        "y": 92.0
+                    },
+                    "uuid": "c3e079d0-107f-4db9-870d-18254036e21e"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 210.0,
+                        "y": 114.0
+                    },
+                    "uuid": "482e4aa0-fe44-4aaa-ae34-067d2134d2db"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 155.5,
+                        "y": 92.0
+                    },
+                    "uuid": "9dce44aa-e2bc-4f78-a345-b42e32b655bf"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.0
+                    },
+                    "uuid": "4573fbcf-9e6c-43fe-a8d2-178d0a3257a4"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 190.0,
+                        "y": 116.0
+                    },
+                    "uuid": "c4014868-d269-4492-b33d-3939f89bef4b"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 196.0,
+                        "y": 114.0
+                    },
+                    "uuid": "b8a6d834-0aed-4517-8244-6df165e4514b"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 5",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 80.16
+                    },
+                    "uuid": "ac1ce57c-e1d0-4f1e-a9c5-747edd2e3428"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 177.0,
+                        "y": 76.0
+                    },
+                    "uuid": "71a7be12-157b-4f71-8f59-b26d46ba5994"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 177.0,
+                        "y": 76.0
+                    },
+                    "uuid": "71a7be12-157b-4f71-8f59-b26d46ba5994"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 172.0,
+                        "y": 90.0
+                    },
+                    "uuid": "cf009585-63e3-4017-950f-74ee56363dcd"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 172.0,
+                        "y": 90.0
+                    },
+                    "uuid": "cf009585-63e3-4017-950f-74ee56363dcd"
+                },
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 190.0,
+                        "y": 116.0
+                    },
+                    "uuid": "c4014868-d269-4492-b33d-3939f89bef4b"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 118.0
+                    },
+                    "uuid": "09e6bbbc-4090-42c5-b450-2363d717f499"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 112.0
+                    },
+                    "uuid": "096981e6-d9f8-429e-9925-01598a913bb3"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 4",
+                    "pos": {
+                        "x": 153.5,
+                        "y": 92.0
+                    },
+                    "uuid": "283fff23-c1f5-4579-9001-5c37e9918421"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 154.0,
+                        "y": 100.0
+                    },
+                    "uuid": "8a924e8a-428c-45e5-83d0-ae46ba718155"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 224.5,
+                        "y": 100.0
+                    },
+                    "uuid": "ab8eb7b2-a8a9-40bc-9b35-9ae220c7c34e"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 100.0
+                    },
+                    "uuid": "83fe553a-ab67-4dd7-ac14-0cbf50be76ad"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 6",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 82.7
+                    },
+                    "uuid": "cc0d7dfc-6d52-4e54-98b0-0ae715d7a393"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 70.0
+                    },
+                    "uuid": "e9a22d53-283b-4db6-aa92-db3de40b3a4f"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 174.0,
+                        "y": 90.0
+                    },
+                    "uuid": "95c0b6a1-d887-47ca-a27b-af838a439d9a"
+                },
+                {
+                    "description": "PTH pad 6",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 82.7
+                    },
+                    "uuid": "cc0d7dfc-6d52-4e54-98b0-0ae715d7a393"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 174.0,
+                        "y": 90.0
+                    },
+                    "uuid": "95c0b6a1-d887-47ca-a27b-af838a439d9a"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 172.0,
+                        "y": 76.0
+                    },
+                    "uuid": "3b8873fe-abfe-4afc-b4b6-c07da4ca3002"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 198.0,
+                        "y": 114.0
+                    },
+                    "uuid": "43ec2965-e6a5-489e-bd17-058054c6460c"
+                },
+                {
+                    "description": "PTH pad 4",
+                    "pos": {
+                        "x": 190.0,
+                        "y": 100.0
+                    },
+                    "uuid": "aeab7097-81e9-4a47-a726-c56641ce58de"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 4",
+                    "pos": {
+                        "x": 190.0,
+                        "y": 100.0
+                    },
+                    "uuid": "aeab7097-81e9-4a47-a726-c56641ce58de"
+                },
+                {
+                    "description": "PTH pad 6",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 82.7
+                    },
+                    "uuid": "cc0d7dfc-6d52-4e54-98b0-0ae715d7a393"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 198.0,
+                        "y": 114.0
+                    },
+                    "uuid": "43ec2965-e6a5-489e-bd17-058054c6460c"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 100.0
+                    },
+                    "uuid": "83fe553a-ab67-4dd7-ac14-0cbf50be76ad"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 112.0
+                    },
+                    "uuid": "096981e6-d9f8-429e-9925-01598a913bb3"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 252.16,
+                        "y": 93.0
+                    },
+                    "uuid": "ec2efd54-9422-4612-89be-0e3d3d039874"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 174.0,
+                        "y": 90.0
+                    },
+                    "uuid": "95c0b6a1-d887-47ca-a27b-af838a439d9a"
+                },
+                {
+                    "description": "PTH pad 4",
+                    "pos": {
+                        "x": 153.5,
+                        "y": 92.0
+                    },
+                    "uuid": "283fff23-c1f5-4579-9001-5c37e9918421"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 112.0
+                    },
+                    "uuid": "096981e6-d9f8-429e-9925-01598a913bb3"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 224.5,
+                        "y": 100.0
+                    },
+                    "uuid": "ab8eb7b2-a8a9-40bc-9b35-9ae220c7c34e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 252.16,
+                        "y": 93.0
+                    },
+                    "uuid": "ec2efd54-9422-4612-89be-0e3d3d039874"
+                },
+                {
+                    "description": "PTH pad G",
+                    "pos": {
+                        "x": 237.62,
+                        "y": 68.64
+                    },
+                    "uuid": "22bc6ea6-6f40-4700-95be-231640405ff1"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 242.0,
+                        "y": 78.0
+                    },
+                    "uuid": "b6a901f5-360f-4793-85a9-16878ca0f104"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 248.54,
+                        "y": 118.0
+                    },
+                    "uuid": "ea726d0b-6647-47d6-b000-2d411ca5069a"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 248.54,
+                        "y": 112.0
+                    },
+                    "uuid": "3449263d-bf5a-4c93-ad52-54d846fd3cf3"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 97.38
+                    },
+                    "uuid": "7217442e-54b5-48f8-afaf-e4efccaecd84"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.54
+                    },
+                    "uuid": "5b785d8d-36ed-4204-bcdc-3882c8b70b1c"
+                },
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 248.54,
+                        "y": 112.0
+                    },
+                    "uuid": "3449263d-bf5a-4c93-ad52-54d846fd3cf3"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 112.0
+                    },
+                    "uuid": "f7c7a715-d13f-495c-a4f7-f0a64a61eccf"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 226.0,
+                        "y": 114.0
+                    },
+                    "uuid": "a367b6d5-9853-4fe6-8c5d-078e0dc2e6e2"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 105.0
+                    },
+                    "uuid": "cd75aa29-aba3-4150-b9ae-ef12e532eef7"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 242.0,
+                        "y": 88.0
+                    },
+                    "uuid": "e525d3d6-4114-4c80-89f6-8904601f80b0"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 226.0,
+                        "y": 114.0
+                    },
+                    "uuid": "a367b6d5-9853-4fe6-8c5d-078e0dc2e6e2"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 105.0
+                    },
+                    "uuid": "cd75aa29-aba3-4150-b9ae-ef12e532eef7"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 5V",
+                    "pos": {
+                        "x": 237.62,
+                        "y": 66.1
+                    },
+                    "uuid": "5048f16e-329c-425c-ace8-846950dc34fa"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 242.0,
+                        "y": 88.0
+                    },
+                    "uuid": "e525d3d6-4114-4c80-89f6-8904601f80b0"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 112.0
+                    },
+                    "uuid": "f7c7a715-d13f-495c-a4f7-f0a64a61eccf"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 154.0,
+                        "y": 116.0
+                    },
+                    "uuid": "bf12b216-b76d-44ab-b797-599f841b7766"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 247.27,
+                        "y": 112.0
+                    },
+                    "uuid": "df59af23-1f6c-4c43-a9d9-5fbf8de516c4"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 252.16,
+                        "y": 83.0
+                    },
+                    "uuid": "47df2b05-91a5-4aa4-bd81-1849d889ab0c"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 237.62,
+                        "y": 81.34
+                    },
+                    "uuid": "82221a92-3643-4293-b588-5c10767fe669"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 252.16,
+                        "y": 78.0
+                    },
+                    "uuid": "396caf63-b7f5-44b5-938c-6b3fcc4942f8"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 237.62,
+                        "y": 76.26
+                    },
+                    "uuid": "995ed94d-15df-4c2a-b7fb-502cc25b1450"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 242.0,
+                        "y": 83.0
+                    },
+                    "uuid": "023daf61-366a-4bb5-9727-98104c429551"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 242.0,
+                        "y": 93.0
+                    },
+                    "uuid": "607caec5-24a3-48a3-873e-48cbc30c4783"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 252.16,
+                        "y": 88.0
+                    },
+                    "uuid": "d06b21e2-56fc-41b2-bc10-00fc9eb26e7e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 237.62,
+                        "y": 78.8
+                    },
+                    "uuid": "bd4aaba6-32e0-4cb3-a77b-5cc34bfa4045"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 242.0,
+                        "y": 93.0
+                    },
+                    "uuid": "607caec5-24a3-48a3-873e-48cbc30c4783"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 4",
+                    "pos": {
+                        "x": 237.62,
+                        "y": 73.72
+                    },
+                    "uuid": "439a08bb-5fc0-4379-99d0-f6de5a96b36a"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 252.16,
+                        "y": 98.0
+                    },
+                    "uuid": "d22307da-4852-4c14-a2b4-7699628dfc0b"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 75.08
+                    },
+                    "uuid": "761f22c9-0d16-4dc4-8082-6261da336aad"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 242.0,
+                        "y": 98.0
+                    },
+                    "uuid": "d53cb85d-9527-4f0f-9945-b6bc14533ade"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 105.0
+                    },
+                    "uuid": "d055bb05-ee58-4aad-b682-544c0d01b7ad"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 224.5,
+                        "y": 105.0
+                    },
+                    "uuid": "6630f9ff-3c7a-4950-9f77-bb756ba3c863"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 224.5,
+                        "y": 105.0
+                    },
+                    "uuid": "6630f9ff-3c7a-4950-9f77-bb756ba3c863"
+                },
+                {
+                    "description": "PTH pad 0",
+                    "pos": {
+                        "x": 237.62,
+                        "y": 83.88
+                    },
+                    "uuid": "d38b56e0-1976-4b3e-82ea-e98ea0540a6d"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 4",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 77.62
+                    },
+                    "uuid": "adc6eb41-9eba-42e4-bf99-1b75a885d813"
+                },
+                {
+                    "description": "PTH pad 10",
+                    "pos": {
+                        "x": 222.38,
+                        "y": 78.8
+                    },
+                    "uuid": "84656c99-a3a0-4aa4-9a45-999819f02c34"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 72.54
+                    },
+                    "uuid": "68a38887-8667-4059-9b8b-17ce942cd865"
+                },
+                {
+                    "description": "PTH pad 5",
+                    "pos": {
+                        "x": 222.38,
+                        "y": 66.1
+                    },
+                    "uuid": "0f2fb50d-dbdd-4c8a-bd8e-7d9d9d17c905"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        }
+    ],
+    "violations": [
+        {
+            "description": "Items shorting two nets (nets CELL- and GND)",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 155.5,
+                        "y": 92.0
+                    },
+                    "uuid": "9dce44aa-e2bc-4f78-a345-b42e32b655bf"
+                },
+                {
+                    "description": "PTH pad 4",
+                    "pos": {
+                        "x": 153.5,
+                        "y": 92.0
+                    },
+                    "uuid": "283fff23-c1f5-4579-9001-5c37e9918421"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets VBAT rail and collector)",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 112.0
+                    },
+                    "uuid": "f7c7a715-d13f-495c-a4f7-f0a64a61eccf"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.54
+                    },
+                    "uuid": "5b785d8d-36ed-4204-bcdc-3882c8b70b1c"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Clearance violation (netclass 'Default' clearance 0.2000 mm; actual 0.0950 mm)",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 112.0
+                    },
+                    "uuid": "f7c7a715-d13f-495c-a4f7-f0a64a61eccf"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.0
+                    },
+                    "uuid": "4573fbcf-9e6c-43fe-a8d2-178d0a3257a4"
+                }
+            ],
+            "severity": "error",
+            "type": "clearance"
+        },
+        {
+            "description": "Clearance violation (netclass 'Default' clearance 0.2000 mm; actual 0.0950 mm)",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.54
+                    },
+                    "uuid": "5b785d8d-36ed-4204-bcdc-3882c8b70b1c"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 210.0,
+                        "y": 114.0
+                    },
+                    "uuid": "482e4aa0-fe44-4aaa-ae34-067d2134d2db"
+                }
+            ],
+            "severity": "error",
+            "type": "clearance"
+        },
+        {
+            "description": "Items shorting two nets (nets collector and CELL-)",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.54
+                    },
+                    "uuid": "5b785d8d-36ed-4204-bcdc-3882c8b70b1c"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.0
+                    },
+                    "uuid": "4573fbcf-9e6c-43fe-a8d2-178d0a3257a4"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets BT-BAT and CELL-)",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 210.0,
+                        "y": 114.0
+                    },
+                    "uuid": "482e4aa0-fe44-4aaa-ae34-067d2134d2db"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.0
+                    },
+                    "uuid": "4573fbcf-9e6c-43fe-a8d2-178d0a3257a4"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Clearance violation (netclass 'Default' clearance 0.2000 mm; actual 0.0000 mm)",
+            "items": [
+                {
+                    "description": "PTH pad",
+                    "pos": {
+                        "x": 221.9,
+                        "y": 114.0
+                    },
+                    "uuid": "b49d24a6-b6e2-4903-8a76-66c98ecc3f26"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 224.0,
+                        "y": 114.0
+                    },
+                    "uuid": "b8b5b3ae-8933-47ee-87a7-d1dd7e86cf04"
+                }
+            ],
+            "severity": "error",
+            "type": "clearance"
+        },
+        {
+            "description": "Clearance violation (netclass 'Default' clearance 0.2000 mm; actual 0.0000 mm)",
+            "items": [
+                {
+                    "description": "PTH pad",
+                    "pos": {
+                        "x": 230.1,
+                        "y": 114.0
+                    },
+                    "uuid": "f79f3d44-4701-4020-b46e-e91b7b7d8c03"
+                },
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 228.0,
+                        "y": 114.0
+                    },
+                    "uuid": "925eae77-ae25-442c-b982-3e245be43378"
+                }
+            ],
+            "severity": "error",
+            "type": "clearance"
+        },
+        {
+            "description": "Items shorting two nets (nets BT-BAT and VBAT rail)",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 224.0,
+                        "y": 114.0
+                    },
+                    "uuid": "b8b5b3ae-8933-47ee-87a7-d1dd7e86cf04"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 226.0,
+                        "y": 114.0
+                    },
+                    "uuid": "a367b6d5-9853-4fe6-8c5d-078e0dc2e6e2"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Clearance violation (netclass 'Default' clearance 0.2000 mm; actual 0.0000 mm)",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 226.0,
+                        "y": 114.0
+                    },
+                    "uuid": "a367b6d5-9853-4fe6-8c5d-078e0dc2e6e2"
+                },
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 228.0,
+                        "y": 114.0
+                    },
+                    "uuid": "925eae77-ae25-442c-b982-3e245be43378"
+                }
+            ],
+            "severity": "error",
+            "type": "clearance"
+        },
+        {
+            "description": "Items shorting two nets (nets +5V_MOD and GND)",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 196.0,
+                        "y": 114.0
+                    },
+                    "uuid": "b8a6d834-0aed-4517-8244-6df165e4514b"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 198.0,
+                        "y": 114.0
+                    },
+                    "uuid": "43ec2965-e6a5-489e-bd17-058054c6460c"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets GND and Net-(Q2-B))",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 112.0
+                    },
+                    "uuid": "096981e6-d9f8-429e-9925-01598a913bb3"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 247.27,
+                        "y": 112.0
+                    },
+                    "uuid": "df59af23-1f6c-4c43-a9d9-5fbf8de516c4"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets GND and collector)",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 112.0
+                    },
+                    "uuid": "096981e6-d9f8-429e-9925-01598a913bb3"
+                },
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 248.54,
+                        "y": 112.0
+                    },
+                    "uuid": "3449263d-bf5a-4c93-ad52-54d846fd3cf3"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets Net-(Q2-B) and collector)",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 247.27,
+                        "y": 112.0
+                    },
+                    "uuid": "df59af23-1f6c-4c43-a9d9-5fbf8de516c4"
+                },
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 248.54,
+                        "y": 112.0
+                    },
+                    "uuid": "3449263d-bf5a-4c93-ad52-54d846fd3cf3"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets +5V_MOD and GND)",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 172.0,
+                        "y": 90.0
+                    },
+                    "uuid": "cf009585-63e3-4017-950f-74ee56363dcd"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 174.0,
+                        "y": 90.0
+                    },
+                    "uuid": "95c0b6a1-d887-47ca-a27b-af838a439d9a"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets GND and Net-(D1-A))",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 118.0
+                    },
+                    "uuid": "09e6bbbc-4090-42c5-b450-2363d717f499"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 248.54,
+                        "y": 118.0
+                    },
+                    "uuid": "ea726d0b-6647-47d6-b000-2d411ca5069a"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Courtyards overlap",
+            "items": [
+                {
+                    "description": "Footprint R7",
+                    "pos": {
+                        "x": 242.0,
+                        "y": 98.0
+                    },
+                    "uuid": "31e6ff81-2f19-4d5e-bcdc-dff81421bf47"
+                },
+                {
+                    "description": "Footprint D2",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 105.0
+                    },
+                    "uuid": "331fbef1-a16b-4135-9c92-239dd28a52b3"
+                }
+            ],
+            "severity": "error",
+            "type": "courtyards_overlap"
+        },
+        {
+            "description": "Courtyards overlap",
+            "items": [
+                {
+                    "description": "Footprint M1",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 112.0
+                    },
+                    "uuid": "339a3129-fed2-4b4d-9574-7fb94cbda9f3"
+                },
+                {
+                    "description": "Footprint BT1",
+                    "pos": {
+                        "x": 210.0,
+                        "y": 114.0
+                    },
+                    "uuid": "64f4d0be-4dd9-43ae-87c9-1bbb651c1a39"
+                }
+            ],
+            "severity": "error",
+            "type": "courtyards_overlap"
+        },
+        {
+            "description": "Courtyards overlap",
+            "items": [
+                {
+                    "description": "Footprint U1",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 70.0
+                    },
+                    "uuid": "37bdb9cb-f13e-4f40-aec8-4c15bdbc5195"
+                },
+                {
+                    "description": "Footprint U3",
+                    "pos": {
+                        "x": 230.0,
+                        "y": 76.0
+                    },
+                    "uuid": "9955fc8a-c51a-4276-a544-74cd9b98db7a"
+                }
+            ],
+            "severity": "error",
+            "type": "courtyards_overlap"
+        },
+        {
+            "description": "Courtyards overlap",
+            "items": [
+                {
+                    "description": "Footprint U1",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 70.0
+                    },
+                    "uuid": "37bdb9cb-f13e-4f40-aec8-4c15bdbc5195"
+                },
+                {
+                    "description": "Footprint SW1",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 100.0
+                    },
+                    "uuid": "d404fb2c-5688-4260-b3b6-05f9cb047a7a"
+                }
+            ],
+            "severity": "error",
+            "type": "courtyards_overlap"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Rectangle on F.Silkscreen",
+                    "pos": {
+                        "x": 151.5,
+                        "y": 66.0
+                    },
+                    "uuid": "86d6f6d5-9327-4626-8a41-57202b6c6b17"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Rectangle on F.Silkscreen",
+                    "pos": {
+                        "x": 156.0,
+                        "y": 66.0
+                    },
+                    "uuid": "3e2ca238-58ad-476c-8de4-4b48ef66013d"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Board edge clearance violation (board setup constraints edge clearance 0.5000 mm; actual 0.0000 mm)",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "PTH pad 5",
+                    "pos": {
+                        "x": 222.38,
+                        "y": 66.1
+                    },
+                    "uuid": "0f2fb50d-dbdd-4c8a-bd8e-7d9d9d17c905"
+                }
+            ],
+            "severity": "error",
+            "type": "copper_edge_clearance"
+        },
+        {
+            "description": "Board edge clearance violation (board setup constraints edge clearance 0.5000 mm; actual 0.0000 mm)",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "PTH pad 5V",
+                    "pos": {
+                        "x": 237.62,
+                        "y": 66.1
+                    },
+                    "uuid": "5048f16e-329c-425c-ace8-846950dc34fa"
+                }
+            ],
+            "severity": "error",
+            "type": "copper_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 221.0,
+                        "y": 87.35
+                    },
+                    "uuid": "baf6cff4-ce45-4d2b-85ac-578b66bfa60e"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 239.0,
+                        "y": 87.35
+                    },
+                    "uuid": "26918975-6960-4499-a89a-4f5a43ffface"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 243.81,
+                        "y": 96.63
+                    },
+                    "uuid": "f10b621a-2a0f-4b0f-aa29-6e47be9fb89a"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 250.35,
+                        "y": 99.37
+                    },
+                    "uuid": "9bd4c80f-67ca-4dac-bb8e-1bf04355a479"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 243.81,
+                        "y": 76.63
+                    },
+                    "uuid": "a3506fbc-e5f9-46f9-a59c-019047a7d447"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 250.35,
+                        "y": 79.37
+                    },
+                    "uuid": "ca69e93d-b810-46e8-815f-9ac413bd92cc"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 243.81,
+                        "y": 86.63
+                    },
+                    "uuid": "4f77047b-fac0-48ad-ba14-79598ff7fc22"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 250.35,
+                        "y": 89.37
+                    },
+                    "uuid": "a9d0c7c6-a660-4c72-aca9-08f28b29764e"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Board edge clearance violation (board setup constraints edge clearance 0.5000 mm; actual 0.1900 mm)",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 248.54,
+                        "y": 112.0
+                    },
+                    "uuid": "3449263d-bf5a-4c93-ad52-54d846fd3cf3"
+                }
+            ],
+            "severity": "error",
+            "type": "copper_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 243.81,
+                        "y": 91.63
+                    },
+                    "uuid": "1b793a20-6388-4105-a047-e719eb03a409"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 250.35,
+                        "y": 94.37
+                    },
+                    "uuid": "59af4268-f726-42ff-8e63-d8aa8650512f"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 243.81,
+                        "y": 81.63
+                    },
+                    "uuid": "95722cb8-bbd3-40de-ae82-7d8bc6426b6a"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 250.35,
+                        "y": 84.37
+                    },
+                    "uuid": "2c01b41b-13f2-4ed9-9c0e-047baa7e3020"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Board edge clearance violation (board setup constraints edge clearance 0.5000 mm; actual 0.1900 mm)",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 248.54,
+                        "y": 118.0
+                    },
+                    "uuid": "ea726d0b-6647-47d6-b000-2d411ca5069a"
+                }
+            ],
+            "severity": "error",
+            "type": "copper_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Arc on B.Silkscreen",
+                    "pos": {
+                        "x": 247.27,
+                        "y": 118.0
+                    },
+                    "uuid": "57dd6ea6-2cda-438e-b340-d6c27b49c63f"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Rectangle on Edge.Cuts",
+                    "pos": {
+                        "x": 150.0,
+                        "y": 66.0
+                    },
+                    "uuid": "f75b1125-3f2b-45f4-9cfa-8972276de9b8"
+                },
+                {
+                    "description": "Arc on B.Silkscreen",
+                    "pos": {
+                        "x": 247.27,
+                        "y": 118.0
+                    },
+                    "uuid": "5b50d059-e185-49e9-bfb6-9b33d15e7061"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Drilled hole too close to other hole (board setup constraints min 0.2495 mm; actual 0.0000 mm)",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.0
+                    },
+                    "uuid": "4573fbcf-9e6c-43fe-a8d2-178d0a3257a4"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.54
+                    },
+                    "uuid": "5b785d8d-36ed-4204-bcdc-3882c8b70b1c"
+                }
+            ],
+            "severity": "warning",
+            "type": "hole_to_hole"
+        },
+        {
+            "description": "Footprint 'TP4056_Module' does not match copy in library 'TP4056_Module'.",
+            "items": [
+                {
+                    "description": "Footprint U2",
+                    "pos": {
+                        "x": 160.0,
+                        "y": 80.0
+                    },
+                    "uuid": "289473c0-e55d-4953-beea-b988ba8e2ae9"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'PinHeader_1x02_P2.54mm_Vertical' does not match copy in library 'Connector_PinHeader_2.54mm'.",
+            "items": [
+                {
+                    "description": "Footprint M1",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 112.0
+                    },
+                    "uuid": "339a3129-fed2-4b4d-9574-7fb94cbda9f3"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'BK_A7670_Module' does not match copy in library 'BK_A7670'.",
+            "items": [
+                {
+                    "description": "Footprint U1",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 70.0
+                    },
+                    "uuid": "37bdb9cb-f13e-4f40-aec8-4c15bdbc5195"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'JST_PH_S2B-PH-K_1x02_P2.00mm_Horizontal' does not match copy in library 'Connector_JST'.",
+            "items": [
+                {
+                    "description": "Footprint BT1",
+                    "pos": {
+                        "x": 210.0,
+                        "y": 114.0
+                    },
+                    "uuid": "64f4d0be-4dd9-43ae-87c9-1bbb651c1a39"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'MODULE_ESP32-C3_SUPERMINI_TH' does not match copy in library 'ESP32-C3_supermini'.",
+            "items": [
+                {
+                    "description": "Footprint U3",
+                    "pos": {
+                        "x": 230.0,
+                        "y": 76.0
+                    },
+                    "uuid": "9955fc8a-c51a-4276-a544-74cd9b98db7a"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'SW_Slide_SPDT_Angled_CK_OS102011MA1Q' does not match copy in library 'Button_Switch_THT'.",
+            "items": [
+                {
+                    "description": "Footprint SW2",
+                    "pos": {
+                        "x": 224.0,
+                        "y": 114.0
+                    },
+                    "uuid": "b9fe4bec-c65f-4447-8b39-ddb902545744"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'SW_SPST_Omron_B3F-50xx' does not match copy in library 'Button_Switch_THT'.",
+            "items": [
+                {
+                    "description": "Footprint SW1",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 100.0
+                    },
+                    "uuid": "d404fb2c-5688-4260-b3b6-05f9cb047a7a"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal' does not match copy in library 'Resistor_THT'.",
+            "items": [
+                {
+                    "description": "Footprint R7",
+                    "pos": {
+                        "x": 242.0,
+                        "y": 98.0
+                    },
+                    "uuid": "31e6ff81-2f19-4d5e-bcdc-dff81421bf47"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal' does not match copy in library 'Resistor_THT'.",
+            "items": [
+                {
+                    "description": "Footprint R1",
+                    "pos": {
+                        "x": 242.0,
+                        "y": 78.0
+                    },
+                    "uuid": "3285be54-e62b-4833-85fb-90f891bb9d5a"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'D_DO-35_SOD27_P7.62mm_Horizontal' does not match copy in library 'Diode_THT'.",
+            "items": [
+                {
+                    "description": "Footprint D2",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 105.0
+                    },
+                    "uuid": "331fbef1-a16b-4135-9c92-239dd28a52b3"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal' does not match copy in library 'Resistor_THT'.",
+            "items": [
+                {
+                    "description": "Footprint R4",
+                    "pos": {
+                        "x": 242.0,
+                        "y": 88.0
+                    },
+                    "uuid": "405bc6de-d22f-4fcb-acec-3311c9efbc23"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'CP_Radial_D5.0mm_P2.00mm' does not match copy in library 'Capacitor_THT'.",
+            "items": [
+                {
+                    "description": "Footprint C6",
+                    "pos": {
+                        "x": 196.0,
+                        "y": 114.0
+                    },
+                    "uuid": "57bc747d-d475-49bc-b631-d7e3d5e2a8e3"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'MT3608_Module' does not match copy in library 'MT3608_Module'.",
+            "items": [
+                {
+                    "description": "Footprint U4",
+                    "pos": {
+                        "x": 172.0,
+                        "y": 108.0
+                    },
+                    "uuid": "5db38a03-126e-44f5-b38e-b8648315e125"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'TO-92_Inline' does not match copy in library 'Package_TO_SOT_THT'.",
+            "items": [
+                {
+                    "description": "Footprint Q2",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 112.0
+                    },
+                    "uuid": "72f5d05c-fce0-40f7-9009-2f22409cf810"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'CP_Radial_D5.0mm_P2.00mm' does not match copy in library 'Capacitor_THT'.",
+            "items": [
+                {
+                    "description": "Footprint C5",
+                    "pos": {
+                        "x": 172.0,
+                        "y": 90.0
+                    },
+                    "uuid": "95fe610e-b4a8-4c69-8bc7-70c7446b0bfe"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal' does not match copy in library 'Resistor_THT'.",
+            "items": [
+                {
+                    "description": "Footprint R5",
+                    "pos": {
+                        "x": 242.0,
+                        "y": 93.0
+                    },
+                    "uuid": "aeb91889-dc20-4564-87a0-165787e43b28"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal' does not match copy in library 'Resistor_THT'.",
+            "items": [
+                {
+                    "description": "Footprint R3",
+                    "pos": {
+                        "x": 242.0,
+                        "y": 83.0
+                    },
+                    "uuid": "aec7fc99-278f-4e6f-93b4-f3123e335907"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'LED_D5.0mm' does not match copy in library 'LED_THT'.",
+            "items": [
+                {
+                    "description": "Footprint D1",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 118.0
+                    },
+                    "uuid": "b0edc6f2-ec2b-4065-adba-522f49b55307"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Footprint 'C_Disc_D5.0mm_W2.5mm_P5.00mm' does not match copy in library 'Capacitor_THT'.",
+            "items": [
+                {
+                    "description": "Footprint C3",
+                    "pos": {
+                        "x": 172.0,
+                        "y": 76.0
+                    },
+                    "uuid": "c0db9919-57a4-44b9-b4bf-1ff5448eaf03"
+                }
+            ],
+            "severity": "warning",
+            "type": "lib_footprint_mismatch"
+        },
+        {
+            "description": "Text height out of range (board setup constraints silk text height min height 0.8000 mm; actual 0.7000 mm)",
+            "items": [
+                {
+                    "description": "Footprint text of U2 (IN-)",
+                    "pos": {
+                        "x": 153.5,
+                        "y": 69.4
+                    },
+                    "uuid": "069ccac7-7c6d-4e02-9966-f33d5671ccca"
+                }
+            ],
+            "severity": "warning",
+            "type": "text_height"
+        },
+        {
+            "description": "Text height out of range (board setup constraints silk text height min height 0.8000 mm; actual 0.5000 mm)",
+            "items": [
+                {
+                    "description": "Footprint text of U2 (OUT-)",
+                    "pos": {
+                        "x": 152.35,
+                        "y": 92.25
+                    },
+                    "uuid": "533336f2-3281-4c83-8839-540c4d877a31"
+                }
+            ],
+            "severity": "warning",
+            "type": "text_height"
+        },
+        {
+            "description": "Text height out of range (board setup constraints silk text height min height 0.8000 mm; actual 0.5000 mm)",
+            "items": [
+                {
+                    "description": "Footprint text of U2 (OUT+)",
+                    "pos": {
+                        "x": 167.85,
+                        "y": 92.0
+                    },
+                    "uuid": "536ef1d6-3f47-48c1-bc49-2c7927edabe3"
+                }
+            ],
+            "severity": "warning",
+            "type": "text_height"
+        },
+        {
+            "description": "Text height out of range (board setup constraints silk text height min height 0.8000 mm; actual 0.7000 mm)",
+            "items": [
+                {
+                    "description": "Footprint text of U2 (IN+)",
+                    "pos": {
+                        "x": 166.5,
+                        "y": 69.4
+                    },
+                    "uuid": "9e46893f-38e9-43b2-9e88-8c6be21f0541"
+                }
+            ],
+            "severity": "warning",
+            "type": "text_height"
+        },
+        {
+            "description": "Text height out of range (board setup constraints silk text height min height 0.8000 mm; actual 0.5000 mm)",
+            "items": [
+                {
+                    "description": "Footprint text of U2 (B+)",
+                    "pos": {
+                        "x": 162.85,
+                        "y": 92.25
+                    },
+                    "uuid": "b459824c-210b-48bd-ae52-dbf0f847def5"
+                }
+            ],
+            "severity": "warning",
+            "type": "text_height"
+        },
+        {
+            "description": "Text height out of range (board setup constraints silk text height min height 0.8000 mm; actual 0.5000 mm)",
+            "items": [
+                {
+                    "description": "Footprint text of U2 (B-)",
+                    "pos": {
+                        "x": 156.85,
+                        "y": 91.5
+                    },
+                    "uuid": "dfc52e34-b8f4-4e5d-a90e-d3bf53d55b8f"
+                }
+            ],
+            "severity": "warning",
+            "type": "text_height"
+        },
+        {
+            "description": "Text height out of range (board setup constraints silk text height min height 0.8000 mm; actual 0.7000 mm)",
+            "items": [
+                {
+                    "description": "Footprint text of U4 (DC-DC 5V)",
+                    "pos": {
+                        "x": 172.0,
+                        "y": 108.0
+                    },
+                    "uuid": "a3b4c5d6-e7f8-9012-6789-123456789012"
+                }
+            ],
+            "severity": "warning",
+            "type": "text_height"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Footprint text of U2 (OUT-)",
+                    "pos": {
+                        "x": 152.35,
+                        "y": 92.25
+                    },
+                    "uuid": "533336f2-3281-4c83-8839-540c4d877a31"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Footprint text of U2 (OUT+)",
+                    "pos": {
+                        "x": 167.85,
+                        "y": 92.0
+                    },
+                    "uuid": "536ef1d6-3f47-48c1-bc49-2c7927edabe3"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Footprint text of U2 (B-)",
+                    "pos": {
+                        "x": 156.85,
+                        "y": 91.5
+                    },
+                    "uuid": "dfc52e34-b8f4-4e5d-a90e-d3bf53d55b8f"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 210.67,
+                        "y": 113.27
+                    },
+                    "uuid": "4b51e8e2-43e0-4a4c-b794-3a2f686805c8"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 210.67,
+                        "y": 113.27
+                    },
+                    "uuid": "16bba245-123b-47f3-9a26-25d71f6895d3"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Rectangle on F.Silkscreen",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 69.0
+                    },
+                    "uuid": "1834371d-94bc-4ca5-b50b-db40c228be94"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Footprint text of U1 (T)",
+                    "pos": {
+                        "x": 184.0,
+                        "y": 75.25
+                    },
+                    "uuid": "1ec7e79f-2aef-4ca0-adf7-2a52d9bddc94"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Footprint text of U1 (R)",
+                    "pos": {
+                        "x": 184.0,
+                        "y": 72.5
+                    },
+                    "uuid": "1ee649a7-a690-4fed-a426-a2ab35be2eca"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Footprint text of U1 (G)",
+                    "pos": {
+                        "x": 184.0,
+                        "y": 70.25
+                    },
+                    "uuid": "4bcadc5c-8169-4e14-8f33-dfda3a18235c"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Footprint text of U1 (S)",
+                    "pos": {
+                        "x": 184.0,
+                        "y": 85.24
+                    },
+                    "uuid": "f0e5c768-607d-4bdf-a4e4-84ad388f0b05"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 207.94,
+                        "y": 114.14
+                    },
+                    "uuid": "54262649-bbe3-4d0d-b358-e2bb8f9d63f4"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 208.86,
+                        "y": 114.14
+                    },
+                    "uuid": "894d95b2-3059-4205-9249-b2d76ff20dd6"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 209.14,
+                        "y": 114.14
+                    },
+                    "uuid": "905fda79-1f1c-4069-a5eb-86f4fd9c4b97"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 209.14,
+                        "y": 114.14
+                    },
+                    "uuid": "757d6652-a9ce-4381-9dfb-14566150e5aa"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 213.14,
+                        "y": 112.54
+                    },
+                    "uuid": "898555f2-6dc1-491d-8ff0-6be0a024a27d"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 213.14,
+                        "y": 114.14
+                    },
+                    "uuid": "b2725d4d-c5d3-47d5-97e2-c9a71941d6b6"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 214.06,
+                        "y": 114.14
+                    },
+                    "uuid": "898ae584-1885-4fae-8a38-cd5522e2b9ac"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 243.04,
+                        "y": 98.0
+                    },
+                    "uuid": "6cfcbd1f-9be7-4af1-b7d1-66703b9f724a"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 251.12,
+                        "y": 98.0
+                    },
+                    "uuid": "50f9094f-3704-4e4e-a394-cdaa55900c3f"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 243.04,
+                        "y": 78.0
+                    },
+                    "uuid": "0b142b14-b90a-4e7f-a154-8586edf9cfa5"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 251.12,
+                        "y": 78.0
+                    },
+                    "uuid": "02dba1fa-63e4-4f17-8985-a32bddbb1912"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 243.04,
+                        "y": 88.0
+                    },
+                    "uuid": "23d6be59-d2a2-44e0-8b4a-a4bf2b5a5ba1"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 251.12,
+                        "y": 88.0
+                    },
+                    "uuid": "727bfe0d-df01-486b-bcdb-5d34c84e836a"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 199.041,
+                        "y": 115.605
+                    },
+                    "uuid": "5bffb50f-3038-4286-97ff-762817f103e2"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 199.081,
+                        "y": 115.554
+                    },
+                    "uuid": "99bd660a-1eab-48f3-9421-009c0ba4cd7a"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 199.121,
+                        "y": 115.5
+                    },
+                    "uuid": "d54b9e92-cc1f-4a69-abe4-8d2d28650891"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 199.161,
+                        "y": 115.443
+                    },
+                    "uuid": "957ea5ad-0b6d-4821-b7b9-6c05e69d78d0"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 199.201,
+                        "y": 115.383
+                    },
+                    "uuid": "a6e89ee4-d0be-4bc2-a7cd-760d340c1e04"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 199.241,
+                        "y": 115.319
+                    },
+                    "uuid": "e817d965-d09c-456c-8dc4-188bd5f86097"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 199.281,
+                        "y": 115.251
+                    },
+                    "uuid": "0d47b8ad-1cca-45f0-9cdc-bea759c897e5"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 199.321,
+                        "y": 115.178
+                    },
+                    "uuid": "808f5796-7224-4671-ae46-7f554e58ef38"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Footprint text of U4 (OUT-)",
+                    "pos": {
+                        "x": 189.5,
+                        "y": 101.75
+                    },
+                    "uuid": "2840c014-3e8e-4802-95f7-a6c2d0d45c51"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Footprint text of U4 (OUT+)",
+                    "pos": {
+                        "x": 189.75,
+                        "y": 113.75
+                    },
+                    "uuid": "66135e37-7e81-40a4-91d4-e6ee27022504"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Arc on B.Silkscreen",
+                    "pos": {
+                        "x": 247.27,
+                        "y": 112.0
+                    },
+                    "uuid": "433e9ed9-bf99-4365-9101-a69b1d2cf895"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Arc on B.Silkscreen",
+                    "pos": {
+                        "x": 247.27,
+                        "y": 112.0
+                    },
+                    "uuid": "f5b01a47-b0c2-4c75-b350-044aa2bf9334"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 175.041,
+                        "y": 91.605
+                    },
+                    "uuid": "2a316c08-632d-47ce-9dbd-6bb725aa54ff"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 175.081,
+                        "y": 91.554
+                    },
+                    "uuid": "b092edb7-065d-486d-9c54-5bdb37676f0b"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 175.121,
+                        "y": 91.5
+                    },
+                    "uuid": "d24b7698-62d2-4702-802b-4890156b4cb7"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 175.161,
+                        "y": 91.443
+                    },
+                    "uuid": "a4372520-2419-4e6c-bb0f-08ae4874026a"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 175.201,
+                        "y": 91.383
+                    },
+                    "uuid": "76403654-3ae4-44cf-abfe-216b830b1752"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 175.241,
+                        "y": 91.319
+                    },
+                    "uuid": "2866a5ca-f8cb-421f-923f-380f575b7659"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 175.281,
+                        "y": 91.251
+                    },
+                    "uuid": "190c6e85-331c-4ad4-9309-1edaff9d155a"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 175.321,
+                        "y": 91.178
+                    },
+                    "uuid": "5b900734-3e8c-4540-b9f3-2f2f8c053c71"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 243.04,
+                        "y": 93.0
+                    },
+                    "uuid": "60c983d0-714f-4754-82a4-4ca146bf4241"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 251.12,
+                        "y": 93.0
+                    },
+                    "uuid": "7d10d2a1-0e66-4c86-9046-9d56de4be7ce"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 243.04,
+                        "y": 83.0
+                    },
+                    "uuid": "90b11ef1-9371-4e1d-9e59-5d2636aee751"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 251.12,
+                        "y": 83.0
+                    },
+                    "uuid": "954280d2-ff06-4ce7-bc29-21201c0b9d10"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 244.71,
+                        "y": 119.545
+                    },
+                    "uuid": "1c4d8c99-3905-4e6c-b0a2-6a69ac80d29f"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Circle on B.Silkscreen",
+                    "pos": {
+                        "x": 247.27,
+                        "y": 118.0
+                    },
+                    "uuid": "b0a9a610-f637-4c79-bca6-7f68d7ca152b"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 155.5,
+                        "y": 92.0
+                    },
+                    "uuid": "9dce44aa-e2bc-4f78-a345-b42e32b655bf"
+                },
+                {
+                    "description": "PTH pad 4",
+                    "pos": {
+                        "x": 153.5,
+                        "y": 92.0
+                    },
+                    "uuid": "283fff23-c1f5-4579-9001-5c37e9918421"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Rear solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 155.5,
+                        "y": 92.0
+                    },
+                    "uuid": "9dce44aa-e2bc-4f78-a345-b42e32b655bf"
+                },
+                {
+                    "description": "PTH pad 4",
+                    "pos": {
+                        "x": 153.5,
+                        "y": 92.0
+                    },
+                    "uuid": "283fff23-c1f5-4579-9001-5c37e9918421"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.54
+                    },
+                    "uuid": "5b785d8d-36ed-4204-bcdc-3882c8b70b1c"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.0
+                    },
+                    "uuid": "4573fbcf-9e6c-43fe-a8d2-178d0a3257a4"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Rear solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.54
+                    },
+                    "uuid": "5b785d8d-36ed-4204-bcdc-3882c8b70b1c"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.0
+                    },
+                    "uuid": "4573fbcf-9e6c-43fe-a8d2-178d0a3257a4"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 210.0,
+                        "y": 114.0
+                    },
+                    "uuid": "482e4aa0-fe44-4aaa-ae34-067d2134d2db"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.0
+                    },
+                    "uuid": "4573fbcf-9e6c-43fe-a8d2-178d0a3257a4"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Rear solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 210.0,
+                        "y": 114.0
+                    },
+                    "uuid": "482e4aa0-fe44-4aaa-ae34-067d2134d2db"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 212.0,
+                        "y": 114.0
+                    },
+                    "uuid": "4573fbcf-9e6c-43fe-a8d2-178d0a3257a4"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad",
+                    "pos": {
+                        "x": 221.9,
+                        "y": 114.0
+                    },
+                    "uuid": "b49d24a6-b6e2-4903-8a76-66c98ecc3f26"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 224.0,
+                        "y": 114.0
+                    },
+                    "uuid": "b8b5b3ae-8933-47ee-87a7-d1dd7e86cf04"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Rear solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad",
+                    "pos": {
+                        "x": 221.9,
+                        "y": 114.0
+                    },
+                    "uuid": "b49d24a6-b6e2-4903-8a76-66c98ecc3f26"
+                },
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 224.0,
+                        "y": 114.0
+                    },
+                    "uuid": "b8b5b3ae-8933-47ee-87a7-d1dd7e86cf04"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad",
+                    "pos": {
+                        "x": 230.1,
+                        "y": 114.0
+                    },
+                    "uuid": "f79f3d44-4701-4020-b46e-e91b7b7d8c03"
+                },
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 228.0,
+                        "y": 114.0
+                    },
+                    "uuid": "925eae77-ae25-442c-b982-3e245be43378"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Rear solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad",
+                    "pos": {
+                        "x": 230.1,
+                        "y": 114.0
+                    },
+                    "uuid": "f79f3d44-4701-4020-b46e-e91b7b7d8c03"
+                },
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 228.0,
+                        "y": 114.0
+                    },
+                    "uuid": "925eae77-ae25-442c-b982-3e245be43378"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 224.0,
+                        "y": 114.0
+                    },
+                    "uuid": "b8b5b3ae-8933-47ee-87a7-d1dd7e86cf04"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 226.0,
+                        "y": 114.0
+                    },
+                    "uuid": "a367b6d5-9853-4fe6-8c5d-078e0dc2e6e2"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Rear solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 224.0,
+                        "y": 114.0
+                    },
+                    "uuid": "b8b5b3ae-8933-47ee-87a7-d1dd7e86cf04"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 226.0,
+                        "y": 114.0
+                    },
+                    "uuid": "a367b6d5-9853-4fe6-8c5d-078e0dc2e6e2"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 226.0,
+                        "y": 114.0
+                    },
+                    "uuid": "a367b6d5-9853-4fe6-8c5d-078e0dc2e6e2"
+                },
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 228.0,
+                        "y": 114.0
+                    },
+                    "uuid": "925eae77-ae25-442c-b982-3e245be43378"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Rear solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 226.0,
+                        "y": 114.0
+                    },
+                    "uuid": "a367b6d5-9853-4fe6-8c5d-078e0dc2e6e2"
+                },
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 228.0,
+                        "y": 114.0
+                    },
+                    "uuid": "925eae77-ae25-442c-b982-3e245be43378"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 196.0,
+                        "y": 114.0
+                    },
+                    "uuid": "b8a6d834-0aed-4517-8244-6df165e4514b"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 198.0,
+                        "y": 114.0
+                    },
+                    "uuid": "43ec2965-e6a5-489e-bd17-058054c6460c"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Rear solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 196.0,
+                        "y": 114.0
+                    },
+                    "uuid": "b8a6d834-0aed-4517-8244-6df165e4514b"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 198.0,
+                        "y": 114.0
+                    },
+                    "uuid": "43ec2965-e6a5-489e-bd17-058054c6460c"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 112.0
+                    },
+                    "uuid": "096981e6-d9f8-429e-9925-01598a913bb3"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 247.27,
+                        "y": 112.0
+                    },
+                    "uuid": "df59af23-1f6c-4c43-a9d9-5fbf8de516c4"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Rear solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 246.0,
+                        "y": 112.0
+                    },
+                    "uuid": "096981e6-d9f8-429e-9925-01598a913bb3"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 247.27,
+                        "y": 112.0
+                    },
+                    "uuid": "df59af23-1f6c-4c43-a9d9-5fbf8de516c4"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 247.27,
+                        "y": 112.0
+                    },
+                    "uuid": "df59af23-1f6c-4c43-a9d9-5fbf8de516c4"
+                },
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 248.54,
+                        "y": 112.0
+                    },
+                    "uuid": "3449263d-bf5a-4c93-ad52-54d846fd3cf3"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Rear solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 247.27,
+                        "y": 112.0
+                    },
+                    "uuid": "df59af23-1f6c-4c43-a9d9-5fbf8de516c4"
+                },
+                {
+                    "description": "PTH pad 3",
+                    "pos": {
+                        "x": 248.54,
+                        "y": 112.0
+                    },
+                    "uuid": "3449263d-bf5a-4c93-ad52-54d846fd3cf3"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 172.0,
+                        "y": 90.0
+                    },
+                    "uuid": "cf009585-63e3-4017-950f-74ee56363dcd"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 174.0,
+                        "y": 90.0
+                    },
+                    "uuid": "95c0b6a1-d887-47ca-a27b-af838a439d9a"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Rear solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "PTH pad 1",
+                    "pos": {
+                        "x": 172.0,
+                        "y": 90.0
+                    },
+                    "uuid": "cf009585-63e3-4017-950f-74ee56363dcd"
+                },
+                {
+                    "description": "PTH pad 2",
+                    "pos": {
+                        "x": 174.0,
+                        "y": 90.0
+                    },
+                    "uuid": "95c0b6a1-d887-47ca-a27b-af838a439d9a"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Rectangle on F.Silkscreen",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 69.0
+                    },
+                    "uuid": "1834371d-94bc-4ca5-b50b-db40c228be94"
+                },
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 221.0,
+                        "y": 87.35
+                    },
+                    "uuid": "baf6cff4-ce45-4d2b-85ac-578b66bfa60e"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Rectangle on F.Silkscreen",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 69.0
+                    },
+                    "uuid": "1834371d-94bc-4ca5-b50b-db40c228be94"
+                },
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 212.14,
+                        "y": 96.39
+                    },
+                    "uuid": "f26001a6-52d1-4ce4-a532-c62d5991221b"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Rectangle on F.Silkscreen",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 69.0
+                    },
+                    "uuid": "1834371d-94bc-4ca5-b50b-db40c228be94"
+                },
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 239.0,
+                        "y": 87.35
+                    },
+                    "uuid": "cd71edf9-8102-4ee5-855f-17a8f37a22fb"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Rectangle on F.Silkscreen",
+                    "pos": {
+                        "x": 185.0,
+                        "y": 69.0
+                    },
+                    "uuid": "1834371d-94bc-4ca5-b50b-db40c228be94"
+                },
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 212.14,
+                        "y": 106.1
+                    },
+                    "uuid": "9b716fb8-2f25-4f9c-a4ed-e796ba1d9bcd"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Reference field of M1",
+                    "pos": {
+                        "x": 210.75,
+                        "y": 110.025
+                    },
+                    "uuid": "7688ed07-1eb2-4463-b432-792539df7c7b"
+                },
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 210.67,
+                        "y": 112.0
+                    },
+                    "uuid": "f396da5e-b15d-42b1-97af-761383efd4a4"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 210.67,
+                        "y": 113.27
+                    },
+                    "uuid": "4b51e8e2-43e0-4a4c-b794-3a2f686805c8"
+                },
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 213.14,
+                        "y": 112.54
+                    },
+                    "uuid": "898555f2-6dc1-491d-8ff0-6be0a024a27d"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 214.06,
+                        "y": 114.14
+                    },
+                    "uuid": "898ae584-1885-4fae-8a38-cd5522e2b9ac"
+                },
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 213.33,
+                        "y": 113.27
+                    },
+                    "uuid": "fc1fe1f7-6099-46ef-8a98-0b39bba1fd77"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 207.94,
+                        "y": 112.54
+                    },
+                    "uuid": "01d10524-abbe-4127-aa4c-a0364bdc2a10"
+                },
+                {
+                    "description": "Reference field of BT1",
+                    "pos": {
+                        "x": 207.5,
+                        "y": 114.5
+                    },
+                    "uuid": "8e45c0c8-2fb9-4bc4-bc83-ddec5d67d2e5"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 207.94,
+                        "y": 114.14
+                    },
+                    "uuid": "54262649-bbe3-4d0d-b358-e2bb8f9d63f4"
+                },
+                {
+                    "description": "Reference field of BT1",
+                    "pos": {
+                        "x": 207.5,
+                        "y": 114.5
+                    },
+                    "uuid": "8e45c0c8-2fb9-4bc4-bc83-ddec5d67d2e5"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Reference field of M1",
+                    "pos": {
+                        "x": 210.75,
+                        "y": 110.025
+                    },
+                    "uuid": "7688ed07-1eb2-4463-b432-792539df7c7b"
+                },
+                {
+                    "description": "Segment on F.Silkscreen",
+                    "pos": {
+                        "x": 210.67,
+                        "y": 110.67
+                    },
+                    "uuid": "d00686c9-1628-421b-b296-61c32a1695be"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Reference field of R1",
+                    "pos": {
+                        "x": 246.41,
+                        "y": 79.25
+                    },
+                    "uuid": "01396ed0-8584-4edf-ac82-01f73b79abda"
+                },
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 250.35,
+                        "y": 79.37
+                    },
+                    "uuid": "ca69e93d-b810-46e8-815f-9ac413bd92cc"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 250.35,
+                        "y": 84.37
+                    },
+                    "uuid": "2c01b41b-13f2-4ed9-9c0e-047baa7e3020"
+                },
+                {
+                    "description": "Reference field of R3",
+                    "pos": {
+                        "x": 245.41,
+                        "y": 84.3
+                    },
+                    "uuid": "e816c620-7fc8-4445-8d70-7ff6e49de7a1"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Reference field of R7",
+                    "pos": {
+                        "x": 247.08,
+                        "y": 100.37
+                    },
+                    "uuid": "37ad16e2-6d95-4dcc-afd9-e54789a4af4e"
+                },
+                {
+                    "description": "Reference field of D2",
+                    "pos": {
+                        "x": 248.12,
+                        "y": 101.19
+                    },
+                    "uuid": "9d89b6da-2c12-4957-808b-a179947c9be4"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Reference field of R7",
+                    "pos": {
+                        "x": 247.08,
+                        "y": 100.37
+                    },
+                    "uuid": "37ad16e2-6d95-4dcc-afd9-e54789a4af4e"
+                },
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 247.12,
+                        "y": 99.07
+                    },
+                    "uuid": "3ce0821f-77e4-452b-a842-f899f3495e03"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 244.88,
+                        "y": 103.31
+                    },
+                    "uuid": "12c82b6e-ad32-4522-8d03-9ae18923910f"
+                },
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 250.35,
+                        "y": 99.37
+                    },
+                    "uuid": "9bd4c80f-67ca-4dac-bb8e-1bf04355a479"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 247.12,
+                        "y": 99.07
+                    },
+                    "uuid": "3ce0821f-77e4-452b-a842-f899f3495e03"
+                },
+                {
+                    "description": "Segment on B.Silkscreen",
+                    "pos": {
+                        "x": 250.35,
+                        "y": 99.37
+                    },
+                    "uuid": "9bd4c80f-67ca-4dac-bb8e-1bf04355a479"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Arc on B.Silkscreen",
+                    "pos": {
+                        "x": 247.27,
+                        "y": 112.0
+                    },
+                    "uuid": "433e9ed9-bf99-4365-9101-a69b1d2cf895"
+                },
+                {
+                    "description": "Reference field of Q2",
+                    "pos": {
+                        "x": 246.52,
+                        "y": 114.11
+                    },
+                    "uuid": "4e579505-d658-4a6a-9b60-d9ef31632c0a"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen overlap",
+            "items": [
+                {
+                    "description": "Reference field of Q2",
+                    "pos": {
+                        "x": 246.52,
+                        "y": 114.11
+                    },
+                    "uuid": "4e579505-d658-4a6a-9b60-d9ef31632c0a"
+                },
+                {
+                    "description": "Arc on B.Silkscreen",
+                    "pos": {
+                        "x": 247.27,
+                        "y": 112.0
+                    },
+                    "uuid": "f5b01a47-b0c2-4c75-b350-044aa2bf9334"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        }
+    ]
+}

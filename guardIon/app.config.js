@@ -66,6 +66,11 @@ module.exports = ({ config }) => {
         {
           icon: './assets/images/guardion-logo.png',
           color: '#072B59',
+          sounds: [
+            './assets/sound/beep-beep.mp3',
+            './assets/sound/mixkit-happy-bell-alert-601.wav',
+            './assets/sound/mixkit-system-beep-buzzer-fail-2964.wav',
+          ],
         },
       ],
     ],

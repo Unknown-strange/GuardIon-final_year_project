@@ -4,18 +4,19 @@ import MapView, { Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 
 import { getChildColorTheme } from '@/constants/child-colors';
 import { GuardianColors } from '@/constants/theme';
-import { mapDeltaForZoneRadius, type SafeZone } from '@/types/safe-zone';
+import { mapDeltaForZoneRadius, zoneColors, type SafeZone } from '@/types/safe-zone';
 
 type Props = {
-  zone: Pick<SafeZone, 'childId' | 'latitude' | 'longitude' | 'radiusM'>;
+  zone: Pick<SafeZone, 'childId' | 'latitude' | 'longitude' | 'radiusM' | 'zoneType'>;
   height?: number;
 };
 
 export function ZoneMiniMap({ zone, height = 140 }: Props) {
-  const colors = getChildColorTheme(zone.childId);
+  const childColors = getChildColorTheme(zone.childId);
+  const zoneStyle = zoneColors(zone.zoneType ?? 'safe');
 
   if (Platform.OS === 'web') {
-    return <View style={[styles.fallback, { height, backgroundColor: colors.muted }]} />;
+    return <View style={[styles.fallback, { height, backgroundColor: childColors.muted }]} />;
   }
 
   const delta = mapDeltaForZoneRadius(zone.radiusM);
@@ -39,8 +40,8 @@ export function ZoneMiniMap({ zone, height = 140 }: Props) {
         <Circle
           center={{ latitude: zone.latitude, longitude: zone.longitude }}
           radius={zone.radiusM}
-          strokeColor={colors.main}
-          fillColor={colors.fill}
+          strokeColor={zoneStyle.stroke}
+          fillColor={zoneStyle.fill}
           strokeWidth={2}
         />
       </MapView>

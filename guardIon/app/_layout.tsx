@@ -32,6 +32,13 @@ export default function RootLayout() {
         <Stack.Screen name="settings" />
         <Stack.Screen name="child" />
         <Stack.Screen
+          name="check-in"
+          options={{
+            animation: 'slide_from_right',
+            contentStyle: { backgroundColor: GuardianColors.background },
+          }}
+        />
+        <Stack.Screen
           name="notifications"
           options={{
             animation: 'slide_from_right',

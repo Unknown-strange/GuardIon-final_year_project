@@ -13,3 +13,4 @@ export {
   AlertsContactRowSkeleton,
   AlertsContactRowSkeletonList,
 } from '@/components/guardian/skeleton/alerts-screen-skeleton';
+export { HistoryScreenSkeleton } from '@/components/guardian/skeleton/history-screen-skeleton';

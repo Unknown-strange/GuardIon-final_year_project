@@ -1,0 +1,9 @@
+{
+  "extends": "./guardIon/tsconfig.json",
+  "include": [
+    "guardIon/**/*.ts",
+    "guardIon/**/*.tsx",
+    "guardIon/.expo/types/**/*.ts",
+    "guardIon/expo-env.d.ts"
+  ]
+}
