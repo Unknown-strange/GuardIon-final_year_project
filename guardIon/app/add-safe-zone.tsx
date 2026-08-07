@@ -29,6 +29,7 @@ import {
   SAFE_ZONE_RADIUS_DEFAULT,
   SAFE_ZONE_RADIUS_MAX,
   SAFE_ZONE_RADIUS_MIN,
+  type ZoneType,
 } from '@/types/safe-zone';
 
 function formatTime(date: Date): string {
@@ -45,11 +46,17 @@ function parseTime(value: string): Date {
 export default function AddSafeZoneScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { childId } = useLocalSearchParams<{ childId?: string }>();
+  const { childId, zoneType: zoneTypeParam } = useLocalSearchParams<{
+    childId?: string;
+    zoneType?: string;
+  }>();
   const resolvedChildId = String(childId ?? '');
   const { child } = useChildSummary(resolvedChildId);
   const { addZone } = useSafeZones(resolvedChildId || null);
 
+  const [zoneType, setZoneType] = useState<ZoneType>(
+    zoneTypeParam === 'danger' ? 'danger' : 'safe',
+  );
   const [zoneName, setZoneName] = useState('');
   const [radius, setRadius] = useState(SAFE_ZONE_RADIUS_DEFAULT);
   const [mapFitToken, setMapFitToken] = useState(0);
@@ -74,6 +81,7 @@ export default function AddSafeZoneScreen() {
         radiusM: Math.round(
           Math.min(SAFE_ZONE_RADIUS_MAX, Math.max(SAFE_ZONE_RADIUS_MIN, radius)),
         ),
+        zoneType,
         schedule: scheduled ? { start: startTime, end: endTime } : null,
       });
       router.back();
@@ -96,7 +104,7 @@ export default function AddSafeZoneScreen() {
     <ThemedView style={[styles.screen, { paddingTop: insets.top }]}>
       <ScreenHeader />
       <View style={styles.titleRow}>
-        <ThemedText style={styles.modalTitle}>Add Safe Zone</ThemedText>
+        <ThemedText style={styles.modalTitle}>Add Zone</ThemedText>
         <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => router.back()}>
           <Ionicons name="close" size={26} color={GuardianColors.text} />
         </Pressable>
@@ -110,11 +118,16 @@ export default function AddSafeZoneScreen() {
             childLocation={child.location}
             childPosition={{ latitude: child.latitude, longitude: child.longitude }}
             radius={radius}
+            zoneType={zoneType}
             fitToken={mapFitToken}
           />
         ) : (
           <Image
-            source={require('@/assets/mockups/safe-zone-maps.png')}
+            source={
+              zoneType === 'danger'
+                ? require('@/assets/mockups/red-zone-maps.png')
+                : require('@/assets/mockups/safe-zone-maps.png')
+            }
             style={styles.webMap}
             contentFit="cover"
           />
@@ -146,9 +159,49 @@ export default function AddSafeZoneScreen() {
         />
 
         <ThemedText style={[styles.label, { marginTop: 14 }]}>Zone Type</ThemedText>
-        <View style={styles.select}>
-          <ThemedText style={styles.selectText}>Safe Zone (Arrival/Departure Alerts)</ThemedText>
-          <Ionicons name="chevron-down" size={20} color={GuardianColors.textSecondary} />
+        <View style={styles.zoneTypeRow}>
+          <Pressable
+            accessibilityRole="button"
+            style={[
+              styles.zoneTypeCard,
+              zoneType === 'safe' && styles.zoneTypeCardSafeActive,
+            ]}
+            onPress={() => setZoneType('safe')}>
+            <Ionicons
+              name="shield-checkmark"
+              size={18}
+              color={zoneType === 'safe' ? GuardianColors.safe : GuardianColors.textMuted}
+            />
+            <ThemedText
+              style={[
+                styles.zoneTypeTitle,
+                zoneType === 'safe' && { color: GuardianColors.safe },
+              ]}>
+              Safe Zone
+            </ThemedText>
+            <ThemedText style={styles.zoneTypeSub}>Alerts when child leaves</ThemedText>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            style={[
+              styles.zoneTypeCard,
+              zoneType === 'danger' && styles.zoneTypeCardDangerActive,
+            ]}
+            onPress={() => setZoneType('danger')}>
+            <Ionicons
+              name="warning"
+              size={18}
+              color={zoneType === 'danger' ? GuardianColors.danger : GuardianColors.textMuted}
+            />
+            <ThemedText
+              style={[
+                styles.zoneTypeTitle,
+                zoneType === 'danger' && { color: GuardianColors.danger },
+              ]}>
+              Danger Zone
+            </ThemedText>
+            <ThemedText style={styles.zoneTypeSub}>Alerts when child enters</ThemedText>
+          </Pressable>
         </View>
 
         <View style={{ marginTop: 16 }}>
@@ -284,6 +337,42 @@ const styles = StyleSheet.create({
     borderColor: GuardianColors.border,
     paddingHorizontal: 14,
     paddingVertical: 14,
+  },
+  zoneTypeRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  zoneTypeCard: {
+    flex: 1,
+    backgroundColor: GuardianColors.overlaySheet,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: GuardianColors.border,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    gap: 2,
+    alignItems: 'center',
+  },
+  zoneTypeCardSafeActive: {
+    borderColor: GuardianColors.safe,
+    backgroundColor: GuardianColors.safeMuted,
+  },
+  zoneTypeCardDangerActive: {
+    borderColor: GuardianColors.danger,
+    backgroundColor: GuardianColors.dangerMuted,
+  },
+  zoneTypeTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: GuardianColors.text,
+    textAlign: 'center',
+  },
+  zoneTypeSub: {
+    fontSize: 10,
+    lineHeight: 13,
+    color: GuardianColors.textMuted,
+    textAlign: 'center',
+    fontWeight: '600',
   },
   selectText: {
     flex: 1,

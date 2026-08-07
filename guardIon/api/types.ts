@@ -133,7 +133,8 @@ export type AlertType =
   | 'device_offline'
   | 'device_tamper'
   | 'child_missing'
-  | 'danger_zone_entry';
+  | 'danger_zone_entry'
+  | 'safe_zone_entry';
 
 export type AlertStatus = 'active' | 'acknowledged' | 'resolved';
 
@@ -155,6 +156,36 @@ export type AlertResponse = {
 export type AlertListResponse = {
   alerts: AlertResponse[];
   total_count: number;
+};
+
+export type ActivityKind = 'alert' | 'location' | 'check_in';
+
+export type ActivityItemResponse = {
+  id: string;
+  kind: ActivityKind;
+  alert_type?: string | null;
+  child_id: string;
+  child_name?: string | null;
+  title: string;
+  body: string;
+  timestamp: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  zone_name?: string | null;
+};
+
+export type ActivityStatsResponse = {
+  safe_zones_visited: number;
+  check_ins_completed: number;
+  alerts_triggered: number;
+  time_active_seconds?: number | null;
+  last_location_at?: string | null;
+};
+
+export type ActivityListResponse = {
+  items: ActivityItemResponse[];
+  total_count: number;
+  stats: ActivityStatsResponse;
 };
 
 export type NotificationResponse = {

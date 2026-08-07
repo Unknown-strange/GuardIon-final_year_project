@@ -46,7 +46,7 @@ import type { SafeZone } from '@/types/safe-zone';
 
 import { childGeofenceStatus, isPointInZone } from '@/types/safe-zone';
 
-import { announceLiveAlert } from '@/utils/alert-speech';
+import { announceCheckInSafe, announceLiveAlert } from '@/utils/alert-speech';
 
 
 
@@ -94,7 +94,7 @@ function isAnnounceableAlert(alertType: string) {
 
   const type = normalizeAlertType(alertType);
 
-  return type === 'SOS' || type === 'GEOFENCE_BREACH' || type === 'CHILD_MISSING';
+  return type === 'SOS' || type === 'GEOFENCE_BREACH' || type === 'CHILD_MISSING' || type === 'DANGER_ZONE_ENTRY' || type === 'SAFE_ZONE_ENTRY';
 
 }
 
@@ -278,6 +278,46 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
 
 
 
+      if (type === 'DANGER_ZONE_ENTRY') {
+
+        if (spokenAlertIdsRef.current.has(alertId)) return false;
+
+        spokenAlertIdsRef.current.add(alertId);
+
+        void announceLiveAlert(alertType, childName, zoneName ?? undefined);
+
+        const zone = zoneName?.trim() || 'danger zone';
+
+        setBannerMessage(`${childName} entered ${zone}`);
+
+        bumpRefresh();
+
+        return true;
+
+      }
+
+
+
+      if (type === 'SAFE_ZONE_ENTRY') {
+
+        if (spokenAlertIdsRef.current.has(alertId)) return false;
+
+        spokenAlertIdsRef.current.add(alertId);
+
+        void announceLiveAlert(alertType, childName, zoneName ?? undefined);
+
+        const zone = zoneName?.trim() || 'safe zone';
+
+        setBannerMessage(`${childName} arrived at ${zone}`);
+
+        bumpRefresh();
+
+        return true;
+
+      }
+
+
+
       if (type === 'CHILD_MISSING') {
 
         if (spokenAlertIdsRef.current.has(alertId)) return false;
@@ -347,6 +387,8 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
       const childName = childNameById.get(childId) ?? 'Your child';
 
       setBannerMessage(`Safe check-in — ${childName} confirmed they're okay`);
+
+      void announceCheckInSafe(childName);
 
       return true;
 

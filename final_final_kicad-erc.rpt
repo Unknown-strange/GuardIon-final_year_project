@@ -1,0 +1,17 @@
+ERC report (2026-07-24T14:51:06+0000, Encoding UTF8)
+
+***** Sheet /
+[lib_symbol_issues]: Symbol 'ESP32-C3_SUPERMINI_TH' not found in symbol library 'ESP32-C3_SUPERMINI_TH'
+    ; warning
+    @(212.09 mm, 137.16 mm): Symbol U3 [ESP32-C3_SUPERMINI_TH]
+[power_pin_not_driven]: Input Power pin not driven by any Output Power pins
+    ; error
+    @(229.87 mm, 124.46 mm): Symbol U3 Pin 5V [5V, Power input, Line]
+[power_pin_not_driven]: Input Power pin not driven by any Output Power pins
+    ; error
+    @(69.85 mm, 49.53 mm): Symbol #PWR01 Pin 1 [Power input, Line]
+[lib_symbol_mismatch]: Symbol 'MT3608_Module' doesn't match copy in library 'MT3608_Module'
+    ; warning
+    @(57.15 mm, 100.33 mm): Symbol U4 [MT3608_Module]
+
+ ** ERC messages: 4  Errors 2  Warnings 2

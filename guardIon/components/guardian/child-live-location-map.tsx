@@ -10,6 +10,7 @@ import type { ChildSummary } from '@/components/guardian/child-summary-card';
 import { getChildColorTheme } from '@/constants/child-colors';
 import { GuardianColors, Typography } from '@/constants/theme';
 import type { SafeZone } from '@/types/safe-zone';
+import { zoneColors } from '@/types/safe-zone';
 
 type Props = {
   child: ChildSummary;
@@ -72,16 +73,19 @@ export function ChildLiveLocationMap({
         pitchEnabled={false}
         showsUserLocation={false}
         showsMyLocationButton={false}>
-        {zones.map((zone) => (
-          <Circle
-            key={zone.id}
-            center={{ latitude: zone.latitude, longitude: zone.longitude }}
-            radius={zone.radiusM}
-            strokeColor={colors.main}
-            fillColor={colors.fill}
-            strokeWidth={2}
-          />
-        ))}
+        {zones.map((zone) => {
+          const style = zoneColors(zone.zoneType ?? 'safe');
+          return (
+            <Circle
+              key={zone.id}
+              center={{ latitude: zone.latitude, longitude: zone.longitude }}
+              radius={zone.radiusM}
+              strokeColor={style.stroke}
+              fillColor={style.fill}
+              strokeWidth={2}
+            />
+          );
+        })}
         <ChildMapMarker
           childId={child.id}
           name={child.name}

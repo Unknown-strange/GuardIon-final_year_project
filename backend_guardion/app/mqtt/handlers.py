@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from app.database import SessionLocal
+from app.database import run_with_db_retry
 from app.models.device import Device
 from app.models.location import LocationHistory
 from app.models.alert import Alert, AlertType, AlertStatus
@@ -107,16 +107,17 @@ async def handle_telemetry(payload: Dict):
             location = data.location
             battery = data.battery
 
-            db = SessionLocal()
-            try:
+            def db_work(db):
                 device = db.query(Device).filter(Device.device_id == device_id).first()
                 if not device:
                     logger.warning(f"Device {device_id} not registered in database")
-                    return
+                    return None
 
                 latitude = location.latitude
                 longitude = location.longitude
                 battery_level = battery.level
+                loc_broadcast: Optional[dict] = None
+                broadcasts: list[tuple[str, dict]] = []
 
                 if latitude is not None and longitude is not None:
                     db.add(
@@ -143,7 +144,7 @@ async def handle_telemetry(payload: Dict):
                 )
 
                 if latitude is not None and longitude is not None:
-                    location_broadcast = {
+                    loc_broadcast = {
                         "latitude": latitude,
                         "longitude": longitude,
                         "accuracy": location.accuracy,
@@ -166,7 +167,7 @@ async def handle_telemetry(payload: Dict):
                         child = db.query(Child).filter(Child.id == device.child_id).first()
                         if child:
                             _append_alert_broadcasts(
-                                alert_broadcasts,
+                                broadcasts,
                                 device.child_id,
                                 {
                                     "alert_id": str(breach_alert.id),
@@ -196,7 +197,7 @@ async def handle_telemetry(payload: Dict):
                         child = db.query(Child).filter(Child.id == device.child_id).first()
                         if child:
                             _append_alert_broadcasts(
-                                alert_broadcasts,
+                                broadcasts,
                                 device.child_id,
                                 {
                                     "alert_id": str(danger_alert.id),
@@ -226,7 +227,7 @@ async def handle_telemetry(payload: Dict):
                         child = db.query(Child).filter(Child.id == device.child_id).first()
                         if child:
                             _append_alert_broadcasts(
-                                alert_broadcasts,
+                                broadcasts,
                                 device.child_id,
                                 {
                                     "alert_id": str(safe_alert.id),
@@ -251,7 +252,7 @@ async def handle_telemetry(payload: Dict):
                         child = db.query(Child).filter(Child.id == device.child_id).first()
                         if child:
                             _append_alert_broadcasts(
-                                alert_broadcasts,
+                                broadcasts,
                                 device.child_id,
                                 {
                                     "alert_id": str(low_battery_alert.id),
@@ -264,11 +265,14 @@ async def handle_telemetry(payload: Dict):
                                 },
                                 db,
                             )
-            except Exception:
-                db.rollback()
-                raise
-            finally:
-                db.close()
+
+                return loc_broadcast, broadcasts
+
+            result = run_with_db_retry(db_work)
+            if result is None:
+                return
+
+            location_broadcast, alert_broadcasts = result
 
             if location_broadcast:
                 await manager.broadcast_location(device_id, location_broadcast)
@@ -297,8 +301,7 @@ async def handle_alert(payload: Dict):
             location = data.location
             priority = data.priority
 
-            db = SessionLocal()
-            try:
+            def db_work(db):
                 device = db.query(Device).filter(Device.device_id == device_id).first()
                 if not device:
                     logger.warning(
@@ -308,7 +311,7 @@ async def handle_alert(payload: Dict):
                         "check_in_safe on PostgreSQL alerttype enum if you use CHECK_IN_SAFE).",
                         device_id,
                     )
-                    return
+                    return None
 
                 if alert_type == AlertType.CHECK_IN_SAFE:
                     confirm_child_safe(
@@ -344,10 +347,11 @@ async def handle_alert(payload: Dict):
                 create_notification_for_alert(alert, db)
                 db.commit()
 
+                broadcasts: list[tuple[str, dict]] = []
                 child = db.query(Child).filter(Child.id == device.child_id).first()
                 if child:
                     _append_alert_broadcasts(
-                        alert_broadcasts,
+                        broadcasts,
                         device.child_id,
                         {
                             "alert_id": str(alert.id),
@@ -363,11 +367,13 @@ async def handle_alert(payload: Dict):
                         },
                         db,
                     )
-            except Exception:
-                db.rollback()
-                raise
-            finally:
-                db.close()
+                return broadcasts
+
+            result = run_with_db_retry(db_work)
+            if result is None:
+                return
+
+            alert_broadcasts = result
 
             for user_id, alert_data in alert_broadcasts:
                 await manager.broadcast_alert(user_id, alert_data)
@@ -379,7 +385,6 @@ async def handle_alert(payload: Dict):
 async def handle_status(payload: Dict):
     """Handle device status messages."""
     async with _handler_lock:
-        db = SessionLocal()
         try:
             try:
                 data = StatusPayload.model_validate(payload)
@@ -387,32 +392,27 @@ async def handle_status(payload: Dict):
                 logger.error(f"Invalid status payload: {e}")
                 return
 
-            device = db.query(Device).filter(Device.device_id == data.device_id).first()
-            if device:
-                device.last_seen = datetime.utcnow()
-                db.commit()
-                logger.info(f"[OK] Device {data.device_id} status: {data.status}")
-        except Exception:
-            db.rollback()
-            raise
-        finally:
-            db.close()
+            def db_work(db):
+                device = db.query(Device).filter(Device.device_id == data.device_id).first()
+                if device:
+                    device.last_seen = datetime.utcnow()
+                    db.commit()
+                    logger.info(f"[OK] Device {data.device_id} status: {data.status}")
+                return True
+
+            run_with_db_retry(db_work)
+        except Exception as e:
+            logger.exception(f"Error handling status: {e}")
 
 
 async def handle_check_in_response(payload: Dict):
     """Handle device response to a parent-initiated check-in."""
     async with _handler_lock:
-        db = SessionLocal()
         try:
             try:
                 data = CheckInResponsePayload.model_validate(payload)
             except Exception as e:
                 logger.error(f"Invalid check-in response payload: {e}")
-                return
-
-            device = db.query(Device).filter(Device.device_id == data.device_id).first()
-            if not device:
-                logger.warning(f"Check-in response from unknown device {data.device_id}")
                 return
 
             normalized = data.status.strip().lower()
@@ -428,13 +428,19 @@ async def handle_check_in_response(payload: Dict):
                 logger.error(f"Invalid check_in_id in MQTT payload: {data.check_in_id}")
                 return
 
-            confirmed = confirm_check_in_from_device(check_in_uuid, device, db)
-            if confirmed:
-                logger.info(
-                    f"[OK] Check-in {data.check_in_id} confirmed via device {data.device_id}"
-                )
-        except Exception:
-            db.rollback()
-            raise
-        finally:
-            db.close()
+            def db_work(db):
+                device = db.query(Device).filter(Device.device_id == data.device_id).first()
+                if not device:
+                    logger.warning(f"Check-in response from unknown device {data.device_id}")
+                    return None
+
+                confirmed = confirm_check_in_from_device(check_in_uuid, device, db)
+                if confirmed:
+                    logger.info(
+                        f"[OK] Check-in {data.check_in_id} confirmed via device {data.device_id}"
+                    )
+                return confirmed
+
+            run_with_db_retry(db_work)
+        except Exception as e:
+            logger.exception(f"Error handling check-in response: {e}")

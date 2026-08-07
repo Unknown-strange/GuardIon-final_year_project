@@ -8,6 +8,7 @@ import { formatZoneSchedule } from '@/constants/demo-safe-zones';
 import { getChildColorTheme } from '@/constants/child-colors';
 import { GuardianColors, Typography } from '@/constants/theme';
 import type { SafeZone } from '@/types/safe-zone';
+import { zoneColors } from '@/types/safe-zone';
 
 type Props = {
   zone: SafeZone;
@@ -17,7 +18,9 @@ type Props = {
 
 export function SafeZoneCard({ zone, onEdit, onDelete }: Props) {
   const colors = getChildColorTheme(zone.childId);
+  const zoneStyle = zoneColors(zone.zoneType);
   const scheduled = !!zone.schedule;
+  const isDanger = zone.zoneType === 'danger';
 
   return (
     <View style={styles.card}>
@@ -33,6 +36,11 @@ export function SafeZoneCard({ zone, onEdit, onDelete }: Props) {
       <View style={styles.body}>
         <View style={styles.titleRow}>
           <ThemedText style={styles.name}>{zone.name}</ThemedText>
+          <View style={[styles.typePill, { backgroundColor: zoneStyle.muted }]}>
+            <ThemedText style={[styles.typePillText, { color: zoneStyle.stroke }]}>
+              {isDanger ? 'Danger' : 'Safe'}
+            </ThemedText>
+          </View>
           <View style={styles.actions}>
             <Pressable accessibilityRole="button" onPress={onEdit} style={styles.actionBtn}>
               <Ionicons name="create-outline" size={18} color={GuardianColors.textMuted} />
@@ -112,6 +120,15 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '800',
     color: GuardianColors.text,
+  },
+  typePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  typePillText: {
+    fontSize: 11,
+    fontWeight: '800',
   },
   actions: {
     flexDirection: 'row',

@@ -26,7 +26,7 @@ import { useGuardianData } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
 import { getAlertsForChild, useAlerts } from '@/hooks/use-alerts';
 import { useSafeZones } from '@/hooks/use-safe-zones';
-import { childGeofenceStatus } from '@/types/safe-zone';
+import { childGeofenceStatus, zoneColors } from '@/types/safe-zone';
 
 const DEMO_CENTER = { latitude: 5.6037, longitude: -0.187 };
 const INITIAL_DELTA = { latitudeDelta: 0.06, longitudeDelta: 0.06 };
@@ -48,7 +48,11 @@ export default function MapScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
-  const params = useLocalSearchParams<{ childId?: string }>();
+  const params = useLocalSearchParams<{
+    childId?: string;
+    focusLat?: string;
+    focusLng?: string;
+  }>();
   const { children, getChildById } = useGuardianData();
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
@@ -78,13 +82,18 @@ export default function MapScreen() {
     return childGeofenceStatus(selectedChild.latitude, selectedChild.longitude, childZones);
   }, [allAlerts, childZones, selectedChild, selectedChildId]);
 
-  const focusChild = useCallback((childId: string) => {
-    const child = getChildById(childId);
-    if (!child) return;
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setSelectedChildId(childId);
-    mapRef.current?.animateToRegion(regionForChild(child.latitude, child.longitude), 500);
-  }, [getChildById]);
+  const focusChild = useCallback(
+    (childId: string, coords?: { latitude: number; longitude: number }) => {
+      const child = getChildById(childId);
+      if (!child) return;
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setSelectedChildId(childId);
+      const latitude = coords?.latitude ?? child.latitude;
+      const longitude = coords?.longitude ?? child.longitude;
+      mapRef.current?.animateToRegion(regionForChild(latitude, longitude), 500);
+    },
+    [getChildById],
+  );
 
   const clearSelection = useCallback(() => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -100,9 +109,15 @@ export default function MapScreen() {
 
   useEffect(() => {
     if (params.childId && typeof params.childId === 'string') {
-      focusChild(params.childId);
+      const lat = params.focusLat ? Number(params.focusLat) : undefined;
+      const lng = params.focusLng ? Number(params.focusLng) : undefined;
+      const coords =
+        lat != null && lng != null && !Number.isNaN(lat) && !Number.isNaN(lng)
+          ? { latitude: lat, longitude: lng }
+          : undefined;
+      focusChild(params.childId, coords);
     }
-  }, [focusChild, params.childId]);
+  }, [focusChild, params.childId, params.focusLat, params.focusLng]);
 
   useFocusEffect(
     useCallback(() => {
@@ -161,16 +176,19 @@ export default function MapScreen() {
             />
           ))}
           {selectedChildId && selectedColors
-            ? childZones.map((zone) => (
-                <Circle
-                  key={zone.id}
-                  center={{ latitude: zone.latitude, longitude: zone.longitude }}
-                  radius={zone.radiusM}
-                  strokeColor={selectedColors.main}
-                  fillColor={selectedColors.fill}
-                  strokeWidth={2}
-                />
-              ))
+            ? childZones.map((zone) => {
+                const colors = zoneColors(zone.zoneType);
+                return (
+                  <Circle
+                    key={zone.id}
+                    center={{ latitude: zone.latitude, longitude: zone.longitude }}
+                    radius={zone.radiusM}
+                    strokeColor={colors.stroke}
+                    fillColor={colors.fill}
+                    strokeWidth={2}
+                  />
+                );
+              })
             : null}
         </MapView>
       ) : (
@@ -242,9 +260,9 @@ export default function MapScreen() {
                   params: { childId: selectedChild.id },
                 } as any)
               }>
-              <Ionicons name="add-circle-outline" size={20} color={selectedColors?.main ?? GuardianColors.safe} />
-              <ThemedText style={[styles.zoneSafeText, { color: selectedColors?.main ?? GuardianColors.safe }]}>
-                Safe Zone
+              <Ionicons name="add-circle-outline" size={20} color={selectedColors?.main ?? GuardianColors.primary} />
+              <ThemedText style={[styles.zoneSafeText, { color: selectedColors?.main ?? GuardianColors.primary }]}>
+                Zone
               </ThemedText>
             </Pressable>
 

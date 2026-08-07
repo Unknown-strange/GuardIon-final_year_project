@@ -1,3 +1,4 @@
+/** @deprecated Use CheckInConfirmModal + /check-in/[childId] flow instead. */
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';

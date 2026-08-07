@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GuardianFab } from '@/components/guardian/fab';
 import { PrimaryButton } from '@/components/guardian/buttons';
 import { ChildAvatar } from '@/components/guardian/child-avatar';
-import { CheckInSheet } from '@/components/guardian/check-in-sheet';
+import { CheckInConfirmModal } from '@/components/guardian/check-in-confirm-modal';
 import { ContactRow } from '@/components/guardian/contact-row';
 import { AlertsContactRowSkeletonList } from '@/components/guardian/skeleton';
 import { ChildContactsSheet } from '@/components/guardian/child-contacts-sheet';
@@ -19,7 +19,6 @@ import { StatusBadge } from '@/components/guardian/status-badge';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { getChildColorTheme } from '@/constants/child-colors';
-import { useAlertsRealtime } from '@/contexts/alerts-realtime-context';
 import { useGuardianData } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
 import { useCheckIn } from '@/hooks/use-check-in';
@@ -34,7 +33,6 @@ export default function ChildDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { getChildById } = useGuardianData();
-  const { deviceSafeCheck } = useAlertsRealtime();
   const child = getChildById(childId);
   const colors = getChildColorTheme(childId);
   const { childZones, refresh } = useSafeZones(childId);
@@ -48,10 +46,9 @@ export default function ChildDetailScreen() {
     }, [refresh, refreshContacts]),
   );
 
-  const { status: checkInStatus, lastLabel, start: startCheckIn, cancel: cancelCheckIn, canCheckIn } =
-    useCheckIn(childId, child?.online ?? false);
+  const { lastLabel, canCheckIn } = useCheckIn(childId, child?.online ?? false);
 
-  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkInConfirmOpen, setCheckInConfirmOpen] = useState(false);
   const [contactsOpen, setContactsOpen] = useState(false);
   const [sosOpen, setSosOpen] = useState(false);
 
@@ -70,29 +67,16 @@ export default function ChildDetailScreen() {
   };
 
   const openCheckIn = () => {
-    cancelCheckIn();
-    setCheckInOpen(true);
+    setCheckInConfirmOpen(true);
   };
 
-  const closeCheckIn = () => {
-    cancelCheckIn();
-    setCheckInOpen(false);
+  const closeCheckInConfirm = () => {
+    setCheckInConfirmOpen(false);
   };
-
-  useEffect(() => {
-    if (!checkInOpen) return;
-    if (deviceSafeCheck?.childId === childId) {
-      closeCheckIn();
-      return;
-    }
-    if (checkInStatus === 'confirmed') {
-      const timer = setTimeout(() => closeCheckIn(), 1200);
-      return () => clearTimeout(timer);
-    }
-  }, [deviceSafeCheck, checkInOpen, childId, checkInStatus, closeCheckIn]);
 
   const confirmCheckIn = () => {
-    startCheckIn();
+    setCheckInConfirmOpen(false);
+    router.push(`/check-in/${childId}` as any);
   };
 
   const openSos = () => {
@@ -269,22 +253,13 @@ export default function ChildDetailScreen() {
         </View>
       </ScrollView>
 
-      <CheckInSheet
-        visible={checkInOpen}
+      <CheckInConfirmModal
+        visible={checkInConfirmOpen}
         childName={child.name}
-        status={checkInStatus}
-        lastLabel={lastLabel}
         canCheckIn={canCheckIn}
-        onClose={closeCheckIn}
+        lastLabel={lastLabel}
+        onClose={closeCheckInConfirm}
         onConfirm={confirmCheckIn}
-        onCall={() => {
-          closeCheckIn();
-          setContactsOpen(true);
-        }}
-        onViewMap={() => {
-          closeCheckIn();
-          openOnMap();
-        }}
       />
 
       <ChildContactsSheet

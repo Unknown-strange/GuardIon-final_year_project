@@ -24,6 +24,7 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
   const { bumpRefresh, deviceSafeCheck } = useAlertsRealtime();
   const [status, setStatus] = useState<CheckInStatus>('idle');
   const [lastLabel, setLastLabel] = useState<string | null>(null);
+  const [confirmedAt, setConfirmedAt] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkInIdRef = useRef<string | null>(null);
@@ -34,8 +35,9 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
     AsyncStorage.getItem(storageKey(resolvedChildId)).then((raw) => {
       if (!raw) return;
       try {
-        const parsed = JSON.parse(raw) as { lastLabel?: string };
+        const parsed = JSON.parse(raw) as { lastLabel?: string; lastConfirmedAt?: string };
         if (parsed.lastLabel) setLastLabel(parsed.lastLabel);
+        if (parsed.lastConfirmedAt) setConfirmedAt(parsed.lastConfirmedAt);
       } catch {
         /* ignore */
       }
@@ -61,17 +63,19 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
   }, [clearTimers]);
 
   const finishConfirmed = useCallback(
-    async (label: string) => {
+    async (label: string, at?: string) => {
       if (!resolvedChildId) return;
       clearTimers();
+      const timestamp = at ?? new Date().toISOString();
       setStatus('confirmed');
       setLastLabel(label);
+      setConfirmedAt(timestamp);
       bumpRefresh();
       await AsyncStorage.setItem(
         storageKey(resolvedChildId),
         JSON.stringify({
           status: 'confirmed',
-          lastConfirmedAt: new Date().toISOString(),
+          lastConfirmedAt: timestamp,
           lastLabel: label,
         }),
       );
@@ -97,12 +101,16 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
   const applyPollResult = useCallback(
     async (current: checkInsApi.CheckInResponse) => {
       if (current.status === 'confirmed') {
-        await finishConfirmed('Just now');
+        await finishConfirmed('Just now', current.confirmed_at ?? undefined);
         return;
       }
-      if (current.status === 'timeout') {
+      if (current.status === 'timeout' || current.status === 'cancelled') {
         clearTimers();
-        setStatus('timeout');
+        if (current.status === 'timeout') {
+          setStatus('timeout');
+        } else {
+          setStatus('idle');
+        }
         checkInIdRef.current = null;
         startedAtRef.current = null;
       }
@@ -147,6 +155,7 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
     if (!resolvedChildId || !childOnline) return;
     clearTimers();
     setStatus('pending');
+    setConfirmedAt(null);
     startedAtRef.current = Date.now();
 
     void (async () => {
@@ -178,6 +187,21 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
     })();
   }, [resolvedChildId, childOnline, clearTimers, finishTimeout, pollCheckIn]);
 
+  const cancelPending = useCallback(async () => {
+    const checkInId = checkInIdRef.current;
+    clearTimers();
+    if (checkInId) {
+      try {
+        await checkInsApi.cancelCheckIn(checkInId);
+      } catch {
+        /* still reset local state */
+      }
+    }
+    setStatus('idle');
+    checkInIdRef.current = null;
+    startedAtRef.current = null;
+  }, [clearTimers]);
+
   useEffect(() => {
     if (!resolvedChildId || !deviceSafeCheck) return;
     if (deviceSafeCheck.childId !== resolvedChildId) return;
@@ -192,5 +216,13 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
 
   useEffect(() => () => clearTimers(), [clearTimers]);
 
-  return { status, lastLabel, start, cancel, canCheckIn: !!resolvedChildId && childOnline };
+  return {
+    status,
+    lastLabel,
+    confirmedAt,
+    start,
+    cancel,
+    cancelPending,
+    canCheckIn: !!resolvedChildId && childOnline,
+  };
 }

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -29,7 +29,7 @@ import {
   SAFE_ZONE_RADIUS_MIN,
 } from '@/types/safe-zone';
 
-type ZoneTab = 'safe' | 'red' | 'time';
+type ZoneTab = 'safe' | 'danger' | 'time';
 
 export default function ManageZonesScreen() {
   const router = useRouter();
@@ -82,11 +82,18 @@ export default function ManageZonesScreen() {
     }
   };
 
+  const filteredZones = useMemo(() => {
+    if (activeTab === 'danger') {
+      return childZones.filter((zone) => zone.zoneType === 'danger');
+    }
+    return childZones.filter((zone) => zone.zoneType === 'safe');
+  }, [activeTab, childZones]);
+
   const addZone = () => {
     if (!child) return;
     router.push({
       pathname: '/add-safe-zone',
-      params: { childId: child.id },
+      params: { childId: child.id, zoneType: activeTab === 'danger' ? 'danger' : 'safe' },
     } as any);
   };
 
@@ -119,9 +126,17 @@ export default function ManageZonesScreen() {
             Safe zones
           </ThemedText>
         </Pressable>
-        <Pressable style={styles.tabDisabled} disabled>
-          <Ionicons name="warning-outline" size={16} color={GuardianColors.textMuted} />
-          <ThemedText style={styles.tabTextDisabled}>Red zones</ThemedText>
+        <Pressable
+          style={[styles.tab, activeTab === 'danger' && styles.tabActiveDanger]}
+          onPress={() => setActiveTab('danger')}>
+          <Ionicons
+            name="warning-outline"
+            size={16}
+            color={activeTab === 'danger' ? GuardianColors.danger : GuardianColors.textMuted}
+          />
+          <ThemedText style={[styles.tabText, activeTab === 'danger' && styles.tabTextDanger]}>
+            Danger zones
+          </ThemedText>
         </Pressable>
         <Pressable style={styles.tabDisabled} disabled>
           <Ionicons name="time-outline" size={16} color={GuardianColors.textMuted} />
@@ -133,7 +148,7 @@ export default function ManageZonesScreen() {
         <SafeZoneListSkeleton count={2} />
       ) : (
         <FlatList
-          data={childZones}
+          data={filteredZones}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{
             paddingHorizontal: Layout.screenPadding,
@@ -144,9 +159,12 @@ export default function ManageZonesScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="map-outline" size={42} color={GuardianColors.textMuted} />
-              <ThemedText style={styles.emptyTitle}>No safe zones yet</ThemedText>
+              <ThemedText style={styles.emptyTitle}>
+                {activeTab === 'danger' ? 'No danger zones yet' : 'No safe zones yet'}
+              </ThemedText>
               <ThemedText style={styles.emptyText}>
-                Add a zone around {child.name}&apos;s location.
+                Add a {activeTab === 'danger' ? 'danger' : 'safe'} zone around {child.name}&apos;s
+                location.
               </ThemedText>
             </View>
           }
@@ -247,6 +265,9 @@ const styles = StyleSheet.create({
   tabActive: {
     borderBottomColor: GuardianColors.safe,
   },
+  tabActiveDanger: {
+    borderBottomColor: GuardianColors.danger,
+  },
   tabText: {
     ...Typography.caption,
     color: GuardianColors.textMuted,
@@ -254,6 +275,9 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: GuardianColors.safe,
+  },
+  tabTextDanger: {
+    color: GuardianColors.danger,
   },
   tabDisabled: {
     flexDirection: 'row',

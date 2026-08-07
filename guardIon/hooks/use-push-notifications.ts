@@ -8,6 +8,7 @@ import { registerPushToken } from '@/api/push';
 import { registerUserSession } from '@/api/preferences';
 import { useAuth } from '@/contexts/auth-context';
 import { useAlertsRealtime } from '@/contexts/alerts-realtime-context';
+import { ensureAlertNotificationChannels } from '@/utils/alert-speech';
 import type { AlertWsPayload } from '@/hooks/use-alerts-websocket';
 
 Notifications.setNotificationHandler({
@@ -46,6 +47,7 @@ async function getExpoPushToken(): Promise<string | null> {
 
 type PushData = {
   type?: string;
+  alert_type?: string;
   alert_id?: string;
   child_id?: string;
   image_url?: string;
@@ -68,19 +70,35 @@ function missingAlertFromPush(data: PushData): AlertWsPayload | null {
 }
 
 function handlePushNavigation(data: PushData | undefined, openMissingChildAlert: (p: AlertWsPayload) => void) {
-  if (!data?.type) return;
+  if (!data) return;
+
+  const alertType = (data.alert_type ?? data.type ?? '').toLowerCase();
 
   if (data.type === 'guardian_invite') {
     router.push('/(tabs)/' as any);
     return;
   }
 
-  if (data.type === 'child_missing') {
+  if (alertType === 'child_missing') {
     const payload = missingAlertFromPush(data);
     if (payload) {
       openMissingChildAlert(payload);
     }
     router.push('/(tabs)/alerts' as any);
+    return;
+  }
+
+  if (
+    alertType === 'geofence_breach' ||
+    alertType === 'danger_zone_entry' ||
+    alertType === 'safe_zone_entry' ||
+    alertType === 'sos' ||
+    alertType === 'check_in_safe'
+  ) {
+    router.push({
+      pathname: '/(tabs)/alerts',
+      params: data.child_id ? { childId: data.child_id } : undefined,
+    } as any);
   }
 }
 
@@ -93,6 +111,8 @@ export function usePushNotifications() {
     if (!isAuthenticated || !user || registeredRef.current) return;
 
     try {
+      await ensureAlertNotificationChannels();
+
       const token = await getExpoPushToken();
       const deviceName = `${Platform.OS} · ${Constants.deviceName ?? 'GuardIon'}`;
 

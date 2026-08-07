@@ -1,0 +1,165 @@
+** Drc report for final_final_kicad.kicad_pcb **
+** Created on 2026-07-24T15:05:25+0000 **
+
+** Found 41 DRC violations **
+[lib_footprint_mismatch]: Footprint 'MT3608_Module' does not match copy in library 'MT3608_Module'.
+    Local override; warning
+    @(163.0000 mm, 89.5000 mm): Footprint U4
+[text_height]: Text height out of range (board setup constraints silk text height min height 0.8000 mm; actual 0.7000 mm)
+    Rule: board setup constraints silk text height; warning
+    @(156.5000 mm, 79.1000 mm): Footprint text of U2 (IN-)
+[text_height]: Text height out of range (board setup constraints silk text height min height 0.8000 mm; actual 0.5000 mm)
+    Rule: board setup constraints silk text height; warning
+    @(155.3500 mm, 101.9500 mm): Footprint text of U2 (OUT-)
+[text_height]: Text height out of range (board setup constraints silk text height min height 0.8000 mm; actual 0.5000 mm)
+    Rule: board setup constraints silk text height; warning
+    @(170.8500 mm, 101.7000 mm): Footprint text of U2 (OUT+)
+[text_height]: Text height out of range (board setup constraints silk text height min height 0.8000 mm; actual 0.7000 mm)
+    Rule: board setup constraints silk text height; warning
+    @(169.5000 mm, 79.1000 mm): Footprint text of U2 (IN+)
+[text_height]: Text height out of range (board setup constraints silk text height min height 0.8000 mm; actual 0.5000 mm)
+    Rule: board setup constraints silk text height; warning
+    @(165.8500 mm, 101.9500 mm): Footprint text of U2 (B+)
+[text_height]: Text height out of range (board setup constraints silk text height min height 0.8000 mm; actual 0.5000 mm)
+    Rule: board setup constraints silk text height; warning
+    @(159.8500 mm, 101.2000 mm): Footprint text of U2 (B-)
+[text_height]: Text height out of range (board setup constraints silk text height min height 0.8000 mm; actual 0.7000 mm)
+    Rule: board setup constraints silk text height; warning
+    @(163.0000 mm, 89.5000 mm): Footprint text of U4 (DC-DC 5V)
+[silk_over_copper]: Silkscreen clipped by solder mask
+    Local override; warning
+    @(193.5000 mm, 77.7500 mm): Rectangle on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(184.2500 mm, 99.9500 mm): Reference field of SW1
+    @(190.9200 mm, 100.0500 mm): Segment on F.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(200.6900 mm, 68.8400 mm): Segment on F.Silkscreen
+    @(200.2500 mm, 70.8000 mm): Reference field of BT1
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(200.6900 mm, 70.4400 mm): Segment on F.Silkscreen
+    @(200.2500 mm, 70.8000 mm): Reference field of BT1
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(181.2500 mm, 97.5000 mm): Reference field of R1
+    @(185.1900 mm, 97.6200 mm): Segment on B.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(163.0000 mm, 70.5000 mm): Footprint text of U4 (USB-C)
+    @(173.0000 mm, 69.5000 mm): Rectangle on B.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(155.5000 mm, 113.6400 mm): Arc on B.Silkscreen
+    @(154.7500 mm, 115.7500 mm): Reference field of Q2
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(154.7500 mm, 115.7500 mm): Reference field of Q2
+    @(155.5000 mm, 113.6400 mm): Arc on B.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.4900 mm, 94.5100 mm): Segment on B.Silkscreen
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+    @(198.5300 mm, 94.5100 mm): Segment on B.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+    @(198.5700 mm, 94.5100 mm): Segment on B.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.6100 mm, 94.5100 mm): Segment on B.Silkscreen
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+    @(198.6500 mm, 94.5100 mm): Segment on B.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+    @(198.6900 mm, 94.5100 mm): Segment on B.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.7300 mm, 94.5100 mm): Segment on B.Silkscreen
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.7700 mm, 94.5100 mm): Segment on B.Silkscreen
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.8100 mm, 94.5100 mm): Segment on B.Silkscreen
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.8500 mm, 94.5100 mm): Segment on B.Silkscreen
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.8900 mm, 94.5100 mm): Segment on B.Silkscreen
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.9300 mm, 94.5100 mm): Segment on B.Silkscreen
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.9710 mm, 94.5100 mm): Segment on B.Silkscreen
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(199.0110 mm, 94.5100 mm): Segment on B.Silkscreen
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+    @(199.0510 mm, 94.5100 mm): Segment on B.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.2900 mm, 94.5100 mm): Segment on B.Silkscreen
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+    @(198.3300 mm, 94.5100 mm): Segment on B.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.3700 mm, 94.5100 mm): Segment on B.Silkscreen
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.4100 mm, 94.5100 mm): Segment on B.Silkscreen
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.4500 mm, 94.5100 mm): Segment on B.Silkscreen
+    @(198.2500 mm, 92.7500 mm): Reference field of C6
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(178.6500 mm, 82.7300 mm): Segment on B.Silkscreen
+    @(181.9200 mm, 82.4200 mm): Reference field of R7
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(185.1900 mm, 93.5700 mm): Segment on B.Silkscreen
+    @(180.2500 mm, 93.5000 mm): Reference field of R3
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(181.9200 mm, 90.5200 mm): Reference field of R4
+    @(178.6500 mm, 90.8300 mm): Segment on B.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(181.9200 mm, 86.4700 mm): Reference field of R5
+    @(178.6500 mm, 86.7800 mm): Segment on B.Silkscreen
+[silk_overlap]: Silkscreen overlap
+    Rule: board setup constraints silk; warning
+    @(198.2500 mm, 99.3000 mm): Reference field of C5
+    @(198.7500 mm, 100.0000 mm): Reference field of C3
+
+** Found 0 unconnected pads **
+
+** Found 0 Footprint errors **
+
+** End of Report **

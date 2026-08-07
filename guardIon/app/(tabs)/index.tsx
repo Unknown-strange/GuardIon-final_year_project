@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
+import { useRouter, useFocusEffect } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Dimensions,
@@ -81,6 +82,12 @@ export default function HomeScreen() {
   const [tipIndex, setTipIndex] = useState(0);
   const [animatedChildId, setAnimatedChildId] = useState<string | null>(null);
 
+  useFocusEffect(
+    useCallback(() => {
+      void refreshChildren({ background: true });
+    }, [refreshChildren]),
+  );
+
   const handleAcceptInvite = useCallback(
     async (guardianId: string) => {
       const invite = invites.find((item) => item.id === guardianId);
@@ -108,6 +115,8 @@ export default function HomeScreen() {
   }, [children, query]);
 
   const activeDevices = children.filter((c) => c.online).length;
+  const hasChildren = children.length > 0;
+  const showEmptyState = !isLoading && !hasChildren;
 
   const fabBottom = Math.max(insets.bottom, 12) + 16;
   const scrollBottomPadding = fabBottom + 56 + 12;
@@ -140,18 +149,20 @@ export default function HomeScreen() {
           }
         />
 
-        <View style={styles.searchShell}>
-          <Ionicons name="search" size={18} color={GuardianColors.textMuted} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search by Name:"
-            placeholderTextColor={GuardianColors.textMuted}
-            style={styles.searchInput}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </View>
+        {hasChildren ? (
+          <View style={styles.searchShell}>
+            <Ionicons name="search" size={18} color={GuardianColors.textMuted} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search by Name:"
+              placeholderTextColor={GuardianColors.textMuted}
+              style={styles.searchInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+        ) : null}
 
         {invitesLoading && invites.length === 0 ? (
           <ListCardSkeletonList variant="invite" count={1} />
@@ -166,8 +177,20 @@ export default function HomeScreen() {
           ))
         )}
 
-        {isLoading && filtered.length === 0 ? (
+        {isLoading && !hasChildren ? (
           <ListCardSkeletonList variant="child-summary" count={2} />
+        ) : showEmptyState ? (
+          <View style={styles.emptyState}>
+            <Image
+              source={require('@/assets/placeholder_images/no-child.png')}
+              style={styles.emptyImage}
+              contentFit="contain"
+            />
+            <ThemedText style={styles.emptyTitle}>No Children Added Yet</ThemedText>
+            <ThemedText style={styles.emptyBody}>
+              Add your first child to begin safety monitoring and receive real-time updates.
+            </ThemedText>
+          </View>
         ) : (
           filtered.map((item) => (
             <Animated.View
@@ -189,7 +212,7 @@ export default function HomeScreen() {
           ))
         )}
 
-        <PrimaryButton label="View all" onPress={() => {}} />
+        {hasChildren ? <PrimaryButton label="View all" onPress={() => {}} /> : null}
 
         <View style={styles.tipsHeader}>
           <Ionicons name="bulb-outline" size={22} color={GuardianColors.primary} />
@@ -274,6 +297,31 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: GuardianColors.text,
     padding: 0,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+  emptyImage: {
+    width: 240,
+    height: 240,
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: GuardianColors.text,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  emptyBody: {
+    ...Typography.body,
+    color: GuardianColors.textSecondary,
+    textAlign: 'center',
+    maxWidth: 300,
+    lineHeight: 22,
   },
   tipsHeader: {
     flexDirection: 'row',

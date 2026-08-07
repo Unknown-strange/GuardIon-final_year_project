@@ -7,7 +7,7 @@ import { ChildAvatar } from '@/components/guardian/child-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { getChildColorTheme } from '@/constants/child-colors';
 import { GuardianColors, Typography } from '@/constants/theme';
-import { mapDeltaForZoneRadius } from '@/types/safe-zone';
+import { mapDeltaForZoneRadius, zoneColors, type ZoneType } from '@/types/safe-zone';
 
 type LatLng = { latitude: number; longitude: number };
 
@@ -17,6 +17,7 @@ type Props = {
   childLocation: string;
   childPosition: LatLng;
   radius: number;
+  zoneType?: ZoneType;
   /** Bump to smoothly re-frame the map after the user finishes adjusting radius. */
   fitToken?: number;
 };
@@ -36,9 +37,11 @@ function SafeZoneMapPickerInner({
   childLocation,
   childPosition,
   radius,
+  zoneType = 'safe',
   fitToken = 0,
 }: Props) {
   const colors = getChildColorTheme(childId);
+  const zoneStyle = zoneColors(zoneType);
   const mapRef = useRef<MapView>(null);
   const hasMountedRef = useRef(false);
 
@@ -100,8 +103,8 @@ function SafeZoneMapPickerInner({
         <Circle
           center={childPosition}
           radius={radius}
-          strokeColor={colors.main}
-          fillColor={colors.fill}
+          strokeColor={zoneStyle.stroke}
+          fillColor={zoneStyle.fill}
           strokeWidth={2}
         />
         <Marker

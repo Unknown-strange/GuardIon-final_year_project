@@ -24,6 +24,7 @@ from app.services.missing_child_alerts import (
     broadcast_missing_child_alert,
     create_missing_child_notifications,
 )
+from app.services.child_deletion import delete_child_profile
 
 router = APIRouter()
 
@@ -213,8 +214,5 @@ def delete_child(
     Delete a child profile (also deletes associated devices, alerts, etc.)
     """
     child = get_owned_child(child_id, current_user, db)
-    
-    db.delete(child)
-    db.commit()
-    
+    delete_child_profile(child, db)
     return None

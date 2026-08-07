@@ -18,16 +18,35 @@ logger = logging.getLogger(__name__)
 EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 
 ZONE_ALERT_SOUND = "beep-beep.mp3"
+SAFE_ARRIVAL_SOUND = "mixkit-happy-bell-alert-601.wav"
+DANGER_ALERT_SOUND = "mixkit-system-beep-buzzer-fail-2964.wav"
+
+CRITICAL_ALERT_TYPES = (
+    AlertType.SOS,
+    AlertType.GEOFENCE_BREACH,
+    AlertType.DANGER_ZONE_ENTRY,
+)
 
 
 def _push_sound_for(alert_type: AlertType | None) -> str:
-    if alert_type in (
-        AlertType.GEOFENCE_BREACH,
-        AlertType.DANGER_ZONE_ENTRY,
-        AlertType.SAFE_ZONE_ENTRY,
-    ):
+    if alert_type == AlertType.SAFE_ZONE_ENTRY:
+        return SAFE_ARRIVAL_SOUND
+    if alert_type in CRITICAL_ALERT_TYPES:
+        return DANGER_ALERT_SOUND
+    if alert_type == AlertType.CHECK_IN_SAFE:
         return ZONE_ALERT_SOUND
     return "default"
+
+
+def _push_channel_for(alert_type: AlertType | None) -> Optional[str]:
+    """Android routes sound through the channel, so it must match the app's channels."""
+    if alert_type == AlertType.SAFE_ZONE_ENTRY:
+        return "safe-arrivals"
+    if alert_type in CRITICAL_ALERT_TYPES:
+        return "critical-alerts"
+    if alert_type == AlertType.CHECK_IN_SAFE:
+        return "safety-alerts"
+    return None
 
 
 def _preference_allows(alert_type: AlertType, prefs: Optional[NotificationPreference]) -> bool:
@@ -77,6 +96,8 @@ def send_push_to_user(
     if not tokens:
         return 0
 
+    channel_id = _push_channel_for(alert_type)
+
     messages = []
     for t in tokens:
         message = {
@@ -86,6 +107,8 @@ def send_push_to_user(
             "sound": _push_sound_for(alert_type),
             "data": {**(data or {}), **({"image_url": image_url} if image_url else {})},
         }
+        if channel_id:
+            message["channelId"] = channel_id
         if image_url:
             message["mutableContent"] = True
         messages.append(message)
