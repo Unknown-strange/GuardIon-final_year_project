@@ -3,6 +3,7 @@ Check-In API
 """
 
 import logging
+import time
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -23,6 +24,39 @@ from app.mqtt.client import mqtt_client
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+CHECK_IN_CMD_ATTEMPTS = 4
+CHECK_IN_CMD_RETRY_SEC = 2.0
+
+
+def _publish_check_in_command(device: Device, check_in: CheckIn, child_id: UUID) -> bool:
+    topic = f"guardion/devices/{device.device_id}/command"
+    payload = {
+        "command": "check_in",
+        "check_in_id": str(check_in.id),
+        "child_id": str(child_id),
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+    }
+    for attempt in range(1, CHECK_IN_CMD_ATTEMPTS + 1):
+        if mqtt_client.publish(topic, payload, qos=1):
+            logger.info(
+                "Check-in %s command published to %s (attempt %s/%s)",
+                check_in.id,
+                device.device_id,
+                attempt,
+                CHECK_IN_CMD_ATTEMPTS,
+            )
+            return True
+        logger.warning(
+            "Check-in %s command publish failed (attempt %s/%s, mqtt_connected=%s)",
+            check_in.id,
+            attempt,
+            CHECK_IN_CMD_ATTEMPTS,
+            mqtt_client.is_connected,
+        )
+        if attempt < CHECK_IN_CMD_ATTEMPTS:
+            time.sleep(CHECK_IN_CMD_RETRY_SEC)
+    return False
 
 
 def _get_user_check_in(
@@ -97,19 +131,11 @@ def request_check_in(
     )
 
     if device:
-        published = mqtt_client.publish(
-            f"guardion/devices/{device.device_id}/command",
-            {
-                "command": "check_in",
-                "check_in_id": str(check_in.id),
-                "child_id": str(payload.child_id),
-                "timestamp": datetime.utcnow().isoformat() + "Z",
-            },
-            qos=1,
-        )
-        if not published:
+        if not _publish_check_in_command(device, check_in, payload.child_id):
             logger.warning(
-                f"Check-in {check_in.id} created but MQTT command not published"
+                "Check-in %s created but MQTT command not published after %s attempts",
+                check_in.id,
+                CHECK_IN_CMD_ATTEMPTS,
             )
     else:
         logger.warning(
