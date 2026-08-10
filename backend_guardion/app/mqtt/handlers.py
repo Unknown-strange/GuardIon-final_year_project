@@ -87,6 +87,77 @@ def _should_run_geofence(device_id: str) -> bool:
     return True
 
 
+async def _process_geofence_alerts(
+    device_id: str,
+    device_pk: UUID,
+    latitude: float,
+    longitude: float,
+    accuracy: Optional[float],
+) -> None:
+    """Run zone checks in a separate DB session so telemetry save releases the pool quickly."""
+
+    def geofence_work(db):
+        device = db.query(Device).filter(Device.id == device_pk).first()
+        if not device:
+            return None
+
+        child = db.query(Child).filter(Child.id == device.child_id).first()
+        broadcasts: list[tuple[str, dict]] = []
+
+        breach_alert = check_geofence_breach(
+            device,
+            latitude,
+            longitude,
+            db,
+            accuracy=accuracy,
+        )
+        if breach_alert:
+            create_notification_for_alert(breach_alert, db)
+            if child:
+                _append_alert_for_device(broadcasts, breach_alert, device_id, child, db)
+
+        danger_alerts = check_danger_zone_entry(
+            device,
+            latitude,
+            longitude,
+            db,
+            accuracy=accuracy,
+        )
+        for danger_alert in danger_alerts:
+            create_notification_for_alert(danger_alert, db)
+            if child:
+                _append_alert_for_device(broadcasts, danger_alert, device_id, child, db)
+
+        safe_entry_alerts = check_safe_zone_entry(
+            device,
+            latitude,
+            longitude,
+            db,
+            accuracy=accuracy,
+        )
+        for safe_alert in safe_entry_alerts:
+            create_notification_for_alert(safe_alert, db)
+            if child:
+                _append_alert_for_device(broadcasts, safe_alert, device_id, child, db)
+
+        if breach_alert or danger_alerts or safe_entry_alerts:
+            db.commit()
+
+        return broadcasts
+
+    try:
+        alert_broadcasts = run_with_db_retry(geofence_work)
+    except PoolTimeoutError:
+        logger.error("Geofence skipped for %s: database pool exhausted", device_id)
+        return
+
+    if not alert_broadcasts:
+        return
+
+    for user_id, alert_data in alert_broadcasts:
+        await manager.broadcast_alert(user_id, alert_data)
+
+
 def _append_alert_for_device(
     broadcasts: list[tuple[str, dict]],
     alert,
@@ -132,168 +203,131 @@ async def handle_mqtt_message(topic: str, payload: Dict):
 
 async def handle_telemetry(payload: Dict):
     """Handle location telemetry messages."""
-    async with _handler_lock:
-        location_broadcast: Optional[dict] = None
-        alert_broadcasts: list[tuple[str, dict]] = []
-
+    try:
         try:
-            try:
-                data = TelemetryPayload.model_validate(payload)
-            except Exception as e:
-                logger.error(f"Invalid telemetry payload: {e}")
-                return
+            data = TelemetryPayload.model_validate(payload)
+        except Exception as e:
+            logger.error(f"Invalid telemetry payload: {e}")
+            return
 
-            device_id = data.device_id
-            timestamp = _parse_timestamp(data.timestamp)
-            location = data.location
-            battery = data.battery
+        device_id = data.device_id
+        timestamp = _parse_timestamp(data.timestamp)
+        location = data.location
+        battery = data.battery
 
-            def db_work(db):
-                device = db.query(Device).filter(Device.device_id == device_id).first()
-                if not device:
-                    logger.warning(f"Device {device_id} not registered in database")
-                    return None
+        def save_work(db):
+            device = db.query(Device).filter(Device.device_id == device_id).first()
+            if not device:
+                logger.warning(f"Device {device_id} not registered in database")
+                return None
 
-                latitude = location.latitude
-                longitude = location.longitude
-                battery_level = battery.level
-                loc_broadcast: Optional[dict] = None
-                broadcasts: list[tuple[str, dict]] = []
+            latitude = location.latitude
+            longitude = location.longitude
+            battery_level = battery.level
+            loc_broadcast: Optional[dict] = None
+            broadcasts: list[tuple[str, dict]] = []
+            geofence_task: Optional[dict] = None
 
-                if latitude is not None and longitude is not None:
-                    db.add(
-                        LocationHistory(
-                            device_id=device.id,
-                            latitude=latitude,
-                            longitude=longitude,
-                            accuracy=location.accuracy,
-                            altitude=location.altitude,
-                            speed=location.speed,
-                            battery_level=battery_level,
-                            timestamp=timestamp,
-                        )
+            if latitude is not None and longitude is not None:
+                db.add(
+                    LocationHistory(
+                        device_id=device.id,
+                        latitude=latitude,
+                        longitude=longitude,
+                        accuracy=location.accuracy,
+                        altitude=location.altitude,
+                        speed=location.speed,
+                        battery_level=battery_level,
+                        timestamp=timestamp,
                     )
-
-                device.last_seen = timestamp
-                device.battery_level = battery_level
-                device.signal_strength = data.signal.strength
-                db.commit()
-
-                logger.info(
-                    f"[OK] Saved telemetry: {device_id} | "
-                    f"{_format_coords(latitude, longitude)}, Battery: {battery_level}%"
                 )
 
-                if latitude is not None and longitude is not None:
-                    loc_broadcast = {
+            device.last_seen = timestamp
+            device.battery_level = battery_level
+            device.signal_strength = data.signal.strength
+            db.commit()
+
+            logger.info(
+                f"[OK] Saved telemetry: {device_id} | "
+                f"{_format_coords(latitude, longitude)}, Battery: {battery_level}%"
+            )
+
+            if latitude is not None and longitude is not None:
+                loc_broadcast = {
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "accuracy": location.accuracy,
+                    "altitude": location.altitude,
+                    "speed": location.speed,
+                    "battery_level": battery_level,
+                    "timestamp": timestamp.isoformat(),
+                }
+
+                if _should_run_geofence(device_id):
+                    geofence_task = {
+                        "device_pk": device.id,
                         "latitude": latitude,
                         "longitude": longitude,
                         "accuracy": location.accuracy,
-                        "altitude": location.altitude,
-                        "speed": location.speed,
-                        "battery_level": battery_level,
-                        "timestamp": timestamp.isoformat(),
                     }
 
-                    if _should_run_geofence(device_id):
-                        child = (
-                            db.query(Child).filter(Child.id == device.child_id).first()
-                        )
-
-                        breach_alert = check_geofence_breach(
-                            device,
-                            latitude,
-                            longitude,
+            if battery_level is not None:
+                low_battery_alert = check_low_battery_alert(device, battery_level, db)
+                if low_battery_alert:
+                    create_notification_for_alert(low_battery_alert, db)
+                    db.commit()
+                    child = db.query(Child).filter(Child.id == device.child_id).first()
+                    if child:
+                        _append_alert_broadcasts(
+                            broadcasts,
+                            device.child_id,
+                            {
+                                "alert_id": str(low_battery_alert.id),
+                                "alert_type": low_battery_alert.alert_type.value,
+                                "child_id": str(low_battery_alert.child_id),
+                                "device_id": device_id,
+                                "status": low_battery_alert.status.value,
+                                "created_at": low_battery_alert.created_at.isoformat(),
+                                "battery_level": battery_level,
+                            },
                             db,
-                            accuracy=location.accuracy,
                         )
-                        if breach_alert:
-                            create_notification_for_alert(breach_alert, db)
-                            if child:
-                                _append_alert_for_device(
-                                    broadcasts, breach_alert, device_id, child, db
-                                )
 
-                        danger_alerts = check_danger_zone_entry(
-                            device,
-                            latitude,
-                            longitude,
-                            db,
-                            accuracy=location.accuracy,
-                        )
-                        for danger_alert in danger_alerts:
-                            create_notification_for_alert(danger_alert, db)
-                            if child:
-                                _append_alert_for_device(
-                                    broadcasts, danger_alert, device_id, child, db
-                                )
+            return loc_broadcast, broadcasts, geofence_task
 
-                        safe_entry_alerts = check_safe_zone_entry(
-                            device,
-                            latitude,
-                            longitude,
-                            db,
-                            accuracy=location.accuracy,
-                        )
-                        for safe_alert in safe_entry_alerts:
-                            create_notification_for_alert(safe_alert, db)
-                            if child:
-                                _append_alert_for_device(
-                                    broadcasts, safe_alert, device_id, child, db
-                                )
+        try:
+            async with _handler_lock:
+                result = run_with_db_retry(save_work)
+        except PoolTimeoutError:
+            logger.error(
+                "Telemetry skipped for %s: database pool exhausted",
+                device_id,
+            )
+            return
+        if result is None:
+            return
 
-                        if (
-                            breach_alert
-                            or danger_alerts
-                            or safe_entry_alerts
-                        ):
-                            db.commit()
+        location_broadcast, alert_broadcasts, geofence_task = result
 
-                if battery_level is not None:
-                    low_battery_alert = check_low_battery_alert(device, battery_level, db)
-                    if low_battery_alert:
-                        create_notification_for_alert(low_battery_alert, db)
-                        db.commit()
-                        child = db.query(Child).filter(Child.id == device.child_id).first()
-                        if child:
-                            _append_alert_broadcasts(
-                                broadcasts,
-                                device.child_id,
-                                {
-                                    "alert_id": str(low_battery_alert.id),
-                                    "alert_type": low_battery_alert.alert_type.value,
-                                    "child_id": str(low_battery_alert.child_id),
-                                    "device_id": device_id,
-                                    "status": low_battery_alert.status.value,
-                                    "created_at": low_battery_alert.created_at.isoformat(),
-                                    "battery_level": battery_level,
-                                },
-                                db,
-                            )
+        if location_broadcast:
+            await manager.broadcast_location(device_id, location_broadcast)
 
-                return loc_broadcast, broadcasts
+        for user_id, alert_data in alert_broadcasts:
+            await manager.broadcast_alert(user_id, alert_data)
 
-            try:
-                result = run_with_db_retry(db_work)
-            except PoolTimeoutError:
-                logger.error(
-                    "Telemetry skipped for %s: database pool exhausted",
+        if geofence_task:
+            asyncio.create_task(
+                _process_geofence_alerts(
                     device_id,
+                    geofence_task["device_pk"],
+                    geofence_task["latitude"],
+                    geofence_task["longitude"],
+                    geofence_task["accuracy"],
                 )
-                return
-            if result is None:
-                return
+            )
 
-            location_broadcast, alert_broadcasts = result
-
-            if location_broadcast:
-                await manager.broadcast_location(device_id, location_broadcast)
-
-            for user_id, alert_data in alert_broadcasts:
-                await manager.broadcast_alert(user_id, alert_data)
-
-        except Exception as e:
-            logger.exception(f"Error handling telemetry: {e}")
+    except Exception as e:
+        logger.exception(f"Error handling telemetry: {e}")
 
 
 async def handle_alert(payload: Dict):
