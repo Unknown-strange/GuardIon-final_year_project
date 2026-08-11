@@ -29,7 +29,7 @@ from app.services.geofencing import (
 )
 from app.services.check_in_service import confirm_check_in_from_device, confirm_pending_check_ins_for_child
 from app.services.notifications import create_notification_for_alert
-from app.websocket.manager import manager
+from app.services.realtime import push_alert_update, push_location_update
 
 logger = logging.getLogger(__name__)
 
@@ -211,7 +211,7 @@ async def _process_geofence_alerts(
         return
 
     for user_id, alert_data in alert_broadcasts:
-        await manager.broadcast_alert(user_id, alert_data)
+        await push_alert_update(user_id, alert_data)
 
 
 async def handle_mqtt_message(topic: str, payload: Dict):
@@ -344,10 +344,10 @@ async def handle_telemetry(payload: Dict):
         location_broadcast, alert_broadcasts, geofence_task = result
 
         if location_broadcast:
-            await manager.broadcast_location(device_id, location_broadcast)
+            await push_location_update(device_id, location_broadcast)
 
         for user_id, alert_data in alert_broadcasts:
-            await manager.broadcast_alert(user_id, alert_data)
+            await push_alert_update(user_id, alert_data)
 
         if geofence_task:
             asyncio.create_task(
@@ -459,7 +459,7 @@ async def handle_alert(payload: Dict):
         alert_broadcasts = result
 
         for user_id, alert_data in alert_broadcasts:
-            await manager.broadcast_alert(user_id, alert_data)
+            await push_alert_update(user_id, alert_data)
 
     except Exception as e:
         logger.exception(f"Error handling alert: {e}")
@@ -554,6 +554,6 @@ async def handle_check_in_response(payload: Dict):
 
         if result:
             for user_id, alert_data in result:
-                await manager.broadcast_alert(user_id, alert_data)
+                await push_alert_update(user_id, alert_data)
     except Exception as e:
         logger.exception(f"Error handling check-in response: {e}")

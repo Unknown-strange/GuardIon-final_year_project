@@ -1,0 +1,12 @@
+# Second Railway service — MQTT worker (optional split from API)
+# Root Directory: backend_guardion
+# Variables: same as API (DATABASE_URL, MQTT_*, REDIS_URL) + MQTT_ENABLED=true
+
+[build]
+builder = "RAILPACK"
+buildCommand = "python -m pip install --upgrade pip && python -m pip install -r requirements.txt"
+
+[deploy]
+startCommand = "python mqtt_worker.py"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
