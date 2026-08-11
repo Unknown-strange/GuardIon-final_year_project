@@ -4,13 +4,14 @@ import type { ChildSummary } from '@/components/guardian/child-summary-card';
 import type { SafeZone, ZoneType } from '@/types/safe-zone';
 import { zoneTypeFromApi, zoneTypeToApi } from '@/types/safe-zone';
 import type { SafeZoneCreate, SafeZoneResponse, SafeZoneUpdate } from '@/api/types';
+import { DEFAULT_MAP_LOCATION } from '@/constants/theme';
+import {
+  connectionStatusToBadgeVariant,
+  resolveConnectionStatus,
+} from '@/utils/connection-status';
 import {
   coordinatesTimestamp,
-  isDeviceLiveFromCoords,
 } from '@/utils/device-online';
-
-const DEFAULT_LAT = 5.6037;
-const DEFAULT_LNG = -0.187;
 
 export function formatRelativeTime(iso?: string | null): string {
   if (!iso) return 'Unknown';
@@ -31,18 +32,18 @@ export function childSummaryFromApi(
   device?: DeviceResponse | null,
   location?: CurrentLocationResponse | null,
 ): ChildSummary {
-  const online = isDeviceLiveFromCoords(device, location);
   const coordinatesAt = coordinatesTimestamp(location, device);
+  const connectionStatus = resolveConnectionStatus(device, location, child.created_at);
+  const online = connectionStatus === 'online';
 
   const battery = device?.battery_level ?? location?.battery_level;
   const lowBattery = typeof battery === 'number' && battery <= 20;
 
-  let status: ChildSummary['status'] = 'safe';
-  if (!device || device.status === 'inactive' || device.status === 'lost' || !online) {
-    status = 'offline';
-  } else if (lowBattery) {
-    status = 'warning';
-  }
+  const deviceInactive =
+    !device || device.status === 'inactive' || device.status === 'lost';
+  const status = deviceInactive && connectionStatus !== 'connecting'
+    ? 'offline'
+    : connectionStatusToBadgeVariant(connectionStatus, lowBattery);
 
   return {
     id: child.id,
@@ -53,13 +54,16 @@ export function childSummaryFromApi(
     location: location
       ? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
       : 'Location unavailable',
-    latitude: location?.latitude ?? DEFAULT_LAT,
-    longitude: location?.longitude ?? DEFAULT_LNG,
+    latitude: location?.latitude ?? DEFAULT_MAP_LOCATION.latitude,
+    longitude: location?.longitude ?? DEFAULT_MAP_LOCATION.longitude,
     status,
-    movement: online ? 'Active' : 'Unknown',
-    lastUpdate: formatRelativeTime(coordinatesAt),
-    online: !!online,
+    connectionStatus,
+    movement: online ? 'Active' : connectionStatus === 'connecting' ? 'Connecting' : 'Unknown',
+    lastUpdate:
+      connectionStatus === 'connecting' ? 'Waiting for device…' : formatRelativeTime(coordinatesAt),
+    online,
     coordinatesAt,
+    createdAt: child.created_at,
     alertMessage: lowBattery ? 'Low battery on device' : undefined,
     profilePhoto: child.profile_photo ?? undefined,
   };
@@ -75,18 +79,22 @@ export function applyDevicePollToChild(
   device?: DeviceResponse | null,
   location?: CurrentLocationResponse | null,
 ): ChildSummary {
-  const online = isDeviceLiveFromCoords(device, location);
   const coordinatesAt = coordinatesTimestamp(location, device);
+  const connectionStatus = resolveConnectionStatus(
+    device,
+    location,
+    child.createdAt,
+  );
+  const online = connectionStatus === 'online';
 
   const battery = device?.battery_level ?? location?.battery_level;
   const lowBattery = typeof battery === 'number' && battery <= 20;
 
-  let status: ChildSummary['status'] = 'safe';
-  if (!device || device.status === 'inactive' || device.status === 'lost' || !online) {
-    status = 'offline';
-  } else if (lowBattery) {
-    status = 'warning';
-  }
+  const deviceInactive =
+    !device || device.status === 'inactive' || device.status === 'lost';
+  const status = deviceInactive && connectionStatus !== 'connecting'
+    ? 'offline'
+    : connectionStatusToBadgeVariant(connectionStatus, lowBattery);
 
   const hasLocation = location?.latitude != null && location?.longitude != null;
 
@@ -100,9 +108,17 @@ export function applyDevicePollToChild(
     latitude: hasLocation ? location!.latitude : child.latitude,
     longitude: hasLocation ? location!.longitude : child.longitude,
     status,
-    movement: hasLocation ? movementLabel(location!.speed) : online ? child.movement : 'Unknown',
-    lastUpdate: formatRelativeTime(coordinatesAt),
-    online: !!online,
+    connectionStatus,
+    movement: hasLocation
+      ? movementLabel(location!.speed)
+      : online
+        ? child.movement
+        : connectionStatus === 'connecting'
+          ? 'Connecting'
+          : 'Unknown',
+    lastUpdate:
+      connectionStatus === 'connecting' ? 'Waiting for device…' : formatRelativeTime(coordinatesAt),
+    online,
     coordinatesAt,
     alertMessage: lowBattery ? 'Low battery on device' : undefined,
   };

@@ -37,7 +37,8 @@ import {
   getAlertsForChild,
   useAlerts,
 } from '@/hooks/use-alerts';
-import { useCheckIn } from '@/hooks/use-check-in';
+import { useCheckIn, createCheckInSession } from '@/hooks/use-check-in';
+import { buildCheckInPath } from '@/utils/check-in-navigation';
 import { useEmergencyContacts } from '@/hooks/use-emergency-contacts';
 import { useSafeZones } from '@/hooks/use-safe-zones';
 import type { AlertItem } from '@/constants/alerts-mocks';
@@ -142,6 +143,7 @@ export default function AlertsScreen() {
   const [contactChildId, setContactChildId] = useState('');
   const [checkInConfirmOpen, setCheckInConfirmOpen] = useState(false);
   const [checkInChildId, setCheckInChildId] = useState('');
+  const [checkInSubmitting, setCheckInSubmitting] = useState(false);
   const [sosOpen, setSosOpen] = useState(false);
   const [sosChildId, setSosChildId] = useState('');
   const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
@@ -223,10 +225,24 @@ export default function AlertsScreen() {
 
   const confirmCheckIn = () => {
     const targetId = checkInChildId;
-    setCheckInConfirmOpen(false);
-    if (targetId) {
-      router.push(`/check-in/${targetId}` as any);
-    }
+    const targetChild = checkInChild;
+    if (!targetId || !targetChild) return;
+
+    setCheckInSubmitting(true);
+    void (async () => {
+      try {
+        const session = await createCheckInSession(targetId);
+        setCheckInConfirmOpen(false);
+        router.push(buildCheckInPath(targetId, session, targetChild.name) as any);
+      } catch {
+        Alert.alert(
+          'Check-in failed',
+          'Could not send the check-in request. Please try again.',
+        );
+      } finally {
+        setCheckInSubmitting(false);
+      }
+    })();
   };
 
   const openEmergencySos = (childId: string) => {
@@ -678,6 +694,7 @@ export default function AlertsScreen() {
         lastLabel={checkInLastLabel}
         onClose={closeCheckInConfirm}
         onConfirm={confirmCheckIn}
+        submitting={checkInSubmitting}
       />
 
       {sosChild ? (

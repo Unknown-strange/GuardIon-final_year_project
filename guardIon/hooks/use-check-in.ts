@@ -5,9 +5,14 @@ import * as checkInsApi from '@/api/check-ins';
 import { ApiError } from '@/api/errors';
 import { useAlertsRealtime } from '@/contexts/alerts-realtime-context';
 
-export type CheckInStatus = 'idle' | 'pending' | 'confirmed' | 'timeout';
+export type CheckInStatus = 'idle' | 'pending' | 'confirmed' | 'timeout' | 'failed';
 
-const POLL_MS = 2500;
+export type CheckInSession = {
+  checkInId: string;
+  startedAt: number;
+};
+
+const POLL_FALLBACK_MS = 8000;
 const TIMEOUT_MS = 90000;
 
 function storageKey(childId: string) {
@@ -19,19 +24,41 @@ function resolveChildId(childId: string | null | undefined) {
   return childId;
 }
 
-export function useCheckIn(childId: string | null | undefined, childOnline: boolean) {
+/** Create a pending check-in on the server before navigating to the waiting screen. */
+export async function createCheckInSession(childId: string): Promise<CheckInSession> {
+  const created = await checkInsApi.requestCheckIn(childId);
+  const startedAt = Date.now();
+  await AsyncStorage.setItem(
+    storageKey(childId),
+    JSON.stringify({
+      pendingId: created.id,
+      startedAt,
+    }),
+  );
+  return { checkInId: created.id, startedAt };
+}
+
+export function useCheckIn(
+  childId: string | null | undefined,
+  childOnline: boolean,
+  initialSession?: CheckInSession | null,
+) {
   const resolvedChildId = resolveChildId(childId);
   const { bumpRefresh, deviceSafeCheck } = useAlertsRealtime();
-  const [status, setStatus] = useState<CheckInStatus>('idle');
+  const [status, setStatus] = useState<CheckInStatus>(() =>
+    initialSession ? 'pending' : 'idle',
+  );
   const [lastLabel, setLastLabel] = useState<string | null>(null);
   const [confirmedAt, setConfirmedAt] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const checkInIdRef = useRef<string | null>(null);
-  const startedAtRef = useRef<number | null>(null);
+  const checkInIdRef = useRef<string | null>(initialSession?.checkInId ?? null);
+  const startedAtRef = useRef<number | null>(initialSession?.startedAt ?? null);
+  const sessionAttachedRef = useRef(false);
 
   useEffect(() => {
-    if (!resolvedChildId) return;
+    if (!resolvedChildId || initialSession || sessionAttachedRef.current) return;
     AsyncStorage.getItem(storageKey(resolvedChildId)).then((raw) => {
       if (!raw) return;
       try {
@@ -42,7 +69,7 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
         /* ignore */
       }
     });
-  }, [resolvedChildId]);
+  }, [resolvedChildId, initialSession]);
 
   const clearTimers = useCallback(() => {
     if (pollRef.current) {
@@ -58,8 +85,10 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
   const cancel = useCallback(() => {
     clearTimers();
     setStatus('idle');
+    setErrorMessage(null);
     checkInIdRef.current = null;
     startedAtRef.current = null;
+    sessionAttachedRef.current = false;
   }, [clearTimers]);
 
   const finishConfirmed = useCallback(
@@ -68,6 +97,7 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
       clearTimers();
       const timestamp = at ?? new Date().toISOString();
       setStatus('confirmed');
+      setErrorMessage(null);
       setLastLabel(label);
       setConfirmedAt(timestamp);
       bumpRefresh();
@@ -96,6 +126,7 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
     setStatus('timeout');
     checkInIdRef.current = null;
     startedAtRef.current = null;
+    sessionAttachedRef.current = false;
   }, [clearTimers]);
 
   const applyPollResult = useCallback(
@@ -113,6 +144,7 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
         }
         checkInIdRef.current = null;
         startedAtRef.current = null;
+        sessionAttachedRef.current = false;
       }
     },
     [clearTimers, finishConfirmed],
@@ -146,46 +178,65 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
 
         await applyPollResult(latest);
       } catch {
-        /* keep polling until global timeout */
+        /* WebSocket or next poll may still confirm */
       }
     }
   }, [resolvedChildId, applyPollResult]);
 
-  const start = useCallback(() => {
-    if (!resolvedChildId || !childOnline) return;
-    clearTimers();
-    setStatus('pending');
-    setConfirmedAt(null);
-    startedAtRef.current = Date.now();
-
-    void (async () => {
-      try {
-        const created = await checkInsApi.requestCheckIn(resolvedChildId);
-        checkInIdRef.current = created.id;
-        await AsyncStorage.setItem(
-          storageKey(resolvedChildId),
-          JSON.stringify({
-            pendingId: created.id,
-            startedAt: startedAtRef.current,
-          }),
-        );
-      } catch {
-        setStatus('idle');
-        startedAtRef.current = null;
-        checkInIdRef.current = null;
-        return;
-      }
+  const attachSession = useCallback(
+    (session: CheckInSession) => {
+      clearTimers();
+      checkInIdRef.current = session.checkInId;
+      startedAtRef.current = session.startedAt;
+      setStatus('pending');
+      setConfirmedAt(null);
+      setErrorMessage(null);
 
       void pollCheckIn();
       pollRef.current = setInterval(() => {
         void pollCheckIn();
-      }, POLL_MS);
+      }, POLL_FALLBACK_MS);
 
+      const elapsed = Date.now() - session.startedAt;
+      const remaining = Math.max(0, TIMEOUT_MS - elapsed);
       timeoutRef.current = setTimeout(() => {
         void finishTimeout();
-      }, TIMEOUT_MS);
+      }, remaining);
+    },
+    [clearTimers, finishTimeout, pollCheckIn],
+  );
+
+  const start = useCallback(() => {
+    if (!resolvedChildId || !childOnline || sessionAttachedRef.current) return;
+    sessionAttachedRef.current = true;
+    setStatus('pending');
+    setConfirmedAt(null);
+    setErrorMessage(null);
+
+    void (async () => {
+      try {
+        const session = await createCheckInSession(resolvedChildId);
+        attachSession(session);
+      } catch {
+        setStatus('failed');
+        setErrorMessage('Could not send the check-in request. Please try again.');
+        sessionAttachedRef.current = false;
+        checkInIdRef.current = null;
+        startedAtRef.current = null;
+      }
     })();
-  }, [resolvedChildId, childOnline, clearTimers, finishTimeout, pollCheckIn]);
+  }, [resolvedChildId, childOnline, attachSession]);
+
+  useEffect(() => {
+    if (!initialSession || !resolvedChildId || sessionAttachedRef.current) return;
+    sessionAttachedRef.current = true;
+    attachSession(initialSession);
+  }, [initialSession, resolvedChildId, attachSession]);
+
+  useEffect(() => {
+    if (initialSession || !resolvedChildId || !childOnline || sessionAttachedRef.current) return;
+    start();
+  }, [initialSession, resolvedChildId, childOnline, start]);
 
   const cancelPending = useCallback(async () => {
     const checkInId = checkInIdRef.current;
@@ -198,8 +249,10 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
       }
     }
     setStatus('idle');
+    setErrorMessage(null);
     checkInIdRef.current = null;
     startedAtRef.current = null;
+    sessionAttachedRef.current = false;
   }, [clearTimers]);
 
   useEffect(() => {
@@ -220,6 +273,7 @@ export function useCheckIn(childId: string | null | undefined, childOnline: bool
     status,
     lastLabel,
     confirmedAt,
+    errorMessage,
     start,
     cancel,
     cancelPending,

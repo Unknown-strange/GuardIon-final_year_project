@@ -21,7 +21,8 @@ import { ThemedView } from '@/components/themed-view';
 import { getChildColorTheme } from '@/constants/child-colors';
 import { useGuardianData } from '@/contexts/guardian-data-context';
 import { GuardianColors, Layout, Typography } from '@/constants/theme';
-import { useCheckIn } from '@/hooks/use-check-in';
+import { useCheckIn, createCheckInSession } from '@/hooks/use-check-in';
+import { buildCheckInPath } from '@/utils/check-in-navigation';
 import { useEmergencyContacts } from '@/hooks/use-emergency-contacts';
 import { useSafeZones } from '@/hooks/use-safe-zones';
 import type { ChildContact } from '@/types/child-contact';
@@ -49,6 +50,7 @@ export default function ChildDetailScreen() {
   const { lastLabel, canCheckIn } = useCheckIn(childId, child?.online ?? false);
 
   const [checkInConfirmOpen, setCheckInConfirmOpen] = useState(false);
+  const [checkInSubmitting, setCheckInSubmitting] = useState(false);
   const [contactsOpen, setContactsOpen] = useState(false);
   const [sosOpen, setSosOpen] = useState(false);
 
@@ -75,8 +77,22 @@ export default function ChildDetailScreen() {
   };
 
   const confirmCheckIn = () => {
-    setCheckInConfirmOpen(false);
-    router.push(`/check-in/${childId}` as any);
+    if (!child) return;
+    setCheckInSubmitting(true);
+    void (async () => {
+      try {
+        const session = await createCheckInSession(childId);
+        setCheckInConfirmOpen(false);
+        router.push(buildCheckInPath(childId, session, child.name) as any);
+      } catch {
+        Alert.alert(
+          'Check-in failed',
+          'Could not send the check-in request. Please try again.',
+        );
+      } finally {
+        setCheckInSubmitting(false);
+      }
+    })();
   };
 
   const openSos = () => {
@@ -150,7 +166,11 @@ export default function ChildDetailScreen() {
           <ThemedText style={styles.profileMeta}>
             Age {child.age} ·{' '}
             <ThemedText style={[styles.metaGreen, { color: colors.main }]}>
-              {child.online ? 'Online' : 'Offline'}
+              {child.connectionStatus === 'connecting'
+                ? 'Connecting…'
+                : child.online
+                  ? 'Online'
+                  : 'Offline'}
             </ThemedText>
           </ThemedText>
           <StatusBadge variant={child.status} />
@@ -174,7 +194,11 @@ export default function ChildDetailScreen() {
             <View style={[styles.livePill, { backgroundColor: colors.muted }]}>
               <View style={[styles.liveDot, { backgroundColor: colors.main }]} />
               <ThemedText style={[styles.liveText, { color: colors.border }]}>
-                {child.online ? 'Live Now' : 'Last known'}
+                {child.connectionStatus === 'connecting'
+                  ? 'Connecting…'
+                  : child.online
+                    ? 'Live Now'
+                    : 'Last known'}
               </ThemedText>
             </View>
           </View>
@@ -260,6 +284,7 @@ export default function ChildDetailScreen() {
         lastLabel={lastLabel}
         onClose={closeCheckInConfirm}
         onConfirm={confirmCheckIn}
+        submitting={checkInSubmitting}
       />
 
       <ChildContactsSheet

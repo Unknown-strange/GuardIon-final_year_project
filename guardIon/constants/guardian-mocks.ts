@@ -1,4 +1,5 @@
 import type { ChildSummary } from '@/components/guardian/child-summary-card';
+import { DEFAULT_MAP_LOCATION } from '@/constants/theme';
 
 export const MOCK_CHILDREN: ChildSummary[] = [
   {
@@ -13,6 +14,7 @@ export const MOCK_CHILDREN: ChildSummary[] = [
     latitude: 5.6115,
     longitude: -0.182,
     status: 'safe',
+    connectionStatus: 'online',
     movement: 'Stationary',
     lastUpdate: '2 mins ago',
     online: true,
@@ -26,9 +28,10 @@ export const MOCK_CHILDREN: ChildSummary[] = [
     gender: 'male',
     dateOfBirth: '2016-07-20',
     location: 'Home zone',
-    latitude: 5.6037,
-    longitude: -0.187,
+    latitude: DEFAULT_MAP_LOCATION.latitude,
+    longitude: DEFAULT_MAP_LOCATION.longitude,
     status: 'warning',
+    connectionStatus: 'online',
     movement: 'Moving',
     lastUpdate: '1 min ago',
     online: true,
@@ -46,6 +49,7 @@ export const MOCK_CHILDREN: ChildSummary[] = [
     latitude: 5.6088,
     longitude: -0.1755,
     status: 'offline',
+    connectionStatus: 'offline',
     movement: '? Unknown',
     lastUpdate: '26 mins ago',
     online: false,

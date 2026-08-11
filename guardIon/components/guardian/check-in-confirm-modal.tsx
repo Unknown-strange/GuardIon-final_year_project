@@ -13,6 +13,7 @@ type Props = {
   lastLabel: string | null;
   onClose: () => void;
   onConfirm: () => void;
+  submitting?: boolean;
 };
 
 export function CheckInConfirmModal({
@@ -22,6 +23,7 @@ export function CheckInConfirmModal({
   lastLabel,
   onClose,
   onConfirm,
+  submitting = false,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -45,7 +47,11 @@ export function CheckInConfirmModal({
             </ThemedText>
           ) : null}
           <View style={styles.actions}>
-            <PrimaryButton label="Send check-in" onPress={onConfirm} disabled={!canCheckIn} />
+            <PrimaryButton
+              label={submitting ? 'Sending…' : 'Send check-in'}
+              onPress={onConfirm}
+              disabled={!canCheckIn || submitting}
+            />
             <SecondaryButton label="Cancel" onPress={onClose} />
           </View>
         </Pressable>

@@ -12,5 +12,8 @@ export type ImageKitAuthResponse = {
 };
 
 export function getImageKitUploadAuth() {
-  return apiRequest<ImageKitAuthResponse>('/uploads/imagekit-auth', { auth: true });
+  return apiRequest<ImageKitAuthResponse>('/uploads/imagekit-auth', {
+    auth: true,
+    timeoutMs: 30000,
+  });
 }

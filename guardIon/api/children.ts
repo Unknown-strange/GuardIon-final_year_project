@@ -23,7 +23,7 @@ export function reportMissingChild(childId: string, payload: ReportMissingChildR
 }
 
 export function listChildren() {
-  return apiRequest<ChildResponse[]>('/children/', { auth: true });
+  return apiRequest<ChildResponse[]>('/children/', { auth: true, timeoutMs: 45000 });
 }
 
 export function getChild(childId: string) {
@@ -35,6 +35,7 @@ export function createChild(payload: ChildCreate) {
     method: 'POST',
     auth: true,
     body: payload,
+    timeoutMs: 45000,
   });
 }
 
@@ -50,5 +51,6 @@ export function deleteChild(childId: string) {
   return apiRequest<void>(`/children/${childId}`, {
     method: 'DELETE',
     auth: true,
+    timeoutMs: 60000,
   });
 }

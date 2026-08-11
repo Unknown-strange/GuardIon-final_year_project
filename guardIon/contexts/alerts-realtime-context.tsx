@@ -826,6 +826,8 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
 
       status: 'warning' as const,
 
+      connectionStatus: 'offline' as const,
+
       lastUpdate: 'Just now',
 
       online: false,

@@ -23,12 +23,12 @@ import { StatusBadge } from '@/components/guardian/status-badge';
 import { ThemedText } from '@/components/themed-text';
 import { getChildColorTheme } from '@/constants/child-colors';
 import { useGuardianData } from '@/contexts/guardian-data-context';
-import { GuardianColors, Layout, Typography } from '@/constants/theme';
+import { DEFAULT_MAP_LOCATION, GuardianColors, Layout, Typography } from '@/constants/theme';
 import { getAlertsForChild, useAlerts } from '@/hooks/use-alerts';
 import { useSafeZones } from '@/hooks/use-safe-zones';
 import { childGeofenceStatus, zoneColors } from '@/types/safe-zone';
 
-const DEMO_CENTER = { latitude: 5.6037, longitude: -0.187 };
+const DEMO_CENTER = DEFAULT_MAP_LOCATION;
 const INITIAL_DELTA = { latitudeDelta: 0.06, longitudeDelta: 0.06 };
 const CHILD_ZOOM_DELTA = { latitudeDelta: 0.035, longitudeDelta: 0.035 };
 
@@ -118,6 +118,12 @@ export default function MapScreen() {
       focusChild(params.childId, coords);
     }
   }, [focusChild, params.childId, params.focusLat, params.focusLng]);
+
+  useEffect(() => {
+    if (selectedChildId && !getChildById(selectedChildId)) {
+      clearSelection();
+    }
+  }, [clearSelection, getChildById, selectedChildId]);
 
   useFocusEffect(
     useCallback(() => {

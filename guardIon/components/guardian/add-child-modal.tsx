@@ -17,7 +17,7 @@ import { ChildPhotoPicker } from '@/components/guardian/child-photo-picker';
 import { PrimaryButton, SecondaryButton } from '@/components/guardian/buttons';
 import { ThemedText } from '@/components/themed-text';
 import type { ChildSummary } from '@/components/guardian/child-summary-card';
-import { GuardianColors, Layout, Typography } from '@/constants/theme';
+import { DEFAULT_MAP_LOCATION, GuardianColors, Layout, Typography } from '@/constants/theme';
 import { calculateAgeFromBirthDate, formatBirthDateIso, formatBirthDateShort } from '@/utils/child-age';
 import { pickChildPhoto } from '@/utils/pick-child-photo';
 
@@ -35,7 +35,7 @@ export type RegisterChildPayload = {
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onRegister: (payload: RegisterChildPayload) => ChildSummary | void;
+  onRegister: (payload: RegisterChildPayload) => Promise<void> | void;
   onRegistered?: () => void;
 };
 
@@ -55,11 +55,12 @@ export function payloadToChildSummary(payload: RegisterChildPayload, id: string)
     age: calculateAgeFromBirthDate(payload.dateOfBirth),
     deviceLabel: `Device · ${payload.deviceId.trim()}`,
     location: 'Not set',
-    latitude: 5.6037,
-    longitude: -0.187,
-    status: 'offline',
-    movement: 'Unknown',
-    lastUpdate: 'Unknown',
+    latitude: DEFAULT_MAP_LOCATION.latitude,
+    longitude: DEFAULT_MAP_LOCATION.longitude,
+    status: 'connecting',
+    connectionStatus: 'connecting',
+    movement: 'Connecting',
+    lastUpdate: 'Waiting for device…',
     online: false,
     gender: payload.gender,
     dateOfBirth: formatBirthDateIso(payload.dateOfBirth),
@@ -111,11 +112,11 @@ export function AddChildModal({ visible, onClose, onRegister, onRegistered }: Pr
 
   const openDatePicker = () => setShowDatePicker(true);
 
-  const handleRegister = () => {
-    if (!canRegister) return;
+  const handleRegister = async () => {
+    if (!canRegister || submitting) return;
     setSubmitting(true);
     try {
-      onRegister({
+      await onRegister({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         dateOfBirth: birthDate,
