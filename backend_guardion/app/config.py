@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     # App Info
     APP_NAME: str = "GuardIOn API"
     APP_VERSION: str = "1.0.0"
-    DEBUG: bool = True
-    LOG_LEVEL: str = "DEBUG"
+    DEBUG: bool = False
+    LOG_LEVEL: str = "INFO"
     
     # Database
     DATABASE_URL: str

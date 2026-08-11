@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -36,23 +36,27 @@ export default function ChildDetailScreen() {
   const { getChildById } = useGuardianData();
   const child = getChildById(childId);
   const colors = getChildColorTheme(childId);
-  const { childZones, refresh } = useSafeZones(childId);
-  const { contacts: emergencyContacts, loading: contactsLoading, refresh: refreshContacts } =
-    useEmergencyContacts(childId);
+  const [checkInConfirmOpen, setCheckInConfirmOpen] = useState(false);
+  const [checkInSubmitting, setCheckInSubmitting] = useState(false);
+  const checkInFlowActive = checkInConfirmOpen || checkInSubmitting;
+  const { childZones, refresh } = useSafeZones(childId, !checkInFlowActive);
+  const [contactsOpen, setContactsOpen] = useState(false);
+  const [sosOpen, setSosOpen] = useState(false);
+  const [showEmergencyContacts, setShowEmergencyContacts] = useState(false);
+  const { contacts: emergencyContacts, loading: contactsLoading } = useEmergencyContacts(
+    childId,
+    showEmergencyContacts || contactsOpen || sosOpen,
+  );
+  const checkInSubmitLockRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
+      if (checkInFlowActive) return;
       refresh();
-      void refreshContacts();
-    }, [refresh, refreshContacts]),
+    }, [refresh, checkInFlowActive]),
   );
 
   const { lastLabel, canCheckIn } = useCheckIn(childId, child?.online ?? false);
-
-  const [checkInConfirmOpen, setCheckInConfirmOpen] = useState(false);
-  const [checkInSubmitting, setCheckInSubmitting] = useState(false);
-  const [contactsOpen, setContactsOpen] = useState(false);
-  const [sosOpen, setSosOpen] = useState(false);
 
   const openOnMap = () => {
     router.push({
@@ -77,7 +81,8 @@ export default function ChildDetailScreen() {
   };
 
   const confirmCheckIn = () => {
-    if (!child) return;
+    if (!child || checkInSubmitting || checkInSubmitLockRef.current) return;
+    checkInSubmitLockRef.current = true;
     setCheckInSubmitting(true);
     void (async () => {
       try {
@@ -90,6 +95,7 @@ export default function ChildDetailScreen() {
           'Could not send the check-in request. Please try again.',
         );
       } finally {
+        checkInSubmitLockRef.current = false;
         setCheckInSubmitting(false);
       }
     })();
@@ -252,7 +258,14 @@ export default function ChildDetailScreen() {
         </View>
 
         <SectionTitle title="Emergency" />
-        {contactsLoading && emergencyContacts.length === 0 ? (
+        {!showEmergencyContacts ? (
+          <View style={styles.emergencyEmptyWrap}>
+            <PrimaryButton
+              label="View emergency contacts"
+              onPress={() => setShowEmergencyContacts(true)}
+            />
+          </View>
+        ) : contactsLoading && emergencyContacts.length === 0 ? (
           <AlertsContactRowSkeletonList count={2} />
         ) : emergencyContacts.length === 0 ? (
           <View style={styles.emergencyEmptyWrap}>

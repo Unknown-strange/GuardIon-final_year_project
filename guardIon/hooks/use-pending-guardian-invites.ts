@@ -8,10 +8,9 @@ import type { GuardianInviteResponse } from '@/api/guardians';
 import { useAuth } from '@/contexts/auth-context';
 import { useGuardianData } from '@/contexts/guardian-data-context';
 
-const INVITES_START_DELAY_MS = 3_000;
-const INVITES_FOCUS_MIN_MS = 30_000;
+const INVITES_FOCUS_MIN_MS = 60_000;
 
-export function usePendingGuardianInvites() {
+export function usePendingGuardianInvites(enabled = false) {
   const { isAuthenticated } = useAuth();
   const { isLoading: guardianLoading } = useGuardianData();
   const [invites, setInvites] = useState<GuardianInviteResponse[]>([]);
@@ -22,66 +21,62 @@ export function usePendingGuardianInvites() {
   const lastFetchRef = useRef(0);
   const fetchInflightRef = useRef<Promise<void> | null>(null);
 
-  const refreshInvites = useCallback(async (options?: { background?: boolean; force?: boolean }) => {
-    if (!isAuthenticated) {
-      setInvites([]);
-      hasLoadedOnceRef.current = false;
-      return;
-    }
-
-    const background = options?.background === true;
-    if (background && !options?.force) {
-      const now = Date.now();
-      if (now - lastFetchRef.current < INVITES_FOCUS_MIN_MS) return;
-    }
-
-    if (fetchInflightRef.current) return fetchInflightRef.current;
-
-    const hasCached = invitesRef.current.length > 0 || hasLoadedOnceRef.current;
-    if (!background || !hasCached) {
-      setIsLoading(true);
-    }
-
-    const run = async () => {
-      try {
-        const { invites: pending } = await guardiansApi.listPendingInvites();
-        setInvites(pending);
-        hasLoadedOnceRef.current = true;
-        lastFetchRef.current = Date.now();
-      } catch {
-        if (!background) {
+  const refreshInvites = useCallback(
+    async (options?: { background?: boolean; force?: boolean }) => {
+      if (!isAuthenticated || !enabled) {
+        if (!enabled) {
           setInvites([]);
+          hasLoadedOnceRef.current = false;
         }
-      } finally {
-        setIsLoading(false);
+        return;
       }
-    };
 
-    const promise = run().finally(() => {
-      fetchInflightRef.current = null;
-    });
-    fetchInflightRef.current = promise;
-    return promise;
-  }, [isAuthenticated]);
+      const background = options?.background === true;
+      if (background && !options?.force) {
+        const now = Date.now();
+        if (now - lastFetchRef.current < INVITES_FOCUS_MIN_MS) return;
+      }
 
-  useEffect(() => {
-    if (!isAuthenticated || guardianLoading) return;
+      if (fetchInflightRef.current) return fetchInflightRef.current;
 
-    const timer = setTimeout(() => {
-      void refreshInvites();
-    }, INVITES_START_DELAY_MS);
+      const hasCached = invitesRef.current.length > 0 || hasLoadedOnceRef.current;
+      if (!background || !hasCached) {
+        setIsLoading(true);
+      }
 
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, guardianLoading, refreshInvites]);
+      const run = async () => {
+        try {
+          const { invites: pending } = await guardiansApi.listPendingInvites();
+          setInvites(pending);
+          hasLoadedOnceRef.current = true;
+          lastFetchRef.current = Date.now();
+        } catch {
+          if (!background) {
+            setInvites([]);
+          }
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      const promise = run().finally(() => {
+        fetchInflightRef.current = null;
+      });
+      fetchInflightRef.current = promise;
+      return promise;
+    },
+    [enabled, isAuthenticated],
+  );
 
   useFocusEffect(
     useCallback(() => {
+      if (!enabled || guardianLoading) return;
       void refreshInvites({ background: true });
-    }, [refreshInvites]),
+    }, [enabled, guardianLoading, refreshInvites]),
   );
 
   useEffect(() => {
-    if (!isAuthenticated || Platform.OS === 'web') return;
+    if (!isAuthenticated || !enabled || Platform.OS === 'web') return;
 
     const sub = Notifications.addNotificationReceivedListener((event) => {
       const data = event.request.content.data as { type?: string } | undefined;
@@ -91,16 +86,13 @@ export function usePendingGuardianInvites() {
     });
 
     return () => sub.remove();
-  }, [isAuthenticated, refreshInvites]);
+  }, [enabled, isAuthenticated, refreshInvites]);
 
-  const acceptInvite = useCallback(
-    async (guardianId: string) => {
-      const accepted = await guardiansApi.acceptGuardianInvite(guardianId);
-      setInvites((prev) => prev.filter((invite) => invite.id !== guardianId));
-      return accepted;
-    },
-    [],
-  );
+  const acceptInvite = useCallback(async (guardianId: string) => {
+    const accepted = await guardiansApi.acceptGuardianInvite(guardianId);
+    setInvites((prev) => prev.filter((invite) => invite.id !== guardianId));
+    return accepted;
+  }, []);
 
   const declineInvite = useCallback(async (guardianId: string) => {
     await guardiansApi.declineGuardianInvite(guardianId);

@@ -18,11 +18,14 @@ export function getAlertHistory(params?: {
   end_time?: string;
   limit?: number;
 }) {
-  return apiRequest<AlertListResponse>('/alerts/history', {
-    auth: true,
-    query: params,
-    timeoutMs: 45000,
-  });
+  const key = `alerts:history:${JSON.stringify(params ?? {})}`;
+  return dedupeInflight(key, () =>
+    apiRequest<AlertListResponse>('/alerts/history', {
+      auth: true,
+      query: params,
+      timeoutMs: 45000,
+    }),
+  );
 }
 
 export function getChildActiveAlerts(childId: string) {

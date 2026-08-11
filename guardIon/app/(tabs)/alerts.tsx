@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   LayoutAnimation,
@@ -146,7 +146,9 @@ export default function AlertsScreen() {
   const [checkInSubmitting, setCheckInSubmitting] = useState(false);
   const [sosOpen, setSosOpen] = useState(false);
   const [sosChildId, setSosChildId] = useState('');
+  const [emergencyListOpen, setEmergencyListOpen] = useState(false);
   const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
+  const checkInSubmitLockRef = useRef(false);
 
   const checkInChild = getChildById(checkInChildId);
   const { lastLabel: checkInLastLabel, canCheckIn } = useCheckIn(
@@ -155,7 +157,7 @@ export default function AlertsScreen() {
   );
 
   const sosChild = getChildById(sosChildId);
-  const { childZones: sosZones } = useSafeZones(sosChildId || null);
+  const { childZones: sosZones } = useSafeZones(sosChildId || null, sosOpen);
 
   useEffect(() => {
     if (params.childId && typeof params.childId === 'string') {
@@ -193,8 +195,10 @@ export default function AlertsScreen() {
     selectedChildId === null ? 'All children' : (getChildById(selectedChildId)?.name ?? 'Child');
   const status = aggregateStatus(selectedChildId, children, getChildById);
   const contactsChildIdResolved = getContactsChildId(selectedChildId, children);
+  const shouldLoadEmergencyContacts = contactsOpen || sosOpen || emergencyListOpen;
   const { contacts: emergencyContacts, loading: contactsLoading } = useEmergencyContacts(
     contactsChildIdResolved || null,
+    shouldLoadEmergencyContacts,
   );
   const sosTargetChildId = getSosTargetChildId(selectedChildId, children);
   const contactChild = getChildById(contactChildId || contactsChildIdResolved);
@@ -226,8 +230,9 @@ export default function AlertsScreen() {
   const confirmCheckIn = () => {
     const targetId = checkInChildId;
     const targetChild = checkInChild;
-    if (!targetId || !targetChild) return;
+    if (!targetId || !targetChild || checkInSubmitting || checkInSubmitLockRef.current) return;
 
+    checkInSubmitLockRef.current = true;
     setCheckInSubmitting(true);
     void (async () => {
       try {
@@ -240,6 +245,7 @@ export default function AlertsScreen() {
           'Could not send the check-in request. Please try again.',
         );
       } finally {
+        checkInSubmitLockRef.current = false;
         setCheckInSubmitting(false);
       }
     })();
@@ -650,7 +656,14 @@ export default function AlertsScreen() {
 
         <Animated.View entering={FadeInDown.delay(280).duration(300)}>
           <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Emergency Contacts</ThemedText>
-          {showContactsSkeleton ? (
+          {!shouldLoadEmergencyContacts ? (
+            <View style={styles.emergencyEmptyWrap}>
+              <PrimaryButton
+                label="View emergency contacts"
+                onPress={() => setEmergencyListOpen(true)}
+              />
+            </View>
+          ) : showContactsSkeleton ? (
             <AlertsContactRowSkeletonList count={2} />
           ) : emergencyContacts.length === 0 ? (
             <View style={styles.emergencyEmptyWrap}>

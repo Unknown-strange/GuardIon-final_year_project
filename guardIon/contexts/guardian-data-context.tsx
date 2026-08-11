@@ -23,8 +23,11 @@ import { ensureHttpsProfilePhoto } from '@/lib/imagekit-upload';
 import { applyLocationToChild } from '@/utils/apply-location-to-child';
 import { isFreshCoordinateTimestamp } from '@/utils/device-online';
 import { useAuth } from '@/contexts/auth-context';
+import { useAppForeground } from '@/hooks/use-app-foreground';
+import { useIsGuardianTabFocused } from '@/hooks/use-guardian-tab-focus';
 import { useMultiLocationWebSocket } from '@/hooks/use-multi-location-websocket';
 import { logApi, logApiError } from '@/utils/api-logger';
+import { isCheckInApiPaused } from '@/utils/check-in-api-pause';
 
 type RefreshOptions = {
   /** When true, keep showing cached children and skip blocking loaders. */
@@ -53,9 +56,9 @@ type GuardianDataContextValue = {
   removeChild: (childId: string) => Promise<void>;
 };
 
-const DEVICE_STATUS_POLL_MS = 30_000;
-const DEVICE_STATUS_POLL_LIVE_MS = 45_000;
-const DEVICE_POLL_START_DELAY_MS = 5_000;
+const DEVICE_STATUS_POLL_MS = 60_000;
+const DEVICE_STATUS_POLL_LIVE_MS = 90_000;
+const DEVICE_POLL_START_DELAY_MS = 8_000;
 const BACKGROUND_REFRESH_MIN_MS = 30_000;
 
 const GuardianDataContext = createContext<GuardianDataContextValue | null>(null);
@@ -104,6 +107,9 @@ async function fetchChildrenAndDevices() {
 
 export function GuardianDataProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
+  const isForeground = useAppForeground();
+  const isLocationTabFocused = useIsGuardianTabFocused('home', 'map');
+  const locationWsEnabled = isAuthenticated && isForeground && isLocationTabFocused;
   const [childSummaries, setChildSummaries] = useState<ChildSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -132,7 +138,7 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
       .join('|'),
   ]);
 
-  const liveUpdates = useMultiLocationWebSocket(deviceToChild, isAuthenticated);
+  const liveUpdates = useMultiLocationWebSocket(deviceToChild, locationWsEnabled);
   const liveUpdatesRef = useRef(liveUpdates);
   liveUpdatesRef.current = liveUpdates;
   const hasLiveLocationRef = useRef(false);
@@ -171,8 +177,8 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
 
   const pollDeviceStatus = useCallback(async () => {
     const current = childSummariesRef.current;
-    if (!isAuthenticated || current.length === 0 || !childrenReadyRef.current) return;
-    if (devicePollInFlightRef.current) return;
+    if (!isAuthenticated || !isForeground || current.length === 0 || !childrenReadyRef.current) return;
+    if (devicePollInFlightRef.current || isCheckInApiPaused()) return;
     devicePollInFlightRef.current = true;
 
     try {
@@ -235,10 +241,10 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
     } finally {
       devicePollInFlightRef.current = false;
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isForeground]);
 
   useEffect(() => {
-    if (!isAuthenticated || childSummaries.length === 0 || !hasLoadedOnceRef.current) return;
+    if (!isAuthenticated || !isForeground || childSummaries.length === 0 || !hasLoadedOnceRef.current) return;
 
     const pollMs = hasLiveLocationRef.current
       ? DEVICE_STATUS_POLL_LIVE_MS
@@ -256,7 +262,7 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
       clearTimeout(startTimer);
       clearInterval(interval);
     };
-  }, [isAuthenticated, childSummaries.length, pollDeviceStatus, liveUpdates]);
+  }, [isAuthenticated, isForeground, childSummaries.length, pollDeviceStatus, liveUpdates]);
 
   const refreshChildren = useCallback(async (options?: RefreshOptions) => {
     if (!isAuthenticated) {

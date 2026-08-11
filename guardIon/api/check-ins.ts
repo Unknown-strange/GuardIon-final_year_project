@@ -1,4 +1,5 @@
 import { apiRequest } from '@/api/client';
+import { dedupeInflight } from '@/utils/request-dedupe';
 
 export type CheckInResponse = {
   id: string;
@@ -17,7 +18,9 @@ export async function requestCheckIn(childId: string) {
 }
 
 export async function getCheckIn(checkInId: string) {
-  return apiRequest<CheckInResponse>(`/check-ins/${checkInId}`, { auth: true });
+  return dedupeInflight(`check-in:get:${checkInId}`, () =>
+    apiRequest<CheckInResponse>(`/check-ins/${checkInId}`, { auth: true }),
+  );
 }
 
 export async function timeoutCheckIn(checkInId: string) {

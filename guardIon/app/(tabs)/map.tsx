@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { Image } from 'expo-image';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -54,9 +55,13 @@ export default function MapScreen() {
     focusLng?: string;
   }>();
   const { children, getChildById } = useGuardianData();
+  const isFocused = useIsFocused();
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
-  const { childZones, refresh } = useSafeZones(selectedChildId);
+  const { childZones, refresh } = useSafeZones(
+    selectedChildId,
+    isFocused && !!selectedChildId,
+  );
   const { allAlerts } = useAlerts('active');
 
   const selectedChild = useMemo(

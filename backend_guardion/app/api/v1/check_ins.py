@@ -3,7 +3,6 @@ Check-In API
 """
 
 import logging
-import time
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -14,49 +13,25 @@ from uuid import UUID
 from app.api.deps import get_db, get_current_active_user, get_user_child
 from app.api.child_access import user_can_access_child
 from app.models.user import User
-from app.models.child import Child
 from app.models.device import Device, DeviceStatus
 from app.models.check_in import CheckIn
 from app.schemas.check_in import CheckInCreate, CheckInResponse, CheckInListResponse
 from app.services.check_in_service import timeout_check_in, cancel_check_in
-from app.mqtt.client import mqtt_client
+from app.services.device_command_dispatch import dispatch_device_command
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-CHECK_IN_CMD_ATTEMPTS = 4
-CHECK_IN_CMD_RETRY_SEC = 2.0
-
 
 def _publish_check_in_command(device: Device, check_in: CheckIn, child_id: UUID) -> bool:
-    topic = f"guardion/devices/{device.device_id}/command"
     payload = {
         "command": "check_in",
         "check_in_id": str(check_in.id),
         "child_id": str(child_id),
         "timestamp": datetime.utcnow().isoformat() + "Z",
     }
-    for attempt in range(1, CHECK_IN_CMD_ATTEMPTS + 1):
-        if mqtt_client.publish(topic, payload, qos=1):
-            logger.info(
-                "Check-in %s command published to %s (attempt %s/%s)",
-                check_in.id,
-                device.device_id,
-                attempt,
-                CHECK_IN_CMD_ATTEMPTS,
-            )
-            return True
-        logger.warning(
-            "Check-in %s command publish failed (attempt %s/%s, mqtt_connected=%s)",
-            check_in.id,
-            attempt,
-            CHECK_IN_CMD_ATTEMPTS,
-            mqtt_client.is_connected,
-        )
-        if attempt < CHECK_IN_CMD_ATTEMPTS:
-            time.sleep(CHECK_IN_CMD_RETRY_SEC)
-    return False
+    return dispatch_device_command(device.device_id, payload)
 
 
 def _get_user_check_in(
@@ -132,14 +107,19 @@ def request_check_in(
 
     if device:
         if not _publish_check_in_command(device, check_in, payload.child_id):
-            logger.warning(
-                "Check-in %s created but MQTT command not published after %s attempts",
+            logger.error(
+                "Check-in %s created but device command was not dispatched to %s",
                 check_in.id,
-                CHECK_IN_CMD_ATTEMPTS,
+                device.device_id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Could not reach the child's device. Please try again in a moment.",
             )
     else:
         logger.warning(
-            f"No active device linked to child {payload.child_id} for check-in command"
+            "No active device linked to child %s for check-in command",
+            payload.child_id,
         )
 
     return check_in

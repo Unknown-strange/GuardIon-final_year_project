@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 LOCATION_KEY_PREFIX = "guardion:device:"
 LOCATION_CHANNEL = "guardion:location"
 ALERT_CHANNEL = "guardion:alert"
+COMMAND_CHANNEL = "guardion:device_command"
 LOCATION_TTL_SEC = 86_400
 
 _sync_client: Optional[redis.Redis] = None
@@ -159,6 +160,48 @@ def publish_alert_message(user_id: str, payload: dict[str, Any]) -> None:
         )
     except Exception as exc:
         logger.warning("Redis alert publish failed for user %s: %s", user_id, exc)
+
+
+def publish_device_command(
+    device_id: str,
+    payload: dict[str, Any],
+    *,
+    qos: int = 1,
+) -> bool:
+    """Enqueue an outbound MQTT device command for mqtt_worker (API → worker)."""
+    client = get_sync_redis()
+    if not client:
+        return False
+
+    topic = f"guardion/devices/{device_id}/command"
+    try:
+        receivers = client.publish(
+            COMMAND_CHANNEL,
+            json.dumps(
+                {
+                    "device_id": device_id,
+                    "topic": topic,
+                    "payload": payload,
+                    "qos": qos,
+                }
+            ),
+        )
+        if receivers and receivers > 0:
+            logger.info(
+                "Redis device command published for %s (%s subscriber(s))",
+                device_id,
+                receivers,
+            )
+            return True
+
+        logger.warning(
+            "Redis device command published for %s but no mqtt_worker subscribed",
+            device_id,
+        )
+        return False
+    except Exception as exc:
+        logger.warning("Redis device command publish failed for %s: %s", device_id, exc)
+        return False
 
 
 def parse_cached_timestamp(value: Any) -> datetime:

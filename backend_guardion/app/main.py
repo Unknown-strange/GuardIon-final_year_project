@@ -35,11 +35,15 @@ from app.mqtt.handlers import handle_mqtt_message
 from app.redis_store import is_redis_configured, redis_ping, close_async_redis
 from app.redis_subscriber import start_redis_subscriber, stop_redis_subscriber
 
-# Configure logging
+# Configure logging — keep SQLAlchemy quiet in production (Railway log rate limits).
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+if not settings.DEBUG:
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy.dialects").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
