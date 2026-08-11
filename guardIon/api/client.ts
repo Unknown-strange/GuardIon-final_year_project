@@ -11,7 +11,7 @@ type RequestOptions = {
   timeoutMs?: number;
 };
 
-const DEFAULT_TIMEOUT_MS = 20000;
+const DEFAULT_TIMEOUT_MS = 30000;
 
 /** fetch with an AbortController timeout; surfaces a clear ApiError instead of hanging forever. */
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {

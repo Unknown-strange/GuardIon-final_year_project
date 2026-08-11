@@ -45,7 +45,8 @@ type GuardianDataContextValue = {
   removeChild: (childId: string) => Promise<void>;
 };
 
-const DEVICE_STATUS_POLL_MS = 4000;
+const DEVICE_STATUS_POLL_MS = 12000;
+const DEVICE_STATUS_POLL_LIVE_MS = 20000;
 
 const GuardianDataContext = createContext<GuardianDataContextValue | null>(null);
 
@@ -60,11 +61,13 @@ async function fetchLocationSafely(childId: string) {
 function mapChildren(
   apiChildren: ChildResponse[],
   devices: DeviceResponse[],
+  options?: { includeLocation?: boolean },
 ) {
+  const includeLocation = options?.includeLocation !== false;
   return Promise.all(
     apiChildren.map(async (child) => {
       const device = devices.find((d) => d.child_id === child.id) ?? null;
-      const location = await fetchLocationSafely(child.id);
+      const location = includeLocation ? await fetchLocationSafely(child.id) : null;
       return childSummaryFromApi(child, device, location);
     }),
   );
@@ -78,6 +81,7 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
   const childSummariesRef = useRef(childSummaries);
   childSummariesRef.current = childSummaries;
   const hasLoadedOnceRef = useRef(false);
+  const pendingDeleteIdsRef = useRef<Set<string>>(new Set());
 
   const [locationTick, setLocationTick] = useState(0);
 
@@ -95,6 +99,10 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
   ]);
 
   const liveUpdates = useMultiLocationWebSocket(deviceToChild, isAuthenticated);
+  const liveUpdatesRef = useRef(liveUpdates);
+  liveUpdatesRef.current = liveUpdates;
+  const hasLiveLocationRef = useRef(false);
+  hasLiveLocationRef.current = Object.keys(liveUpdates).length > 0;
 
   useEffect(() => {
     if (!liveUpdates || Object.keys(liveUpdates).length === 0) return;
@@ -111,6 +119,7 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
           child.latitude === update.latitude &&
           child.longitude === update.longitude &&
           child.online === fresh &&
+          child.connectionStatus === (fresh ? 'online' : child.connectionStatus) &&
           child.coordinatesAt === signalAt
         ) {
           return child;
@@ -132,10 +141,11 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
 
     try {
       const devices = await devicesApi.listDevices();
+      const skipLocationFetch = hasLiveLocationRef.current;
       const polled = await Promise.all(
         current.map(async (child) => {
           const device = devices.find((d) => d.child_id === child.id) ?? null;
-          const location = await fetchLocationSafely(child.id);
+          const location = skipLocationFetch ? null : await fetchLocationSafely(child.id);
           return applyDevicePollToChild(child, device, location);
         }),
       );
@@ -150,6 +160,7 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
 
           const coordsChanged =
             child.online !== updated.online ||
+            child.connectionStatus !== updated.connectionStatus ||
             child.coordinatesAt !== updated.coordinatesAt ||
             child.latitude !== updated.latitude ||
             child.longitude !== updated.longitude;
@@ -160,6 +171,7 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
 
           if (
             child.online === updated.online &&
+            child.connectionStatus === updated.connectionStatus &&
             child.coordinatesAt === updated.coordinatesAt &&
             child.latitude === updated.latitude &&
             child.longitude === updated.longitude &&
@@ -190,13 +202,17 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!isAuthenticated || childSummaries.length === 0) return;
 
+    const pollMs = hasLiveLocationRef.current
+      ? DEVICE_STATUS_POLL_LIVE_MS
+      : DEVICE_STATUS_POLL_MS;
+
     void pollDeviceStatus();
     const interval = setInterval(() => {
       void pollDeviceStatus();
-    }, DEVICE_STATUS_POLL_MS);
+    }, pollMs);
 
     return () => clearInterval(interval);
-  }, [isAuthenticated, childSummaries.length, pollDeviceStatus]);
+  }, [isAuthenticated, childSummaries.length, pollDeviceStatus, liveUpdates]);
 
   const refreshChildren = useCallback(async (options?: RefreshOptions) => {
     if (!isAuthenticated) {
@@ -222,13 +238,13 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
         childrenApi.listChildren(),
         devicesApi.listDevices(),
       ]);
-      const mapped = await mapChildren(apiChildren, devices);
+      const pendingDeletes = pendingDeleteIdsRef.current;
+      const visibleChildren = apiChildren.filter((child) => !pendingDeletes.has(child.id));
+      const mapped = await mapChildren(visibleChildren, devices, { includeLocation: false });
       setChildSummaries(mapped);
       hasLoadedOnceRef.current = true;
     } catch {
-      if (!background) {
-        setChildSummaries([]);
-      }
+      /* Keep cached children when the server is slow or unreachable. */
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -258,22 +274,20 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
         }),
       );
 
-      await devicesApi.registerDevice({
+      const device = await devicesApi.registerDevice({
         device_id: payload.deviceId.trim(),
         child_id: created.id,
       });
 
-      const [devices] = await Promise.all([devicesApi.listDevices()]);
-      const device = devices.find((d) => d.child_id === created.id) ?? null;
-      const location = await fetchLocationSafely(created.id);
-      const summary = childSummaryFromApi(created, device, location);
+      const summary = childSummaryFromApi(created, device, null);
       if (profilePhoto) {
         await setChildCustomAvatar(created.id, profilePhoto).catch(() => undefined);
       }
       setChildSummaries((prev) => [...prev, summary]);
+      void refreshChildren({ background: true });
       return summary;
     },
-    [],
+    [refreshChildren],
   );
 
   const updateChildProfile = useCallback(
@@ -302,9 +316,26 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
   );
 
   const removeChild = useCallback(async (childId: string) => {
-    await childrenApi.deleteChild(childId);
-    setChildSummaries((prev) => prev.filter((c) => c.id !== childId));
-  }, []);
+    const snapshot = childSummariesRef.current.find((child) => child.id === childId);
+    pendingDeleteIdsRef.current.add(childId);
+    setChildSummaries((prev) => prev.filter((child) => child.id !== childId));
+
+    try {
+      await childrenApi.deleteChild(childId);
+    } catch (error) {
+      if (snapshot) {
+        setChildSummaries((prev) => {
+          if (prev.some((child) => child.id === childId)) return prev;
+          return [...prev, snapshot];
+        });
+      } else {
+        await refreshChildren({ background: true });
+      }
+      throw error;
+    } finally {
+      pendingDeleteIdsRef.current.delete(childId);
+    }
+  }, [refreshChildren]);
 
   const value = useMemo<GuardianDataContextValue>(
     () => ({

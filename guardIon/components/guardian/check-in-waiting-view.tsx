@@ -19,6 +19,7 @@ type Props = {
   locationLabel: string;
   lastUpdate: string;
   isTimeout?: boolean;
+  isStarting?: boolean;
   onBack: () => void;
   onCallEmergency: () => void;
   onCancel: () => void;
@@ -30,6 +31,7 @@ export function CheckInWaitingView({
   locationLabel,
   lastUpdate,
   isTimeout,
+  isStarting,
   onBack,
   onCallEmergency,
   onCancel,
@@ -86,19 +88,27 @@ export function CheckInWaitingView({
         </View>
 
         <ThemedText style={styles.title}>
-          {isTimeout ? 'No response yet' : 'Waiting for child response…'}
+          {isTimeout
+            ? 'No response yet'
+            : isStarting
+              ? 'Sending check-in request…'
+              : 'Waiting for child response…'}
         </ThemedText>
         <ThemedText style={styles.sub}>
           {isTimeout
             ? `${childName} hasn't confirmed yet. Try calling or view their location.`
-            : `Your request has been sent to ${childName}'s device. This may take a few moments.`}
+            : isStarting
+              ? `Connecting to ${childName}'s device.`
+              : `Your request has been sent to ${childName}'s device. This may take a few moments.`}
         </ThemedText>
       </View>
 
       {!isTimeout ? (
         <View style={styles.progressBlock}>
           <View style={styles.progressRow}>
-            <ThemedText style={styles.progressLabel}>Establishing secure connection</ThemedText>
+            <ThemedText style={styles.progressLabel}>
+              {isStarting ? 'Sending secure request' : 'Waiting for device response'}
+            </ThemedText>
             <Ionicons name="sync-outline" size={16} color={GuardianColors.primary} />
           </View>
           <View style={styles.progressTrack}>

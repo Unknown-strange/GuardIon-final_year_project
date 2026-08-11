@@ -83,7 +83,12 @@ export default function FamilyDevicesScreen() {
 
 
 
-  const activeCount = useMemo(() => children.filter((c) => c.online).length, [children]);
+  const activeCount = useMemo(
+    () => children.filter((c) => c.connectionStatus === 'online').length,
+    [children],
+  );
+
+  const [deletingChildId, setDeletingChildId] = useState<string | null>(null);
 
 
 
@@ -131,12 +136,17 @@ export default function FamilyDevicesScreen() {
 
 
   const removeChild = async (id: string) => {
+    setDeletingChildId(id);
     try {
-      await removeChildApi(id);
+      const deletePromise = removeChildApi(id);
+      showToast('Child removed');
+      await deletePromise;
       const next = await removeChildCustomAvatar(id);
       setCustomAvatars(next);
     } catch (error) {
       Alert.alert('Remove failed', getErrorMessage(error));
+    } finally {
+      setDeletingChildId(null);
     }
   };
 
@@ -244,6 +254,8 @@ export default function FamilyDevicesScreen() {
 
                 imageUri={customAvatars[child.id]}
 
+                isDeleting={deletingChildId === child.id}
+
                 onPress={() =>
 
                   router.push({ pathname: '/child/[id]', params: { id: child.id } })
@@ -299,7 +311,9 @@ export default function FamilyDevicesScreen() {
 
         onPress={() => setAddOpen(true)}
 
-        style={[styles.fab, { bottom: insets.bottom + 88 }]}>
+        style={[styles.fab, { bottom: insets.bottom + 88 }, deletingChildId ? styles.fabDisabled : null]}
+
+        disabled={!!deletingChildId}>
 
         <Ionicons name="add" size={20} color="#FFFFFF" />
 
@@ -484,6 +498,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
 
     fontWeight: '800',
+
+  },
+
+  fabDisabled: {
+
+    opacity: 0.55,
 
   },
 

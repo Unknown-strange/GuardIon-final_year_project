@@ -4,12 +4,13 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { GuardianColors, Typography } from '@/constants/theme';
 
-export type StatusVariant = 'safe' | 'warning' | 'offline';
+export type StatusVariant = 'safe' | 'warning' | 'offline' | 'connecting';
 
 const LABELS: Record<StatusVariant, string> = {
   safe: 'SAFE',
   warning: 'WARNING',
   offline: 'OFFLINE',
+  connecting: 'CONNECTING',
 };
 
 type Props = {
@@ -29,6 +30,11 @@ export function StatusBadge({ variant }: Props) {
         bg: GuardianColors.offlineMuted,
         fg: GuardianColors.offline,
         border: GuardianColors.offline,
+      },
+      connecting: {
+        bg: GuardianColors.navyMuted,
+        fg: GuardianColors.primary,
+        border: GuardianColors.primary,
       },
     }[variant] ?? {
       bg: GuardianColors.offlineMuted,

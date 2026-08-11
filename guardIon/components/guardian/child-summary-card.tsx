@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { ChildAvatar } from '@/components/guardian/child-avatar';
 import { StatusBadge, type StatusVariant } from '@/components/guardian/status-badge';
 import { ThemedText } from '@/components/themed-text';
 import { getChildColorTheme } from '@/constants/child-colors';
 import { GuardianColors, Typography } from '@/constants/theme';
+import type { ConnectionStatus } from '@/utils/connection-status';
 
 export type ChildSummary = {
   id: string;
@@ -17,6 +18,7 @@ export type ChildSummary = {
   latitude: number;
   longitude: number;
   status: StatusVariant;
+  connectionStatus: ConnectionStatus;
   movement?: string;
   lastUpdate: string;
   online: boolean;
@@ -27,6 +29,8 @@ export type ChildSummary = {
   profilePhoto?: string;
   /** ISO timestamp of the last GPS fix used for map/online status. */
   coordinatesAt?: string | null;
+  /** ISO timestamp when the child profile was created (for connecting grace). */
+  createdAt?: string;
 };
 
 type Props = {
@@ -37,6 +41,7 @@ type Props = {
 
 export function ChildSummaryCard({ item, onPress, onLongPress }: Props) {
   const colors = getChildColorTheme(item.id);
+  const isConnecting = item.connectionStatus === 'connecting';
 
   return (
     <Pressable
@@ -69,13 +74,21 @@ export function ChildSummaryCard({ item, onPress, onLongPress }: Props) {
               {item.location}
             </ThemedText>
             <View style={styles.statusRow}>
-              <Ionicons
-                name={item.online ? 'cellular' : 'cloud-offline-outline'}
-                size={14}
-                color={item.online ? GuardianColors.safe : GuardianColors.offline}
-              />
+              {isConnecting ? (
+                <ActivityIndicator size="small" color={GuardianColors.primary} />
+              ) : (
+                <Ionicons
+                  name={item.online ? 'cellular' : 'cloud-offline-outline'}
+                  size={14}
+                  color={item.online ? GuardianColors.safe : GuardianColors.offline}
+                />
+              )}
               <ThemedText style={styles.statusText}>
-                {item.online ? 'Device Online' : 'Device disconnected'}
+                {isConnecting
+                  ? 'Connecting to device…'
+                  : item.online
+                    ? 'Device Online'
+                    : 'Device disconnected'}
               </ThemedText>
             </View>
             {item.movement ? (

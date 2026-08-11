@@ -114,7 +114,7 @@ export default function HomeScreen() {
     );
   }, [children, query]);
 
-  const activeDevices = children.filter((c) => c.online).length;
+  const activeDevices = children.filter((c) => c.connectionStatus === 'online').length;
   const hasChildren = children.length > 0;
   const showEmptyState = !isLoading && !hasChildren;
 

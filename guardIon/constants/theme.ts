@@ -72,6 +72,12 @@ export const Layout = {
   minTapSize: 44,
 };
 
+/** Fallback map center when live GPS is unavailable (Kumasi test area). */
+export const DEFAULT_MAP_LOCATION = {
+  latitude: 6.672644,
+  longitude: -1.56637,
+} as const;
+
 export const Fonts = Platform.select({
   ios: {
     sans: 'system-ui',
