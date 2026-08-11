@@ -21,6 +21,7 @@ from app.models.child import Child
 from app.models.safezone import SafeZone
 from app.mqtt.schemas import AlertPayload, CheckInResponsePayload, StatusPayload, TelemetryPayload
 from app.services.geofencing import (
+    calculate_distance,
     check_geofence_breach,
     check_danger_zone_entry,
     check_safe_zone_entry,
@@ -33,14 +34,17 @@ from app.services.realtime import push_alert_update, push_location_update
 
 logger = logging.getLogger(__name__)
 
-# Throttle heavy work so HTTP API requests are not starved on small Render instances.
-GEOFENCE_DEBOUNCE_SEC = 60.0
+# Keep DB writes rare. Zone exit/enter is decided in memory every GPS tick.
 LOCATION_HISTORY_MIN_SEC = 15.0
 DEVICE_SEEN_MIN_SEC = 10.0
+ZONE_CACHE_TTL_SEC = 20.0
 
-_geofence_last_run: dict[str, float] = {}
 _location_insert_last: dict[str, float] = {}
 _device_seen_last: dict[str, float] = {}
+_zone_cache: dict[str, list[tuple[str, str, float, float, float, str]]] = {}
+_zone_cache_at: dict[str, float] = {}
+_inside_safe: dict[str, bool] = {}
+_inside_danger_ids: dict[str, frozenset[str]] = {}
 _geofence_sem = asyncio.Semaphore(1)
 _telemetry_sem = asyncio.Semaphore(1)
 
@@ -85,14 +89,63 @@ def _resolve_alert_type(alert_type_str: Optional[str]) -> AlertType:
     return ALERT_TYPE_MAP.get(normalized, AlertType.SOS)
 
 
-def _should_run_geofence(device_id: str) -> bool:
-    """Throttle zone checks — location is still saved (or broadcast) every telemetry message."""
+def _cached_zones_for_child(child_id: UUID, db) -> list[tuple[str, str, float, float, float, str]]:
+    key = str(child_id)
     now = time.monotonic()
-    last = _geofence_last_run.get(device_id, 0.0)
-    if now - last < GEOFENCE_DEBOUNCE_SEC:
+    if key in _zone_cache and now - _zone_cache_at.get(key, 0.0) < ZONE_CACHE_TTL_SEC:
+        return _zone_cache[key]
+    rows = (
+        db.query(SafeZone.id, SafeZone.zone_name, SafeZone.center_lat, SafeZone.center_lng, SafeZone.radius, SafeZone.zone_type)
+        .filter(SafeZone.child_id == child_id)
+        .all()
+    )
+    zones = [
+        (
+            str(row.id),
+            row.zone_name,
+            float(row.center_lat),
+            float(row.center_lng),
+            float(row.radius),
+            getattr(row.zone_type, "value", str(row.zone_type)),
+        )
+        for row in rows
+    ]
+    _zone_cache[key] = zones
+    _zone_cache_at[key] = now
+    return zones
+
+
+def _geofence_state_changed(
+    device_id: str,
+    child_id: UUID,
+    latitude: float,
+    longitude: float,
+    db,
+) -> bool:
+    """True only when the child crossed a zone boundary — no DB geofence work otherwise."""
+    zones = _cached_zones_for_child(child_id, db)
+    if not zones:
         return False
-    _geofence_last_run[device_id] = now
-    return True
+
+    inside_safe = False
+    danger_ids: set[str] = set()
+    for zone_id, _name, lat, lng, radius, zone_type in zones:
+        if calculate_distance(latitude, longitude, lat, lng) > radius:
+            continue
+        if str(zone_type).upper() == "DANGER":
+            danger_ids.add(zone_id)
+        else:
+            inside_safe = True
+
+    danger_key = frozenset(danger_ids)
+    prev_safe = _inside_safe.get(device_id)
+    prev_danger = _inside_danger_ids.get(device_id, frozenset())
+    _inside_safe[device_id] = inside_safe
+    _inside_danger_ids[device_id] = danger_key
+
+    if prev_safe is None:
+        return True
+    return prev_safe != inside_safe or prev_danger != danger_key
 
 
 def _should_insert_location_history(device_id: str) -> bool:
@@ -319,15 +372,14 @@ async def handle_telemetry(payload: Dict):
                     battery_level,
                 )
 
-            if latitude is not None and longitude is not None:
-                if _should_run_geofence(device_id) and device.child_id:
-                    if _child_has_configured_zones(device.child_id, db):
-                        geofence_task = {
-                            "device_pk": device.id,
-                            "latitude": latitude,
-                            "longitude": longitude,
-                            "accuracy": location.accuracy,
-                        }
+            if latitude is not None and longitude is not None and device.child_id:
+                if _geofence_state_changed(device_id, device.child_id, latitude, longitude, db):
+                    geofence_task = {
+                        "device_pk": device.id,
+                        "latitude": latitude,
+                        "longitude": longitude,
+                        "accuracy": location.accuracy,
+                    }
 
             if battery_level is not None:
                 low_battery_alert = check_low_battery_alert(device, battery_level, db)

@@ -31,7 +31,7 @@ engine = create_engine(
     max_overflow=_max_overflow,
     pool_recycle=300,
     pool_timeout=15,
-    echo=settings.DEBUG,
+    echo=False,
 )
 
 logger.info(
