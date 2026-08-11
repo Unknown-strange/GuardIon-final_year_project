@@ -4,6 +4,7 @@ Database Connection and Session Management
 
 import asyncio
 import logging
+import os
 from contextlib import contextmanager
 from typing import Callable, Optional, TypeVar
 
@@ -18,15 +19,25 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
-# Create database engine — tuned for Render Postgres (idle SSL drops)
+# Pool size via env — use smaller values on mqtt worker (e.g. DB_POOL_SIZE=2).
+_pool_size = int(os.environ.get("DB_POOL_SIZE", "3"))
+_max_overflow = int(os.environ.get("DB_MAX_OVERFLOW", "2"))
+
+# Create database engine — tuned for Supabase session pooler (idle SSL drops)
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
-    pool_size=4,
-    max_overflow=4,
+    pool_size=_pool_size,
+    max_overflow=_max_overflow,
     pool_recycle=300,
     pool_timeout=15,
     echo=settings.DEBUG,
+)
+
+logger.info(
+    "Database pool configured: pool_size=%s max_overflow=%s",
+    _pool_size,
+    _max_overflow,
 )
 
 # Create session factory
