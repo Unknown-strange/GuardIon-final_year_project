@@ -12,9 +12,35 @@ from app.api.deps import get_db, get_current_active_user, get_owned_child
 from app.api.child_access import accessible_child_ids, user_can_access_child, user_owns_child
 from app.models.user import User
 from app.models.device import Device, DeviceStatus
+from pydantic import BaseModel
+
+from app.config import settings
 from app.schemas.device import DeviceRegister, DeviceUpdate, DeviceResponse, DeviceHealthResponse
 
 router = APIRouter()
+
+
+class MqttClientConfigResponse(BaseModel):
+    url: str
+    username: str
+    password: str
+    telemetry_topic: str = "guardion/devices/+/telemetry"
+
+
+@router.get("/mqtt-client", response_model=MqttClientConfigResponse)
+def mqtt_client_config(
+    current_user: User = Depends(get_current_active_user),
+):
+    """HiveMQ WebSocket credentials for instant live location on the guardian app."""
+    url = settings.mqtt_websocket_url
+    username = (settings.MQTT_CLIENT_USERNAME or settings.MQTT_USERNAME or "").strip()
+    password = (settings.MQTT_CLIENT_PASSWORD or settings.MQTT_PASSWORD or "").strip()
+    if not url or not username or not password:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="MQTT client access is not configured on the server",
+        )
+    return MqttClientConfigResponse(url=url, username=username, password=password)
 
 
 @router.post("/register", response_model=DeviceResponse, status_code=status.HTTP_201_CREATED)

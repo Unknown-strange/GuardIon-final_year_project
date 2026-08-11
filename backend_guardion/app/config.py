@@ -37,8 +37,25 @@ class Settings(BaseSettings):
     MQTT_TLS_CERT: str = ""
     MQTT_TLS_KEY: str = ""
     MQTT_TLS_INSECURE: bool = False
+    # Optional WebSocket URL for the mobile app (HiveMQ Cloud default: wss://HOST:8884/mqtt)
+    MQTT_WS_URL: str = ""
+    # Optional read-only HiveMQ user for the app. Falls back to MQTT_USERNAME/PASSWORD.
+    MQTT_CLIENT_USERNAME: str = ""
+    MQTT_CLIENT_PASSWORD: str = ""
     # Set false on API-only Railway service; true on MQTT worker or monolith.
     MQTT_ENABLED: bool = True
+
+    @property
+    def mqtt_websocket_url(self) -> str:
+        if self.MQTT_WS_URL.strip():
+            return self.MQTT_WS_URL.strip()
+        host = (self.MQTT_BROKER_HOST or "").strip()
+        if not host:
+            return ""
+        hive = "hivemq" in host.lower()
+        if self.MQTT_TLS_ENABLED or hive:
+            return f"wss://{host}:8884/mqtt"
+        return f"ws://{host}:8000/mqtt"
     
     # Redis
     REDIS_URL: str = ""
