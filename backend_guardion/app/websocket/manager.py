@@ -103,7 +103,11 @@ class ConnectionManager:
             self.disconnect_location(device_id, connection)
         
         if connections:
-            logger.info(f"[OK] Broadcasted location update for {device_id} to {len(connections)} client(s)")
+            logger.debug(
+                "Broadcasted location update for %s to %s client(s)",
+                device_id,
+                len(connections),
+            )
     
     async def broadcast_alert(self, user_id: str, alert_data: dict):
         """

@@ -63,10 +63,12 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("[OK] Redis not configured — cache/pub-sub disabled")
 
+    if is_redis_configured():
+        start_redis_subscriber()
+        logger.info("[OK] Redis subscriber started (location/alerts → WebSocket)")
+
     if not settings.MQTT_ENABLED:
         logger.info("[OK] MQTT disabled on this service (API-only mode)")
-        if is_redis_configured():
-            start_redis_subscriber()
     else:
         logger.warning(
             "[WARN] MQTT_ENABLED=true on API service — set MQTT_ENABLED=false on "

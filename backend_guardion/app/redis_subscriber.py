@@ -39,6 +39,8 @@ async def _listen_loop() -> None:
                 continue
 
             channel = message.get("channel")
+            if isinstance(channel, bytes):
+                channel = channel.decode()
             raw = message.get("data")
             if not raw:
                 continue
