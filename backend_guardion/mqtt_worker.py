@@ -17,6 +17,10 @@ os.environ.setdefault("MQTT_ENABLED", "true")
 from app.config import settings  # noqa: E402
 from app.mqtt.client import mqtt_client  # noqa: E402
 from app.mqtt.handlers import handle_mqtt_message  # noqa: E402
+from app.redis_command_subscriber import (  # noqa: E402
+    start_redis_command_subscriber,
+    stop_redis_command_subscriber,
+)
 
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL),
@@ -33,10 +37,13 @@ async def run_worker() -> None:
     mqtt_client.connect()
     logger.info("[OK] MQTT worker connected to %s", settings.MQTT_BROKER_HOST)
 
+    start_redis_command_subscriber()
+
     try:
         while True:
             await asyncio.sleep(3600)
     finally:
+        await stop_redis_command_subscriber()
         mqtt_client.disconnect()
         logger.info("[OK] MQTT worker stopped")
 

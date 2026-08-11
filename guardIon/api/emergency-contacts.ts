@@ -1,4 +1,5 @@
 import { apiRequest } from '@/api/client';
+import { dedupeInflight } from '@/utils/request-dedupe';
 
 export type EmergencyContactResponse = {
   id: string;
@@ -10,10 +11,13 @@ export type EmergencyContactResponse = {
 };
 
 export async function listEmergencyContacts(childId?: string) {
-  return apiRequest<{ contacts: EmergencyContactResponse[] }>('/emergency-contacts/', {
-    auth: true,
-    query: childId ? { child_id: childId } : undefined,
-  });
+  const key = `emergency-contacts:${childId ?? 'all'}`;
+  return dedupeInflight(key, () =>
+    apiRequest<{ contacts: EmergencyContactResponse[] }>('/emergency-contacts/', {
+      auth: true,
+      query: childId ? { child_id: childId } : undefined,
+    }),
+  );
 }
 
 export async function createEmergencyContact(payload: {

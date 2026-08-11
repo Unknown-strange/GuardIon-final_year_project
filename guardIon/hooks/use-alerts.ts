@@ -41,11 +41,12 @@ export function useAlerts(filter: AlertFilter = 'all', options?: UseAlertsOption
 
     setLoading(true);
     try {
-      const [active, history] = await Promise.all([
-        alertsApi.getActiveAlerts(),
-        alertsApi.getAlertHistory({ limit: 100 }),
-      ]);
-      const merged = [...active.alerts, ...history.alerts];
+      const needHistory = filter !== 'active';
+      const activeResult = await alertsApi.getActiveAlerts();
+      const historyResult = needHistory
+        ? await alertsApi.getAlertHistory({ limit: 100 })
+        : { alerts: [] as typeof activeResult.alerts };
+      const merged = [...activeResult.alerts, ...historyResult.alerts];
       const unique = new Map<string, (typeof merged)[number]>();
       for (const alert of merged) unique.set(alert.id, alert);
       const mapped = Array.from(unique.values()).map((alert) =>
@@ -57,7 +58,7 @@ export function useAlerts(filter: AlertFilter = 'all', options?: UseAlertsOption
     } finally {
       setLoading(false);
     }
-  }, [childNameById, guardianLoading, isAuthenticated]);
+  }, [childNameById, filter, guardianLoading, isAuthenticated]);
 
   useEffect(() => {
     if (!enabled) return;

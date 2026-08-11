@@ -26,10 +26,6 @@ import { MissingChildAlertModal } from '@/components/guardian/missing-child-aler
 
 import * as alertsApi from '@/api/alerts';
 
-import { safeZoneFromApi } from '@/api/mappers';
-
-import * as safezonesApi from '@/api/safezones';
-
 import { useAuth } from '@/contexts/auth-context';
 
 import { useGuardianData } from '@/contexts/guardian-data-context';
@@ -42,16 +38,17 @@ import {
 
 } from '@/hooks/use-alerts-websocket';
 
-import type { SafeZone } from '@/types/safe-zone';
+import { useAppForeground } from '@/hooks/use-app-foreground';
 
-import { childGeofenceStatus, isPointInZone } from '@/types/safe-zone';
+import { useIsGuardianTabFocused } from '@/hooks/use-guardian-tab-focus';
+
+import type { SafeZone } from '@/types/safe-zone';
 
 import { announceCheckInSafe, announceLiveAlert } from '@/utils/alert-speech';
 
-
+import { isCheckInApiPaused } from '@/utils/check-in-api-pause';
 
 type AlertsRealtimeContextValue = {
-
   refreshSeq: number;
 
   /** Active alert count from the shared poll (tab badge). */
@@ -79,11 +76,11 @@ const AlertsRealtimeContext = createContext<AlertsRealtimeContextValue | null>(n
 
 
 
-const ACTIVE_ALERT_POLL_MS = 30_000;
+const ACTIVE_ALERT_POLL_MS = 90_000;
 
-const INITIAL_ALERT_POLL_DELAY_MS = 6_000;
+const ACTIVE_ALERT_POLL_FOCUSED_MS = 25_000;
 
-const SAFEZONES_LOAD_DELAY_MS = 8_000;
+const INITIAL_ALERT_POLL_DELAY_MS = 10_000;
 
 const GEOFENCE_ANNOUNCE_COOLDOWN_MS = 20_000;
 
@@ -139,10 +136,16 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
 
   const { isAuthenticated, user } = useAuth();
 
-  const { children: guardianChildren, locationTick, isLoading: guardianLoading } =
+  const isForeground = useAppForeground();
+
+  const isAlertsTabFocused = useIsGuardianTabFocused('alerts', 'home');
+
+  const { children: guardianChildren, isLoading: guardianLoading } =
     useGuardianData();
 
-  const { lastAlert } = useAlertsWebSocket(user?.id, isAuthenticated);
+  const alertsWsEnabled = isAuthenticated && isForeground && isAlertsTabFocused;
+
+  const { lastAlert } = useAlertsWebSocket(user?.id, alertsWsEnabled);
 
   const [refreshSeq, setRefreshSeq] = useState(0);
 
@@ -157,8 +160,6 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
 
   const [missingAlertModal, setMissingAlertModal] = useState<AlertWsPayload | null>(null);
-
-  const [zonesByChild, setZonesByChild] = useState<Record<string, SafeZone[]>>({});
 
 
 
@@ -494,117 +495,6 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
 
-    if (!isAuthenticated || guardianChildren.length === 0 || guardianLoading) {
-
-      setZonesByChild({});
-
-      return;
-
-    }
-
-
-
-    let cancelled = false;
-
-    const timer = setTimeout(() => {
-      void (async () => {
-        const next: Record<string, SafeZone[]> = {};
-        for (const child of guardianChildren) {
-          if (cancelled) return;
-          try {
-            const apiZones = await safezonesApi.listSafeZonesForChild(child.id);
-            next[child.id] = apiZones.map(safeZoneFromApi);
-          } catch {
-            next[child.id] = [];
-          }
-        }
-        if (!cancelled) setZonesByChild(next);
-      })();
-    }, SAFEZONES_LOAD_DELAY_MS);
-
-
-
-    return () => {
-
-      cancelled = true;
-      clearTimeout(timer);
-
-    };
-
-  }, [isAuthenticated, guardianChildren, guardianLoading]);
-
-
-
-  useEffect(() => {
-
-    if (!isAuthenticated || locationTick === 0) return;
-
-
-
-    for (const child of guardianChildren) {
-
-      const zones = zonesByChild[child.id] ?? [];
-
-      if (zones.length === 0) continue;
-
-      if (child.latitude == null || child.longitude == null) continue;
-
-
-
-      const status = childGeofenceStatus(child.latitude, child.longitude, zones);
-
-      const inside = status === 'inside';
-
-      const prev = geofenceTrackRef.current.get(child.id);
-
-
-
-      if (prev?.inside === true && !inside) {
-
-        tryAnnounceGeofenceExit(child.id, child.name, prev.zoneName);
-
-      }
-
-
-
-      let zoneName: string | undefined;
-
-      if (inside) {
-
-        const zone = zones.find((z) =>
-
-          isPointInZone(child.latitude!, child.longitude!, z),
-
-        );
-
-        zoneName = zone?.name;
-
-      }
-
-
-
-      geofenceTrackRef.current.set(child.id, { inside, zoneName });
-
-    }
-
-  }, [
-
-    isAuthenticated,
-
-    locationTick,
-
-    guardianChildren,
-
-    zonesByChild,
-
-    tryAnnounceGeofenceExit,
-
-  ]);
-
-
-
-  useEffect(() => {
-
     if (!lastAlert) return;
 
     if (isQuietCheckInSafeAlert(lastAlert.alert_type)) {
@@ -652,7 +542,7 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
 
 
   const pollActiveAlerts = useCallback(async () => {
-    if (pollInFlightRef.current) return;
+    if (pollInFlightRef.current || isCheckInApiPaused()) return;
     pollInFlightRef.current = true;
 
     try {
@@ -686,7 +576,7 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
 
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !isForeground) {
       alertsBaselineDoneRef.current = false;
       sessionStartedAtRef.current = Date.now();
       spokenAlertIdsRef.current.clear();
@@ -701,19 +591,21 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
     // Let /guardian/home finish first — avoids DB pool contention on cold start.
     if (guardianLoading) return;
 
+    const pollMs = isAlertsTabFocused ? ACTIVE_ALERT_POLL_FOCUSED_MS : ACTIVE_ALERT_POLL_MS;
+
     const initialTimer = setTimeout(() => {
       void pollActiveAlerts();
     }, INITIAL_ALERT_POLL_DELAY_MS);
 
     const interval = setInterval(() => {
       void pollActiveAlerts();
-    }, ACTIVE_ALERT_POLL_MS);
+    }, pollMs);
 
     return () => {
       clearTimeout(initialTimer);
       clearInterval(interval);
     };
-  }, [isAuthenticated, guardianLoading, pollActiveAlerts]);
+  }, [isAuthenticated, isForeground, guardianLoading, isAlertsTabFocused, pollActiveAlerts]);
 
 
 
@@ -809,11 +701,7 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
 
   }, [guardianChildren, missingAlertModal]);
 
-  const modalZones = missingAlertModal
-
-    ? (zonesByChild[missingAlertModal.child_id] ?? [])
-
-    : [];
+  const modalZones: SafeZone[] = [];
 
 
 

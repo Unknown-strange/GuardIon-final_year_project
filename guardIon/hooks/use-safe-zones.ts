@@ -5,18 +5,21 @@ import * as safezonesApi from '@/api/safezones';
 import { safeZoneFromApi, safeZoneToCreate, safeZoneToUpdate } from '@/api/mappers';
 import { useAuth } from '@/contexts/auth-context';
 import type { SafeZone } from '@/types/safe-zone';
+import { isCheckInApiPaused } from '@/utils/check-in-api-pause';
 
 type SafeZoneInput = Omit<SafeZone, 'id'>;
 
-export function useSafeZones(childId?: string | null) {
+export function useSafeZones(childId?: string | null, enabled = true) {
   const isFocused = useIsFocused();
   const { isAuthenticated } = useAuth();
   const [zones, setZones] = useState<SafeZone[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    if (!isAuthenticated || !childId) {
-      setZones([]);
+    if (!isAuthenticated || !childId || !enabled || isCheckInApiPaused()) {
+      if (!enabled || !childId) {
+        setZones([]);
+      }
       setLoading(false);
       return;
     }
@@ -30,12 +33,12 @@ export function useSafeZones(childId?: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [childId, isAuthenticated]);
+  }, [childId, enabled, isAuthenticated]);
 
   useEffect(() => {
-    if (!isFocused) return;
+    if (!isFocused || !enabled) return;
     void refresh();
-  }, [isFocused, refresh]);
+  }, [isFocused, enabled, refresh]);
 
   const childZones = useMemo(() => {
     if (!childId) return [];

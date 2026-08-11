@@ -10,9 +10,7 @@ import { ThemedView } from '@/components/themed-view';
 import { useGuardianData } from '@/contexts/guardian-data-context';
 import { GuardianColors } from '@/constants/theme';
 import { useCheckIn, type CheckInSession } from '@/hooks/use-check-in';
-import { useSafeZones } from '@/hooks/use-safe-zones';
 import { announceCheckInSafe } from '@/utils/alert-speech';
-import { childInsideSafeZoneName } from '@/types/safe-zone';
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   if (Array.isArray(value)) return value[0];
@@ -33,7 +31,6 @@ export default function CheckInStatusScreen() {
   const router = useRouter();
   const { getChildById } = useGuardianData();
   const child = getChildById(childId);
-  const { childZones } = useSafeZones(childId);
   const navigatedRef = useRef(false);
   const soundedRef = useRef(false);
 
@@ -57,13 +54,7 @@ export default function CheckInStatusScreen() {
 
   const [contactsOpen, setContactsOpen] = useState(false);
 
-  const locationLabel = useMemo(() => {
-    if (!child) return 'Location unavailable';
-    const zoneName = childInsideSafeZoneName(child.latitude, child.longitude, childZones);
-    if (zoneName) return zoneName;
-    return child.location;
-  }, [child, childZones]);
-
+  const locationLabel = child?.location ?? 'Location unavailable';
   const lastUpdate = child?.lastUpdate ?? '—';
   const isWaiting =
     status === 'pending' || status === 'timeout' || status === 'idle' || status === 'failed';

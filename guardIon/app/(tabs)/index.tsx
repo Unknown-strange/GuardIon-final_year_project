@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Dimensions,
@@ -75,9 +76,10 @@ const SAFETY_TIPS: TipSlide[] = [
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
   const { children, isLoading, refreshChildren, loadError, clearLoadError } = useGuardianData();
   const { invites, acceptInvite, declineInvite, isLoading: invitesLoading } =
-    usePendingGuardianInvites();
+    usePendingGuardianInvites(isFocused);
   const [query, setQuery] = useState('');
   const [tipIndex, setTipIndex] = useState(0);
   const [animatedChildId, setAnimatedChildId] = useState<string | null>(null);

@@ -86,11 +86,10 @@ export function useAlertsWebSocket(userId: string | null | undefined, enabled = 
         clearInterval(pingRef.current);
         pingRef.current = null;
       }
-      if (enabled && userId) {
-        reconnectRef.current = setTimeout(() => {
-          void connect();
-        }, RECONNECT_MS);
-      }
+      if (!enabled || !userId) return;
+      reconnectRef.current = setTimeout(() => {
+        void connect();
+      }, RECONNECT_MS);
     };
 
     ws.onerror = () => {
@@ -99,9 +98,13 @@ export function useAlertsWebSocket(userId: string | null | undefined, enabled = 
   }, [userId, disconnect, enabled]);
 
   useEffect(() => {
+    if (!enabled) {
+      disconnect();
+      return;
+    }
     void connect();
     return () => disconnect();
-  }, [connect, disconnect]);
+  }, [connect, disconnect, enabled]);
 
   return { lastAlert, connected, reconnect: connect };
 }
