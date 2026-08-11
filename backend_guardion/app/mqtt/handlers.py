@@ -36,9 +36,11 @@ logger = logging.getLogger(__name__)
 # Throttle heavy work so HTTP API requests are not starved on small Render instances.
 GEOFENCE_DEBOUNCE_SEC = 60.0
 LOCATION_HISTORY_MIN_SEC = 15.0
+DEVICE_SEEN_MIN_SEC = 10.0
 
 _geofence_last_run: dict[str, float] = {}
 _location_insert_last: dict[str, float] = {}
+_device_seen_last: dict[str, float] = {}
 _geofence_sem = asyncio.Semaphore(1)
 _telemetry_sem = asyncio.Semaphore(1)
 
@@ -94,12 +96,21 @@ def _should_run_geofence(device_id: str) -> bool:
 
 
 def _should_insert_location_history(device_id: str) -> bool:
-    """Reduce location_history churn — device.last_seen still updates every message."""
+    """Reduce location_history churn — live GPS is broadcast separately."""
     now = time.monotonic()
     last = _location_insert_last.get(device_id, 0.0)
     if now - last < LOCATION_HISTORY_MIN_SEC:
         return False
     _location_insert_last[device_id] = now
+    return True
+
+
+def _should_update_device_seen(device_id: str) -> bool:
+    now = time.monotonic()
+    last = _device_seen_last.get(device_id, 0.0)
+    if now - last < DEVICE_SEEN_MIN_SEC:
+        return False
+    _device_seen_last[device_id] = now
     return True
 
 
@@ -246,6 +257,21 @@ async def handle_telemetry(payload: Dict):
         location = data.location
         battery = data.battery
 
+        # Live GPS first — do not wait for Postgres (1Hz simulators used to look jumpy).
+        if location.latitude is not None and location.longitude is not None:
+            await push_location_update(
+                device_id,
+                {
+                    "latitude": location.latitude,
+                    "longitude": location.longitude,
+                    "accuracy": location.accuracy,
+                    "altitude": location.altitude,
+                    "speed": location.speed,
+                    "battery_level": battery.level,
+                    "timestamp": timestamp.isoformat(),
+                },
+            )
+
         def save_work(db):
             device = db.query(Device).filter(Device.device_id == device_id).first()
             if not device:
@@ -255,9 +281,9 @@ async def handle_telemetry(payload: Dict):
             latitude = location.latitude
             longitude = location.longitude
             battery_level = battery.level
-            loc_broadcast: Optional[dict] = None
             broadcasts: list[tuple[str, dict]] = []
             geofence_task: Optional[dict] = None
+            dirty = False
 
             if (
                 latitude is not None
@@ -276,28 +302,24 @@ async def handle_telemetry(payload: Dict):
                         timestamp=timestamp,
                     )
                 )
+                dirty = True
 
-            device.last_seen = timestamp
-            device.battery_level = battery_level
-            device.signal_strength = data.signal.strength
-            db.commit()
+            if _should_update_device_seen(device_id):
+                device.last_seen = timestamp
+                device.battery_level = battery_level
+                device.signal_strength = data.signal.strength
+                dirty = True
 
-            logger.info(
-                f"[OK] Saved telemetry: {device_id} | "
-                f"{_format_coords(latitude, longitude)}, Battery: {battery_level}%"
-            )
+            if dirty:
+                db.commit()
+                logger.info(
+                    "[OK] Saved telemetry: %s | %s, Battery: %s%%",
+                    device_id,
+                    _format_coords(latitude, longitude),
+                    battery_level,
+                )
 
             if latitude is not None and longitude is not None:
-                loc_broadcast = {
-                    "latitude": latitude,
-                    "longitude": longitude,
-                    "accuracy": location.accuracy,
-                    "altitude": location.altitude,
-                    "speed": location.speed,
-                    "battery_level": battery_level,
-                    "timestamp": timestamp.isoformat(),
-                }
-
                 if _should_run_geofence(device_id) and device.child_id:
                     if _child_has_configured_zones(device.child_id, db):
                         geofence_task = {
@@ -329,7 +351,7 @@ async def handle_telemetry(payload: Dict):
                             db,
                         )
 
-            return loc_broadcast, broadcasts, geofence_task
+            return broadcasts, geofence_task
 
         try:
             async with _telemetry_sem:
@@ -343,10 +365,7 @@ async def handle_telemetry(payload: Dict):
         if result is None:
             return
 
-        location_broadcast, alert_broadcasts, geofence_task = result
-
-        if location_broadcast:
-            await push_location_update(device_id, location_broadcast)
+        alert_broadcasts, geofence_task = result
 
         for user_id, alert_data in alert_broadcasts:
             await push_alert_update(user_id, alert_data)
