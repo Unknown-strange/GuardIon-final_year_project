@@ -10,7 +10,9 @@ import React, {
 
 import * as childrenApi from '@/api/children';
 import * as devicesApi from '@/api/devices';
+import * as guardianApi from '@/api/guardian';
 import * as locationsApi from '@/api/locations';
+import { ApiError, getErrorMessage } from '@/api/errors';
 import { applyDevicePollToChild, childCreatePayload, childSummaryFromApi } from '@/api/mappers';
 import { setChildCustomAvatar } from '@/utils/child-custom-avatars';
 import type { ChildResponse, DeviceResponse } from '@/api/types';
@@ -22,10 +24,13 @@ import { applyLocationToChild } from '@/utils/apply-location-to-child';
 import { isFreshCoordinateTimestamp } from '@/utils/device-online';
 import { useAuth } from '@/contexts/auth-context';
 import { useMultiLocationWebSocket } from '@/hooks/use-multi-location-websocket';
+import { logApi, logApiError } from '@/utils/api-logger';
 
 type RefreshOptions = {
   /** When true, keep showing cached children and skip blocking loaders. */
   background?: boolean;
+  /** Skip background refresh debounce (after create/delete). */
+  force?: boolean;
 };
 
 type GuardianDataContextValue = {
@@ -33,6 +38,9 @@ type GuardianDataContextValue = {
   /** True only on first load when no cached children exist yet. */
   isLoading: boolean;
   isRefreshing: boolean;
+  /** Last load error message (empty list may mean fetch failed, not no children). */
+  loadError: string | null;
+  clearLoadError: () => void;
   /** Increments when live device GPS updates arrive (for alert polling). */
   locationTick: number;
   refreshChildren: (options?: RefreshOptions) => Promise<void>;
@@ -45,8 +53,10 @@ type GuardianDataContextValue = {
   removeChild: (childId: string) => Promise<void>;
 };
 
-const DEVICE_STATUS_POLL_MS = 12000;
-const DEVICE_STATUS_POLL_LIVE_MS = 20000;
+const DEVICE_STATUS_POLL_MS = 30_000;
+const DEVICE_STATUS_POLL_LIVE_MS = 45_000;
+const DEVICE_POLL_START_DELAY_MS = 5_000;
+const BACKGROUND_REFRESH_MIN_MS = 30_000;
 
 const GuardianDataContext = createContext<GuardianDataContextValue | null>(null);
 
@@ -73,15 +83,39 @@ function mapChildren(
   );
 }
 
+async function fetchChildrenAndDevices() {
+  try {
+    const home = await guardianApi.fetchGuardianHome();
+    logApi(
+      'guardian-data',
+      `loaded home: ${home.children.length} children, ${home.devices.length} devices`,
+    );
+    return { apiChildren: home.children, devices: home.devices };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      logApi('guardian-data', 'fallback — /guardian/home missing, using separate API calls');
+      const apiChildren = await childrenApi.listChildren();
+      const devices = await devicesApi.listDevices();
+      return { apiChildren, devices };
+    }
+    throw error;
+  }
+}
+
 export function GuardianDataProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   const [childSummaries, setChildSummaries] = useState<ChildSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const childSummariesRef = useRef(childSummaries);
   childSummariesRef.current = childSummaries;
   const hasLoadedOnceRef = useRef(false);
   const pendingDeleteIdsRef = useRef<Set<string>>(new Set());
+  const refreshInflightRef = useRef<Promise<void> | null>(null);
+  const lastBackgroundRefreshRef = useRef(0);
+  const devicePollInFlightRef = useRef(false);
+  const childrenReadyRef = useRef(false);
 
   const [locationTick, setLocationTick] = useState(0);
 
@@ -137,7 +171,9 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
 
   const pollDeviceStatus = useCallback(async () => {
     const current = childSummariesRef.current;
-    if (!isAuthenticated || current.length === 0) return;
+    if (!isAuthenticated || current.length === 0 || !childrenReadyRef.current) return;
+    if (devicePollInFlightRef.current) return;
+    devicePollInFlightRef.current = true;
 
     try {
       const devices = await devicesApi.listDevices();
@@ -196,22 +232,30 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
       }
     } catch {
       /* keep last known state */
+    } finally {
+      devicePollInFlightRef.current = false;
     }
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!isAuthenticated || childSummaries.length === 0) return;
+    if (!isAuthenticated || childSummaries.length === 0 || !hasLoadedOnceRef.current) return;
 
     const pollMs = hasLiveLocationRef.current
       ? DEVICE_STATUS_POLL_LIVE_MS
       : DEVICE_STATUS_POLL_MS;
 
-    void pollDeviceStatus();
+    const startTimer = setTimeout(() => {
+      void pollDeviceStatus();
+    }, DEVICE_POLL_START_DELAY_MS);
+
     const interval = setInterval(() => {
       void pollDeviceStatus();
     }, pollMs);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(startTimer);
+      clearInterval(interval);
+    };
   }, [isAuthenticated, childSummaries.length, pollDeviceStatus, liveUpdates]);
 
   const refreshChildren = useCallback(async (options?: RefreshOptions) => {
@@ -220,6 +264,7 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
       setIsLoading(false);
       setIsRefreshing(false);
       hasLoadedOnceRef.current = false;
+      childrenReadyRef.current = false;
       return;
     }
 
@@ -227,28 +272,53 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
       childSummariesRef.current.length > 0 || hasLoadedOnceRef.current;
     const background = options?.background === true && hasCached;
 
-    if (background) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
+    if (background && !options?.force) {
+      const now = Date.now();
+      if (now - lastBackgroundRefreshRef.current < BACKGROUND_REFRESH_MIN_MS) {
+        return;
+      }
+      lastBackgroundRefreshRef.current = now;
     }
 
-    try {
-      const [apiChildren, devices] = await Promise.all([
-        childrenApi.listChildren(),
-        devicesApi.listDevices(),
-      ]);
-      const pendingDeletes = pendingDeleteIdsRef.current;
-      const visibleChildren = apiChildren.filter((child) => !pendingDeletes.has(child.id));
-      const mapped = await mapChildren(visibleChildren, devices, { includeLocation: false });
-      setChildSummaries(mapped);
-      hasLoadedOnceRef.current = true;
-    } catch {
-      /* Keep cached children when the server is slow or unreachable. */
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+    if (refreshInflightRef.current) {
+      return refreshInflightRef.current;
     }
+
+    const run = async () => {
+      if (background) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+
+      try {
+        const { apiChildren, devices } = await fetchChildrenAndDevices();
+        const pendingDeletes = pendingDeleteIdsRef.current;
+        const visibleChildren = apiChildren.filter((child) => !pendingDeletes.has(child.id));
+        const mapped = await mapChildren(visibleChildren, devices, { includeLocation: false });
+        setChildSummaries(mapped);
+        hasLoadedOnceRef.current = true;
+        childrenReadyRef.current = true;
+        setLoadError(null);
+        logApi('guardian-data', `refresh ok — showing ${mapped.length} children`);
+      } catch (error) {
+        const message = getErrorMessage(
+          error,
+          'Could not load children. Check your connection and try again.',
+        );
+        logApiError('guardian-data', 'refreshChildren failed', error);
+        setLoadError(message);
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    };
+
+    const promise = run().finally(() => {
+      refreshInflightRef.current = null;
+    });
+    refreshInflightRef.current = promise;
+    return promise;
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -263,32 +333,43 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
   const registerChild = useCallback(
     async (payload: RegisterChildPayload) => {
       const name = `${payload.firstName} ${payload.lastName}`.trim();
-      const profilePhoto = payload.avatarUri
-        ? await ensureHttpsProfilePhoto(payload.avatarUri, 'child')
-        : null;
-      const created = await childrenApi.createChild(
-        childCreatePayload({
-          name,
-          age: calculateAgeFromBirthDate(payload.dateOfBirth),
-          profile_photo: profilePhoto,
-        }),
-      );
+      logApi('guardian-data', `registerChild start — device ${payload.deviceId.trim()}`);
+      try {
+        const profilePhoto = payload.avatarUri
+          ? await ensureHttpsProfilePhoto(payload.avatarUri, 'child')
+          : null;
+        const created = await childrenApi.createChild(
+          childCreatePayload({
+            name,
+            age: calculateAgeFromBirthDate(payload.dateOfBirth),
+            profile_photo: profilePhoto,
+          }),
+        );
+        logApi('guardian-data', `registerChild created child ${created.id}`);
 
-      const device = await devicesApi.registerDevice({
-        device_id: payload.deviceId.trim(),
-        child_id: created.id,
-      });
+        const device = await devicesApi.registerDevice({
+          device_id: payload.deviceId.trim(),
+          child_id: created.id,
+        });
+        logApi('guardian-data', `registerChild linked device ${device.device_id}`);
 
-      const summary = childSummaryFromApi(created, device, null);
-      if (profilePhoto) {
-        await setChildCustomAvatar(created.id, profilePhoto).catch(() => undefined);
+        const summary = childSummaryFromApi(created, device, null);
+        if (profilePhoto) {
+          await setChildCustomAvatar(created.id, profilePhoto).catch(() => undefined);
+        }
+        setChildSummaries((prev) => [...prev, summary]);
+        setLoadError(null);
+        await refreshChildren({ background: true, force: true });
+        return summary;
+      } catch (error) {
+        logApiError('guardian-data', 'registerChild failed', error);
+        throw error;
       }
-      setChildSummaries((prev) => [...prev, summary]);
-      void refreshChildren({ background: true });
-      return summary;
     },
     [refreshChildren],
   );
+
+  const clearLoadError = useCallback(() => setLoadError(null), []);
 
   const updateChildProfile = useCallback(
     async (
@@ -342,6 +423,8 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
       children: childSummaries,
       isLoading,
       isRefreshing,
+      loadError,
+      clearLoadError,
       locationTick,
       refreshChildren,
       getChildById,
@@ -353,6 +436,8 @@ export function GuardianDataProvider({ children }: { children: React.ReactNode }
       childSummaries,
       isLoading,
       isRefreshing,
+      loadError,
+      clearLoadError,
       locationTick,
       refreshChildren,
       getChildById,

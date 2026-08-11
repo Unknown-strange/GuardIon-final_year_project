@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 
 import * as safezonesApi from '@/api/safezones';
 import { safeZoneFromApi, safeZoneToCreate, safeZoneToUpdate } from '@/api/mappers';
@@ -8,6 +9,7 @@ import type { SafeZone } from '@/types/safe-zone';
 type SafeZoneInput = Omit<SafeZone, 'id'>;
 
 export function useSafeZones(childId?: string | null) {
+  const isFocused = useIsFocused();
   const { isAuthenticated } = useAuth();
   const [zones, setZones] = useState<SafeZone[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,8 +33,9 @@ export function useSafeZones(childId?: string | null) {
   }, [childId, isAuthenticated]);
 
   useEffect(() => {
+    if (!isFocused) return;
     void refresh();
-  }, [refresh]);
+  }, [isFocused, refresh]);
 
   const childZones = useMemo(() => {
     if (!childId) return [];

@@ -64,6 +64,10 @@ async def lifespan(app: FastAPI):
         if is_redis_configured():
             start_redis_subscriber()
     else:
+        logger.warning(
+            "[WARN] MQTT_ENABLED=true on API service — set MQTT_ENABLED=false on "
+            "guardion-api and run mqtt_worker separately to avoid DB pool exhaustion"
+        )
         try:
             import asyncio
             loop = asyncio.get_running_loop()

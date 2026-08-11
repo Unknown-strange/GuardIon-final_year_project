@@ -1,8 +1,15 @@
 import { apiRequest } from '@/api/client';
 import type { AlertListResponse, AlertResponse, AlertType } from '@/api/types';
+import { dedupeInflight } from '@/utils/request-dedupe';
 
+/** Coalesce parallel /alerts/active calls into one in-flight request. */
 export function getActiveAlerts() {
-  return apiRequest<AlertListResponse>('/alerts/active', { auth: true });
+  return dedupeInflight('alerts:active', () =>
+    apiRequest<AlertListResponse>('/alerts/active', {
+      auth: true,
+      timeoutMs: 45000,
+    }),
+  );
 }
 
 export function getAlertHistory(params?: {
@@ -14,6 +21,7 @@ export function getAlertHistory(params?: {
   return apiRequest<AlertListResponse>('/alerts/history', {
     auth: true,
     query: params,
+    timeoutMs: 45000,
   });
 }
 

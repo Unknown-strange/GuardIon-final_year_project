@@ -6,45 +6,73 @@ import { useFocusEffect } from 'expo-router';
 import * as guardiansApi from '@/api/guardians';
 import type { GuardianInviteResponse } from '@/api/guardians';
 import { useAuth } from '@/contexts/auth-context';
+import { useGuardianData } from '@/contexts/guardian-data-context';
+
+const INVITES_START_DELAY_MS = 3_000;
+const INVITES_FOCUS_MIN_MS = 30_000;
 
 export function usePendingGuardianInvites() {
   const { isAuthenticated } = useAuth();
+  const { isLoading: guardianLoading } = useGuardianData();
   const [invites, setInvites] = useState<GuardianInviteResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const invitesRef = useRef(invites);
   invitesRef.current = invites;
   const hasLoadedOnceRef = useRef(false);
+  const lastFetchRef = useRef(0);
+  const fetchInflightRef = useRef<Promise<void> | null>(null);
 
-  const refreshInvites = useCallback(async (options?: { background?: boolean }) => {
+  const refreshInvites = useCallback(async (options?: { background?: boolean; force?: boolean }) => {
     if (!isAuthenticated) {
       setInvites([]);
       hasLoadedOnceRef.current = false;
       return;
     }
 
-    const hasCached = invitesRef.current.length > 0 || hasLoadedOnceRef.current;
-    const background = options?.background === true && hasCached;
+    const background = options?.background === true;
+    if (background && !options?.force) {
+      const now = Date.now();
+      if (now - lastFetchRef.current < INVITES_FOCUS_MIN_MS) return;
+    }
 
-    if (!background) {
+    if (fetchInflightRef.current) return fetchInflightRef.current;
+
+    const hasCached = invitesRef.current.length > 0 || hasLoadedOnceRef.current;
+    if (!background || !hasCached) {
       setIsLoading(true);
     }
 
-    try {
-      const { invites: pending } = await guardiansApi.listPendingInvites();
-      setInvites(pending);
-      hasLoadedOnceRef.current = true;
-    } catch {
-      if (!background) {
-        setInvites([]);
+    const run = async () => {
+      try {
+        const { invites: pending } = await guardiansApi.listPendingInvites();
+        setInvites(pending);
+        hasLoadedOnceRef.current = true;
+        lastFetchRef.current = Date.now();
+      } catch {
+        if (!background) {
+          setInvites([]);
+        }
+      } finally {
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    const promise = run().finally(() => {
+      fetchInflightRef.current = null;
+    });
+    fetchInflightRef.current = promise;
+    return promise;
   }, [isAuthenticated]);
 
   useEffect(() => {
-    void refreshInvites();
-  }, [refreshInvites]);
+    if (!isAuthenticated || guardianLoading) return;
+
+    const timer = setTimeout(() => {
+      void refreshInvites();
+    }, INVITES_START_DELAY_MS);
+
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, guardianLoading, refreshInvites]);
 
   useFocusEffect(
     useCallback(() => {
@@ -58,7 +86,7 @@ export function usePendingGuardianInvites() {
     const sub = Notifications.addNotificationReceivedListener((event) => {
       const data = event.request.content.data as { type?: string } | undefined;
       if (data?.type === 'guardian_invite') {
-        void refreshInvites();
+        void refreshInvites({ force: true });
       }
     });
 

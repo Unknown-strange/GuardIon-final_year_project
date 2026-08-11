@@ -1,6 +1,7 @@
 import { API_BASE_URL } from '@/api/config';
 import { ApiError } from '@/api/errors';
 import { getValidAccessToken } from '@/lib/storage/get-valid-access-token';
+import { logApi, logApiError } from '@/utils/api-logger';
 
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
@@ -54,8 +55,16 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (auth) {
     const token = await getValidAccessToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
+    if (!token) {
+      logApiError('client', `${method} ${path} — no access token (session expired?)`);
+      throw new ApiError('Your session expired. Please sign in again.', 401);
+    }
+    headers.Authorization = `Bearer ${token}`;
   }
+
+  const url = buildUrl(path, query);
+  const started = Date.now();
+  logApi('client', `→ ${method} ${path}`);
 
   const requestInit = {
     method,
@@ -63,15 +72,18 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     body: body !== undefined ? JSON.stringify(body) : undefined,
   };
 
-  let response = await fetchWithTimeout(buildUrl(path, query), requestInit, timeoutMs);
+  let response = await fetchWithTimeout(url, requestInit, timeoutMs);
 
   if (auth && response.status === 401) {
     const retryToken = await getValidAccessToken();
     if (retryToken) {
       headers.Authorization = `Bearer ${retryToken}`;
-      response = await fetchWithTimeout(buildUrl(path, query), requestInit, timeoutMs);
+      response = await fetchWithTimeout(url, requestInit, timeoutMs);
     }
   }
+
+  const elapsed = Date.now() - started;
+  logApi('client', `← ${method} ${path} ${response.status} (${elapsed}ms)`);
 
   if (response.status === 204) {
     return undefined as T;
@@ -94,6 +106,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       if (typeof detail === 'string') message = detail;
       else if (Array.isArray(detail) && detail[0]?.msg) message = String(detail[0].msg);
     }
+    logApiError('client', `← ${method} ${path} failed: ${message}`, { status: response.status });
     throw new ApiError(message, response.status);
   }
 
