@@ -2,6 +2,7 @@
 Database Connection and Session Management
 """
 
+import asyncio
 import logging
 from contextlib import contextmanager
 from typing import Callable, Optional, TypeVar
@@ -21,10 +22,10 @@ T = TypeVar("T")
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=3,
+    pool_size=4,
+    max_overflow=4,
     pool_recycle=300,
-    pool_timeout=25,
+    pool_timeout=15,
     echo=settings.DEBUG,
 )
 
@@ -73,6 +74,14 @@ def run_with_db_retry(
     if last_exc is not None:
         raise last_exc
     return None
+
+
+async def run_with_db_retry_async(
+    fn: Callable[[Session], Optional[T]],
+    max_attempts: int = 2,
+) -> Optional[T]:
+    """Run sync DB work in a thread so MQTT handlers don't block the event loop."""
+    return await asyncio.to_thread(run_with_db_retry, fn, max_attempts)
 
 
 @contextmanager
