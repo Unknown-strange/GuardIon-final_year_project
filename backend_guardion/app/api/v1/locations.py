@@ -15,6 +15,7 @@ from app.api.child_access import user_can_access_child
 from app.models.user import User
 from app.models.device import Device
 from app.models.location import LocationHistory
+from app.services.location_query import current_location_for_device
 from app.schemas.location import (
     LocationResponse,
     LocationHistoryResponse,
@@ -49,10 +50,8 @@ def get_current_location(
             detail="You do not have access to this device"
         )
     
-    # Get most recent location
-    location = db.query(LocationHistory).filter(
-        LocationHistory.device_id == device.id
-    ).order_by(desc(LocationHistory.timestamp)).first()
+    # Get most recent location (Redis cache first, then Postgres)
+    location = current_location_for_device(device, db)
     
     if not location:
         raise HTTPException(
@@ -60,14 +59,7 @@ def get_current_location(
             detail="No location data available for this device"
         )
     
-    return CurrentLocationResponse(
-        latitude=location.latitude,
-        longitude=location.longitude,
-        accuracy=location.accuracy,
-        speed=location.speed,
-        timestamp=location.timestamp,
-        battery_level=location.battery_level
-    )
+    return location
 
 
 @router.get("/{device_id}/history", response_model=LocationHistoryResponse)
@@ -140,10 +132,8 @@ def get_child_current_location(
             detail="No device found for this child"
         )
     
-    # Get most recent location
-    location = db.query(LocationHistory).filter(
-        LocationHistory.device_id == device.id
-    ).order_by(desc(LocationHistory.timestamp)).first()
+    # Get most recent location (Redis cache first, then Postgres)
+    location = current_location_for_device(device, db)
     
     if not location:
         raise HTTPException(
@@ -151,11 +141,4 @@ def get_child_current_location(
             detail="No location data available for this child"
         )
     
-    return CurrentLocationResponse(
-        latitude=location.latitude,
-        longitude=location.longitude,
-        accuracy=location.accuracy,
-        speed=location.speed,
-        timestamp=location.timestamp,
-        battery_level=location.battery_level
-    )
+    return location

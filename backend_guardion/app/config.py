@@ -36,12 +36,11 @@ class Settings(BaseSettings):
     MQTT_TLS_CERT: str = ""
     MQTT_TLS_KEY: str = ""
     MQTT_TLS_INSECURE: bool = False
+    # Set false on API-only Railway service; true on MQTT worker or monolith.
+    MQTT_ENABLED: bool = True
     
     # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
-    REDIS_DB: int = 0
+    REDIS_URL: str = ""
     
     # CORS - stored as comma-separated string
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:19006,http://localhost:8081"

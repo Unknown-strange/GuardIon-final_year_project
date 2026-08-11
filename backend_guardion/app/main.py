@@ -30,6 +30,8 @@ from app.api.v1 import (
 from app.websocket import endpoints as websocket_endpoints
 from app.mqtt.client import mqtt_client
 from app.mqtt.handlers import handle_mqtt_message
+from app.redis_store import is_redis_configured, redis_ping, close_async_redis
+from app.redis_subscriber import start_redis_subscriber, stop_redis_subscriber
 
 # Configure logging
 logging.basicConfig(
@@ -44,28 +46,40 @@ async def lifespan(app: FastAPI):
     """
     Startup and shutdown events
     """
-    # Startup: Connect to MQTT broker
     logger.info("[OK] Starting GuardIOn Backend...")
     logger.info("[OK] Geofencing: armed-state mode (no breach cooldown)")
-    try:
-        # Get the current event loop
-        import asyncio
-        loop = asyncio.get_running_loop()
-        
-        # Set event loop and message handler
-        mqtt_client.set_event_loop(loop)
-        mqtt_client.set_message_handler(handle_mqtt_message)
-        mqtt_client.connect()
-        logger.info("[OK] MQTT client started")
-    except Exception as e:
-        logger.error(f"[ERROR] Failed to start MQTT client: {e}")
-    
+
+    if is_redis_configured():
+        if redis_ping():
+            logger.info("[OK] Redis connected")
+        else:
+            logger.warning("[WARN] REDIS_URL is set but Redis ping failed")
+    else:
+        logger.info("[OK] Redis not configured — cache/pub-sub disabled")
+
+    if not settings.MQTT_ENABLED:
+        logger.info("[OK] MQTT disabled on this service (API-only mode)")
+        if is_redis_configured():
+            start_redis_subscriber()
+    else:
+        try:
+            import asyncio
+            loop = asyncio.get_running_loop()
+            mqtt_client.set_event_loop(loop)
+            mqtt_client.set_message_handler(handle_mqtt_message)
+            mqtt_client.connect()
+            logger.info("[OK] MQTT client started")
+        except Exception as e:
+            logger.error(f"[ERROR] Failed to start MQTT client: {e}")
+
     yield
-    
-    # Shutdown: Disconnect from MQTT
+
     logger.info("Shutting down...")
-    mqtt_client.disconnect()
-    logger.info("[OK] MQTT client stopped")
+    await stop_redis_subscriber()
+    if settings.MQTT_ENABLED:
+        mqtt_client.disconnect()
+        logger.info("[OK] MQTT client stopped")
+    await close_async_redis()
 
 
 # Create FastAPI app
@@ -143,13 +157,17 @@ def health_ready(response: Response):
     except Exception as e:
         logger.warning("Health ready check: database unavailable: %s", e)
 
-    mqtt_ok = mqtt_client.is_connected
+    mqtt_ok = mqtt_client.is_connected if settings.MQTT_ENABLED else None
+    redis_ok = redis_ping() if is_redis_configured() else None
     payload = {
         "status": "ready" if db_ok else "degraded",
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "database_connected": db_ok,
+        "mqtt_enabled": settings.MQTT_ENABLED,
         "mqtt_connected": mqtt_ok,
+        "redis_configured": is_redis_configured(),
+        "redis_connected": redis_ok,
     }
 
     if not db_ok:
@@ -177,7 +195,10 @@ def health_check():
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "database_connected": db_ok,
-        "mqtt_connected": mqtt_client.is_connected,
-        "mqtt_messages_received": mqtt_client.messages_received,
-        "mqtt_messages_failed": mqtt_client.messages_failed,
+        "mqtt_enabled": settings.MQTT_ENABLED,
+        "mqtt_connected": mqtt_client.is_connected if settings.MQTT_ENABLED else None,
+        "mqtt_messages_received": mqtt_client.messages_received if settings.MQTT_ENABLED else None,
+        "mqtt_messages_failed": mqtt_client.messages_failed if settings.MQTT_ENABLED else None,
+        "redis_configured": is_redis_configured(),
+        "redis_connected": redis_ping() if is_redis_configured() else None,
     }

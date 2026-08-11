@@ -8,7 +8,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, status
 from jose import ExpiredSignatureError, JWTError, jwt
-from sqlalchemy import desc
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -17,7 +16,7 @@ from app.database import SessionLocal
 from app.models.user import User
 from app.models.device import Device
 from app.api.child_access import user_can_access_child
-from app.models.location import LocationHistory
+from app.services.location_query import current_location_for_device
 from app.config import settings
 
 router = APIRouter()
@@ -79,23 +78,18 @@ def _latest_location_payload(db: Session, device_id: str) -> Optional[dict]:
     if not device:
         return None
 
-    location = (
-        db.query(LocationHistory)
-        .filter(LocationHistory.device_id == device.id)
-        .order_by(desc(LocationHistory.timestamp))
-        .first()
-    )
-    if not location:
+    current = current_location_for_device(device, db)
+    if not current:
         return None
 
     return {
-        "latitude": location.latitude,
-        "longitude": location.longitude,
-        "accuracy": location.accuracy,
-        "altitude": location.altitude,
-        "speed": location.speed,
-        "battery_level": location.battery_level,
-        "timestamp": location.timestamp.isoformat(),
+        "latitude": current.latitude,
+        "longitude": current.longitude,
+        "accuracy": current.accuracy,
+        "altitude": None,
+        "speed": current.speed,
+        "battery_level": current.battery_level,
+        "timestamp": current.timestamp.isoformat(),
     }
 
 
