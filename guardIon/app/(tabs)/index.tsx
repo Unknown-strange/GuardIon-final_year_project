@@ -75,7 +75,7 @@ const SAFETY_TIPS: TipSlide[] = [
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { children, isLoading, refreshChildren } = useGuardianData();
+  const { children, isLoading, refreshChildren, loadError, clearLoadError } = useGuardianData();
   const { invites, acceptInvite, declineInvite, isLoading: invitesLoading } =
     usePendingGuardianInvites();
   const [query, setQuery] = useState('');
@@ -84,6 +84,7 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      // Initial load is handled by GuardianDataProvider; debounce tab revisits.
       void refreshChildren({ background: true });
     }, [refreshChildren]),
   );
@@ -139,6 +140,20 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <ScreenHeader onBellPress={() => router.push('/notifications' as any)} />
+
+        {loadError ? (
+          <View style={styles.errorBanner}>
+            <Ionicons name="warning-outline" size={20} color={GuardianColors.danger} />
+            <ThemedText style={styles.errorText}>{loadError}</ThemedText>
+            <PrimaryButton
+              label="Retry"
+              onPress={() => {
+                clearLoadError();
+                void refreshChildren();
+              }}
+            />
+          </View>
+        ) : null}
 
         <SectionTitle
           title="My Children"
@@ -279,6 +294,19 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: GuardianColors.primary,
     fontWeight: '700',
+  },
+  errorBanner: {
+    backgroundColor: GuardianColors.dangerMuted,
+    borderRadius: Layout.cardRadius,
+    borderWidth: 1,
+    borderColor: GuardianColors.danger,
+    padding: 12,
+    marginBottom: 12,
+    gap: 8,
+  },
+  errorText: {
+    ...Typography.body,
+    color: GuardianColors.danger,
   },
   searchShell: {
     flexDirection: 'row',

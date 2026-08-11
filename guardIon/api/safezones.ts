@@ -1,8 +1,14 @@
 import { apiRequest } from '@/api/client';
 import type { SafeZoneCreate, SafeZoneResponse, SafeZoneUpdate } from '@/api/types';
+import { dedupeInflight } from '@/utils/request-dedupe';
 
 export function listSafeZonesForChild(childId: string) {
-  return apiRequest<SafeZoneResponse[]>(`/safezones/child/${childId}`, { auth: true });
+  return dedupeInflight(`safezones:child:${childId}`, () =>
+    apiRequest<SafeZoneResponse[]>(`/safezones/child/${childId}`, {
+      auth: true,
+      timeoutMs: 45000,
+    }),
+  );
 }
 
 export function getSafeZone(safeZoneId: string) {

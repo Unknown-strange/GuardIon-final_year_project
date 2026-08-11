@@ -54,6 +54,9 @@ type AlertsRealtimeContextValue = {
 
   refreshSeq: number;
 
+  /** Active alert count from the shared poll (tab badge). */
+  activeAlertCount: number;
+
   bumpRefresh: () => void;
 
   lastLiveAlert: AlertWsPayload | null;
@@ -76,7 +79,11 @@ const AlertsRealtimeContext = createContext<AlertsRealtimeContextValue | null>(n
 
 
 
-const ACTIVE_ALERT_POLL_MS = 5_000;
+const ACTIVE_ALERT_POLL_MS = 30_000;
+
+const INITIAL_ALERT_POLL_DELAY_MS = 6_000;
+
+const SAFEZONES_LOAD_DELAY_MS = 8_000;
 
 const GEOFENCE_ANNOUNCE_COOLDOWN_MS = 20_000;
 
@@ -132,11 +139,14 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
 
   const { isAuthenticated, user } = useAuth();
 
-  const { children: guardianChildren, locationTick } = useGuardianData();
+  const { children: guardianChildren, locationTick, isLoading: guardianLoading } =
+    useGuardianData();
 
   const { lastAlert } = useAlertsWebSocket(user?.id, isAuthenticated);
 
   const [refreshSeq, setRefreshSeq] = useState(0);
+
+  const [activeAlertCount, setActiveAlertCount] = useState(0);
 
   const [deviceSafeCheck, setDeviceSafeCheck] = useState<{ childId: string; seq: number } | null>(
 
@@ -163,6 +173,8 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
   const geofenceTrackRef = useRef<Map<string, GeofenceTrackState>>(new Map());
 
   const geofenceAnnounceAtRef = useRef<Map<string, number>>(new Map());
+
+  const pollInFlightRef = useRef(false);
 
 
 
@@ -482,7 +494,7 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
 
-    if (!isAuthenticated || guardianChildren.length === 0) {
+    if (!isAuthenticated || guardianChildren.length === 0 || guardianLoading) {
 
       setZonesByChild({});
 
@@ -494,41 +506,32 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false;
 
-    void (async () => {
-
-      const entries = await Promise.all(
-
-        guardianChildren.map(async (child) => {
-
+    const timer = setTimeout(() => {
+      void (async () => {
+        const next: Record<string, SafeZone[]> = {};
+        for (const child of guardianChildren) {
+          if (cancelled) return;
           try {
-
             const apiZones = await safezonesApi.listSafeZonesForChild(child.id);
-
-            return [child.id, apiZones.map(safeZoneFromApi)] as const;
-
+            next[child.id] = apiZones.map(safeZoneFromApi);
           } catch {
-
-            return [child.id, []] as const;
-
+            next[child.id] = [];
           }
-
-        }),
-
-      );
-
-      if (!cancelled) setZonesByChild(Object.fromEntries(entries));
-
-    })();
+        }
+        if (!cancelled) setZonesByChild(next);
+      })();
+    }, SAFEZONES_LOAD_DELAY_MS);
 
 
 
     return () => {
 
       cancelled = true;
+      clearTimeout(timer);
 
     };
 
-  }, [isAuthenticated, guardianChildren]);
+  }, [isAuthenticated, guardianChildren, guardianLoading]);
 
 
 
@@ -649,104 +652,68 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
 
 
   const pollActiveAlerts = useCallback(async () => {
+    if (pollInFlightRef.current) return;
+    pollInFlightRef.current = true;
 
     try {
-
       const { alerts } = await alertsApi.getActiveAlerts();
-
-
+      setActiveAlertCount(alerts.length);
 
       if (!alertsBaselineDoneRef.current) {
-
         for (const alert of alerts) {
-
           const createdMs = new Date(alert.created_at).getTime();
-
           if (createdMs < sessionStartedAtRef.current - 3_000) {
-
             spokenAlertIdsRef.current.add(alert.id);
-
             seenCheckInIdsRef.current.add(alert.id);
-
           } else {
-
             processAlertListItem(alert);
-
           }
-
         }
-
         alertsBaselineDoneRef.current = true;
-
-        bumpRefresh();
-
         return;
-
       }
-
-
 
       for (const alert of alerts) {
-
         processAlertListItem(alert);
-
       }
-
     } catch {
-
       /* ignore transient network errors */
-
+    } finally {
+      pollInFlightRef.current = false;
     }
-
   }, [bumpRefresh, processAlertListItem]);
 
 
 
   useEffect(() => {
-
     if (!isAuthenticated) {
-
       alertsBaselineDoneRef.current = false;
-
       sessionStartedAtRef.current = Date.now();
-
       spokenAlertIdsRef.current.clear();
-
       seenCheckInIdsRef.current.clear();
-
       geofenceTrackRef.current.clear();
-
       geofenceAnnounceAtRef.current.clear();
-
+      setActiveAlertCount(0);
+      pollInFlightRef.current = false;
       return;
-
     }
 
+    // Let /guardian/home finish first — avoids DB pool contention on cold start.
+    if (guardianLoading) return;
 
-
-    void pollActiveAlerts();
+    const initialTimer = setTimeout(() => {
+      void pollActiveAlerts();
+    }, INITIAL_ALERT_POLL_DELAY_MS);
 
     const interval = setInterval(() => {
-
       void pollActiveAlerts();
-
     }, ACTIVE_ALERT_POLL_MS);
 
-
-
-    return () => clearInterval(interval);
-
-  }, [isAuthenticated, pollActiveAlerts]);
-
-
-
-  useEffect(() => {
-
-    if (!isAuthenticated || locationTick === 0 || !alertsBaselineDoneRef.current) return;
-
-    void pollActiveAlerts();
-
-  }, [isAuthenticated, locationTick, pollActiveAlerts]);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
+  }, [isAuthenticated, guardianLoading, pollActiveAlerts]);
 
 
 
@@ -755,6 +722,8 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
     () => ({
 
       refreshSeq,
+
+      activeAlertCount,
 
       bumpRefresh,
 
@@ -773,6 +742,8 @@ export function AlertsRealtimeProvider({ children }: { children: ReactNode }) {
     [
 
       refreshSeq,
+
+      activeAlertCount,
 
       bumpRefresh,
 

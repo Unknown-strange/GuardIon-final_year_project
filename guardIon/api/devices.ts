@@ -1,8 +1,11 @@
 import { apiRequest } from '@/api/client';
 import type { DeviceRegister, DeviceResponse, DeviceUpdate } from '@/api/types';
+import { dedupeInflight } from '@/utils/request-dedupe';
 
 export function listDevices() {
-  return apiRequest<DeviceResponse[]>('/devices/', { auth: true, timeoutMs: 45000 });
+  return dedupeInflight('devices:list', () =>
+    apiRequest<DeviceResponse[]>('/devices/', { auth: true, timeoutMs: 45000 }),
+  );
 }
 
 export function getDevice(deviceId: string) {
@@ -16,7 +19,7 @@ export function registerDevice(payload: DeviceRegister) {
     method: 'POST',
     auth: true,
     body: payload,
-    timeoutMs: 45000,
+    timeoutMs: 60000,
   });
 }
 

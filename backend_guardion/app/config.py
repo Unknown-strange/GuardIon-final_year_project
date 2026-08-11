@@ -3,6 +3,7 @@ Application Configuration
 Loads settings from environment variables
 """
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 from typing import List
 
@@ -84,6 +85,13 @@ class Settings(BaseSettings):
     IMAGEKIT_PRIVATE_KEY: str = ""
     IMAGEKIT_URL_ENDPOINT: str = ""
     IMAGEKIT_UPLOAD_FOLDER: str = "/guardion/children"
+
+    @field_validator("DATABASE_URL", "REDIS_URL", "JWT_SECRET_KEY", mode="before")
+    @classmethod
+    def strip_env_whitespace(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip()
+        return value
 
     @property
     def google_client_ids(self) -> List[str]:

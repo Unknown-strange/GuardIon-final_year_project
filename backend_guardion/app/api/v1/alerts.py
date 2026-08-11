@@ -3,6 +3,8 @@ Alerts API
 Endpoints for managing security alerts
 """
 
+import logging
+import time
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -28,6 +30,8 @@ from app.schemas.alert import (
 
 router = APIRouter()
 
+logger = logging.getLogger(__name__)
+
 
 @router.get("/active", response_model=AlertListResponse)
 def get_active_alerts(
@@ -37,6 +41,7 @@ def get_active_alerts(
     """
     Get all active (unresolved) alerts for the current user's children
     """
+    started = time.perf_counter()
     child_ids = accessible_child_ids(current_user, db)
     if not child_ids:
         return AlertListResponse(alerts=[], total_count=0)
@@ -46,6 +51,13 @@ def get_active_alerts(
         Alert.child_id.in_(child_ids),
         Alert.status.in_([AlertStatus.ACTIVE, AlertStatus.ACKNOWLEDGED])
     ).order_by(desc(Alert.created_at)).all()
+
+    logger.info(
+        "[OK] GET /alerts/active user=%s count=%d in %.0fms",
+        current_user.id,
+        len(alerts),
+        (time.perf_counter() - started) * 1000,
+    )
     
     return AlertListResponse(
         alerts=alerts,

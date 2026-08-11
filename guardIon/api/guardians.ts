@@ -1,4 +1,5 @@
 import { apiRequest } from '@/api/client';
+import { dedupeInflight } from '@/utils/request-dedupe';
 
 export type GuardianMemberResponse = {
   id: string;
@@ -20,9 +21,12 @@ export type GuardianInviteResponse = {
 };
 
 export async function listPendingInvites() {
-  return apiRequest<{ invites: GuardianInviteResponse[] }>('/guardians/invites', {
-    auth: true,
-  });
+  return dedupeInflight('guardians:invites', () =>
+    apiRequest<{ invites: GuardianInviteResponse[] }>('/guardians/invites', {
+      auth: true,
+      timeoutMs: 45000,
+    }),
+  );
 }
 
 export async function acceptGuardianInvite(guardianId: string) {

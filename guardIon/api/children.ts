@@ -35,7 +35,7 @@ export function createChild(payload: ChildCreate) {
     method: 'POST',
     auth: true,
     body: payload,
-    timeoutMs: 45000,
+    timeoutMs: 60000,
   });
 }
 
