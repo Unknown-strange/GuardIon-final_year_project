@@ -18,6 +18,7 @@ from app.models.location import LocationHistory
 from app.models.alert import Alert, AlertType, AlertStatus
 from app.api.child_access import guardian_user_ids_for_child
 from app.models.child import Child
+from app.models.safezone import SafeZone
 from app.mqtt.schemas import AlertPayload, CheckInResponsePayload, StatusPayload, TelemetryPayload
 from app.services.geofencing import (
     check_geofence_breach,
@@ -101,6 +102,17 @@ def _should_insert_location_history(device_id: str) -> bool:
     return True
 
 
+def _child_has_configured_zones(child_id: UUID, db) -> bool:
+    """One cheap lookup — skip all geofence work when the parent has not set any zones."""
+    return (
+        db.query(SafeZone.id)
+        .filter(SafeZone.child_id == child_id)
+        .limit(1)
+        .first()
+        is not None
+    )
+
+
 def _append_alert_for_device(
     broadcasts: list[tuple[str, dict]],
     alert,
@@ -138,7 +150,10 @@ async def _process_geofence_alerts(
 
     def geofence_work(db):
         device = db.query(Device).filter(Device.id == device_pk).first()
-        if not device:
+        if not device or not device.child_id:
+            return None
+
+        if not _child_has_configured_zones(device.child_id, db):
             return None
 
         child = db.query(Child).filter(Child.id == device.child_id).first()
@@ -282,13 +297,14 @@ async def handle_telemetry(payload: Dict):
                     "timestamp": timestamp.isoformat(),
                 }
 
-                if _should_run_geofence(device_id):
-                    geofence_task = {
-                        "device_pk": device.id,
-                        "latitude": latitude,
-                        "longitude": longitude,
-                        "accuracy": location.accuracy,
-                    }
+                if _should_run_geofence(device_id) and device.child_id:
+                    if _child_has_configured_zones(device.child_id, db):
+                        geofence_task = {
+                            "device_pk": device.id,
+                            "latitude": latitude,
+                            "longitude": longitude,
+                            "accuracy": location.accuracy,
+                        }
 
             if battery_level is not None:
                 low_battery_alert = check_low_battery_alert(device, battery_level, db)
