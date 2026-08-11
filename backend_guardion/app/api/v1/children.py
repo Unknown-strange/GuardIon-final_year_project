@@ -3,6 +3,8 @@ Children Management API
 Endpoints for managing child profiles
 """
 
+import logging
+import time
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -27,6 +29,8 @@ from app.services.missing_child_alerts import (
 from app.services.child_deletion import delete_child_profile
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 MISSING_ALERT_COOLDOWN_MINUTES = 30
 
@@ -54,6 +58,7 @@ def create_child(
     """
     Create a new child profile for the current user
     """
+    started = time.perf_counter()
     db_child = Child(
         user_id=current_user.id,
         name=child_data.name,
@@ -64,6 +69,14 @@ def create_child(
     db.add(db_child)
     db.commit()
     db.refresh(db_child)
+
+    logger.info(
+        "[OK] POST /children user=%s child_id=%s name=%r in %.0fms",
+        current_user.id,
+        db_child.id,
+        db_child.name,
+        (time.perf_counter() - started) * 1000,
+    )
     
     return db_child
 
@@ -76,10 +89,22 @@ def list_children(
     """
     Get all children the current user owns or co-guards
     """
+    started = time.perf_counter()
     child_ids = accessible_child_ids(current_user, db)
     if not child_ids:
+        logger.info(
+            "[OK] GET /children user=%s count=0 in %.0fms",
+            current_user.id,
+            (time.perf_counter() - started) * 1000,
+        )
         return []
     children = db.query(Child).filter(Child.id.in_(child_ids)).all()
+    logger.info(
+        "[OK] GET /children user=%s count=%d in %.0fms",
+        current_user.id,
+        len(children),
+        (time.perf_counter() - started) * 1000,
+    )
     return children
 
 

@@ -3,10 +3,11 @@ GuardIOn Backend API
 FastAPI application entry point
 """
 
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
+import time
 from sqlalchemy import text
 
 from app.config import settings
@@ -26,6 +27,7 @@ from app.api.v1 import (
     check_ins,
     uploads,
     activity,
+    guardian,
 )
 from app.websocket import endpoints as websocket_endpoints
 from app.mqtt.client import mqtt_client
@@ -101,9 +103,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def log_request_timing(request: Request, call_next):
+    """Log slow API requests to help diagnose timeouts and pool exhaustion."""
+    started = time.perf_counter()
+    response = await call_next(request)
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    path = request.url.path
+    if path.startswith("/health"):
+        return response
+    level = logging.WARNING if elapsed_ms >= 3000 else logging.INFO
+    logging.getLogger("guardion.http").log(
+        level,
+        "%s %s -> %s in %.0fms",
+        request.method,
+        path,
+        response.status_code,
+        elapsed_ms,
+    )
+    return response
+
+
 # Include API routers
 app.include_router(auth.router, prefix=f"{settings.API_V1_PREFIX}/auth", tags=["Authentication"])
 app.include_router(users.router, prefix=f"{settings.API_V1_PREFIX}/users", tags=["Users"])
+app.include_router(guardian.router, prefix=f"{settings.API_V1_PREFIX}/guardian", tags=["Guardian"])
 app.include_router(children.router, prefix=f"{settings.API_V1_PREFIX}/children", tags=["Children"])
 app.include_router(devices.router, prefix=f"{settings.API_V1_PREFIX}/devices", tags=["Devices"])
 app.include_router(locations.router, prefix=f"{settings.API_V1_PREFIX}/locations", tags=["Locations"])

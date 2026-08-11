@@ -40,6 +40,7 @@ LOCATION_HISTORY_MIN_SEC = 15.0
 _geofence_last_run: dict[str, float] = {}
 _location_insert_last: dict[str, float] = {}
 _geofence_sem = asyncio.Semaphore(1)
+_telemetry_sem = asyncio.Semaphore(1)
 
 ALERT_TYPE_MAP = {
     "SOS": AlertType.SOS,
@@ -331,7 +332,8 @@ async def handle_telemetry(payload: Dict):
             return loc_broadcast, broadcasts, geofence_task
 
         try:
-            result = await run_with_db_retry_async(save_work)
+            async with _telemetry_sem:
+                result = await run_with_db_retry_async(save_work)
         except PoolTimeoutError:
             logger.error(
                 "Telemetry skipped for %s: database pool exhausted",
